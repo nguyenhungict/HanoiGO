@@ -1,0 +1,608 @@
+% !TEX program = xelatex
+\documentclass[12pt,a4paper]{article}
+
+% ── Font & tiếng Việt (XeLaTeX) ──────────────────────────────────────────────
+\usepackage{fontspec}
+\usepackage{polyglossia}
+\setdefaultlanguage{vietnamese}
+\setotherlanguage{english}
+\setmainfont{Times New Roman}
+\setsansfont{Arial}
+\setmonofont{Courier New}
+
+% ── Layout & màu sắc ─────────────────────────────────────────────────────────
+\usepackage[top=2.5cm, bottom=2.5cm, left=3cm, right=2.5cm]{geometry}
+\usepackage{xcolor}
+\definecolor{primary}{RGB}{30,80,160}
+\definecolor{codebg}{RGB}{248,248,248}
+
+% ── Tiêu đề section ──────────────────────────────────────────────────────────
+\usepackage{titlesec}
+\titleformat{\section}{\large\bfseries\color{primary}}{\thesection.}{0.5em}{}[\titlerule]
+\titleformat{\subsection}{\normalsize\bfseries\color{primary}}{\thesubsection.}{0.5em}{}
+\titleformat{\subsubsection}{\normalsize\bfseries}{\thesubsubsection.}{0.5em}{}
+
+% ── Các gói tiện ích ─────────────────────────────────────────────────────────
+\usepackage{graphicx}
+\usepackage{hyperref}
+\usepackage{enumitem}
+\usepackage{array}
+\usepackage{booktabs}
+\usepackage{listings}
+\usepackage{fancyhdr}
+\usepackage{amsmath}
+
+\hypersetup{colorlinks=true, linkcolor=primary, urlcolor=primary}
+
+% ── Header / footer ──────────────────────────────────────────────────────────
+\pagestyle{fancy}
+\fancyhf{}
+\rfoot{\thepage}
+\renewcommand{\headrulewidth}{0.4pt}
+
+% ── Code listing ─────────────────────────────────────────────────────────────
+\lstset{
+  backgroundcolor=\color{codebg},
+  basicstyle=\ttfamily\small,
+  breaklines=true,
+  frame=single,
+  rulecolor=\color{gray!40},
+  numbers=left,
+  numberstyle=\tiny\color{gray},
+  xleftmargin=1em
+}
+
+% =============================================================================
+\begin{document}
+% =============================================================================
+
+\section{Tổng quan Dự án}
+
+HaNoi Go là một nền tảng web phục vụ khách du lịch nước ngoài đến Hà Nội, tập
+trung vào bốn vấn đề cốt lõi:
+
+\begin{enumerate}
+  \item \textbf{Khám phá địa điểm:} Thiếu nền tảng tổng hợp thông tin địa điểm
+        du lịch Hà Nội có bản đồ tích hợp, phù hợp với khách nước ngoài.
+  \item \textbf{Lập lịch trình tối ưu:} Khách du lịch thường mất nhiều thời gian
+        di chuyển không cần thiết do không biết cách nhóm địa điểm theo khu vực
+        và giờ mở cửa.
+  \item \textbf{Kết nối hoạt động:} Khách solo khó tìm người cùng tham gia một
+        hoạt động cụ thể trong thời gian ngắn tại Hà Nội.
+  \item \textbf{Gợi ý lưu trú và ăn uống:} Khách nước ngoài thiếu công cụ gợi ý
+        hotel và nhà hàng phù hợp với lịch trình và khu vực đang ở.
+        (Module này được triển khai tuỳ theo tiến độ.)
+\end{enumerate}
+
+% =============================================================================
+\section{Module 0: User \& Security}
+% =============================================================================
+
+Module này xử lý toàn bộ vòng đời tài khoản người dùng --- từ đăng ký, đăng
+nhập, lấy lại mật khẩu, đến quản trị hệ thống bởi Admin. Đây là nền tảng
+bảo mật cho tất cả module còn lại, vì mọi tính năng (lưu lịch trình, tạo
+activity, chat nhóm) đều yêu cầu xác thực.
+
+% -------------------------------------------------------------------------
+\subsection{Đăng ký tài khoản (Sign Up)}
+
+\subsubsection{Bài toán}
+
+Khách du lịch nước ngoài cần tạo tài khoản nhanh chóng để lưu lịch trình và
+tham gia activity. Form đăng ký phải tối giản, rõ ràng và thân thiện với người
+dùng quốc tế.
+
+\subsubsection{Luồng hoạt động}
+
+\begin{enumerate}
+  \item User truy cập trang \texttt{/signup}, nhập \textbf{email},
+        \textbf{username}, và \textbf{mật khẩu}.
+  \item Frontend validate inline: email đúng định dạng, username không chứa
+        ký tự đặc biệt, mật khẩu tối thiểu 8 ký tự.
+  \item Backend kiểm tra email và username chưa tồn tại trong DB
+        (\texttt{UNIQUE} constraint).
+  \item Mật khẩu được hash bằng \textbf{bcrypt} (cost factor 12) trước khi
+        lưu --- không bao giờ lưu plain text.
+  \item Hệ thống tạo bản ghi trong bảng \texttt{users} với
+        \texttt{role = USER}, \texttt{status = ACTIVE}.
+  \item Trả về \textbf{JWT access token} và \textbf{refresh token} ngay sau
+        khi đăng ký thành công --- user không cần đăng nhập lại.
+  \item Redirect đến trang chủ hoặc trang trước đó (nếu user bị redirect do
+        chưa đăng nhập).
+\end{enumerate}
+
+\subsubsection{Tính năng UI}
+
+\begin{itemize}
+  \item \textbf{Form đăng ký:} Ba trường Email, Username, Password với
+        label rõ ràng. Nút ``Sign Up'' vô hiệu hoá khi đang gửi request.
+  \item \textbf{Inline validation:} Thông báo lỗi xuất hiện ngay dưới từng
+        trường khi blur (rời khỏi ô nhập), không đợi submit.
+  \item \textbf{Password strength indicator:} Thanh hiển thị độ mạnh mật
+        khẩu (weak / fair / strong) dựa trên độ dài và ký tự đặc biệt.
+  \item \textbf{Link chuyển trang:} ``Already have an account? Log in''
+        dẫn đến trang Login.
+  \item \textbf{Error toasts:} Hiển thị lỗi từ server (email đã tồn tại,
+        username đã dùng) dưới dạng toast notification.
+\end{itemize}
+
+% -------------------------------------------------------------------------
+\subsection{Đăng nhập (Login)}
+
+\subsubsection{Bài toán}
+
+User đã có tài khoản cần đăng nhập để truy cập các tính năng cần xác thực.
+Hệ thống dùng \textbf{JWT stateless} --- không lưu session trên server, phù
+hợp với kiến trúc NestJS + Next.js tách biệt.
+
+\subsubsection{Luồng hoạt động}
+
+\begin{enumerate}
+  \item User nhập \textbf{email} và \textbf{mật khẩu} tại trang
+        \texttt{/login}.
+  \item Backend xác thực: tìm user theo email, so sánh mật khẩu với hash
+        bằng \texttt{bcrypt.compare()}.
+  \item Kiểm tra \texttt{status}: nếu \texttt{BANNED}, trả về lỗi
+        \texttt{403} kèm thông báo tài khoản bị khoá.
+  \item Nếu hợp lệ, sinh \textbf{Access Token} (JWT, TTL 15 phút) và
+        \textbf{Refresh Token} (JWT, TTL 7 ngày, lưu trong
+        \texttt{httpOnly cookie}).
+  \item Frontend lưu Access Token trong memory (không lưu localStorage để
+        tránh XSS). Refresh Token được gửi tự động qua cookie.
+  \item Khi Access Token hết hạn, frontend tự động gọi endpoint
+        \texttt{POST /auth/refresh} để lấy token mới mà không cần user
+        đăng nhập lại.
+\end{enumerate}
+
+\subsubsection{Tính năng UI}
+
+\begin{itemize}
+  \item \textbf{Form đăng nhập:} Hai trường Email và Password.
+        Nút ``Log In'' có loading spinner khi đang xử lý.
+  \item \textbf{Show / hide password:} Icon con mắt để toggle hiển thị
+        mật khẩu.
+  \item \textbf{``Forgot password?'':} Link dẫn đến trang Reset Password.
+  \item \textbf{Redirect sau login:} Nếu user bị chặn do chưa đăng nhập
+        (ví dụ cố vào \texttt{/trips}), sau khi login thành công sẽ
+        redirect về trang đó.
+  \item \textbf{Error state:} Thông báo ``Invalid email or password'' khi
+        sai thông tin, không tiết lộ email có tồn tại hay không (tránh
+        user enumeration).
+\end{itemize}
+
+% -------------------------------------------------------------------------
+\subsection{Đặt lại mật khẩu (Reset Password)}
+
+\subsubsection{Bài toán}
+
+User quên mật khẩu cần có cơ chế lấy lại tài khoản an toàn qua email.
+Token reset có thời hạn ngắn và chỉ dùng được một lần.
+
+\subsubsection{Luồng hoạt động}
+
+\begin{enumerate}
+  \item \textbf{Bước 1 --- Yêu cầu reset:} User vào trang
+        \texttt{/forgot-password}, nhập địa chỉ email.
+  \item Backend kiểm tra email có tồn tại trong DB. Nếu không tồn tại,
+        vẫn trả về thông báo thành công (tránh lộ thông tin tài khoản).
+  \item Hệ thống sinh \textbf{reset token} (random 32 bytes, encode
+        base64url), lưu hash của token vào bảng \texttt{password\_resets}
+        kèm \texttt{expires\_at = now() + 1 giờ}.
+  \item Gửi email chứa link dạng
+        \texttt{/reset-password?token=<token>} qua \textbf{Nodemailer}
+        (SMTP hoặc SendGrid).
+  \item \textbf{Bước 2 --- Đặt mật khẩu mới:} User click link trong
+        email, được dẫn đến trang \texttt{/reset-password}.
+  \item Backend validate token: kiểm tra hash trùng khớp và chưa hết hạn.
+        Nếu hợp lệ, cho phép user nhập mật khẩu mới.
+  \item Mật khẩu mới được hash bcrypt và cập nhật vào bảng \texttt{users}.
+        Token bị xoá khỏi \texttt{password\_resets} ngay sau khi dùng
+        (one-time use).
+\end{enumerate}
+
+\subsubsection{Schema bổ sung}
+
+\begin{lstlisting}[language=SQL]
+CREATE TABLE password_resets (
+  id         uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+  user_id    uuid REFERENCES users(id) ON DELETE CASCADE,
+  token_hash varchar NOT NULL,   -- bcrypt hash cua reset token
+  expires_at timestamptz NOT NULL,
+  created_at timestamptz DEFAULT now()
+);
+\end{lstlisting}
+
+\subsubsection{Tính năng UI}
+
+\begin{itemize}
+  \item \textbf{Trang Forgot Password (\texttt{/forgot-password}):}
+        Ô nhập email, nút ``Send Reset Link''. Sau khi gửi, hiển thị
+        thông báo ``Check your inbox'' dù email có tồn tại hay không.
+  \item \textbf{Trang Reset Password (\texttt{/reset-password}):}
+        Hai ô nhập ``New Password'' và ``Confirm Password'' với kiểm tra
+        khớp nhau. Nếu token hết hạn hoặc không hợp lệ, hiển thị thông
+        báo lỗi và nút ``Request a new link''.
+  \item \textbf{Thành công:} Sau khi đặt lại mật khẩu, redirect về trang
+        Login với toast ``Password updated. Please log in.''.
+\end{itemize}
+
+% -------------------------------------------------------------------------
+\subsection{Admin Site --- Quản lý người dùng}
+
+\subsubsection{Bài toán}
+
+Hệ thống cần giao diện quản trị để Admin có thể xem toàn bộ danh sách
+tài khoản, tìm kiếm, và khoá/mở khoá tài khoản vi phạm. Admin Site chỉ
+truy cập được bởi tài khoản có \texttt{role = ADMIN} --- mọi endpoint đều
+được bảo vệ bởi \textbf{RolesGuard}.
+
+\subsubsection{Phân quyền (RBAC)}
+
+Hệ thống định nghĩa hai role:
+
+\begin{center}
+\begin{tabular}{lll}
+  \toprule
+  \textbf{Role} & \textbf{Quyền} & \textbf{Ghi chú} \\
+  \midrule
+  \texttt{USER}  & Dùng toàn bộ tính năng app & Mặc định khi đăng ký \\
+  \texttt{ADMIN} & USER + quản lý tài khoản   & Gán thủ công trong DB \\
+  \bottomrule
+\end{tabular}
+\end{center}
+
+Trường \texttt{status} kiểm soát khả năng đăng nhập:
+
+\begin{center}
+\begin{tabular}{ll}
+  \toprule
+  \textbf{Status} & \textbf{Ý nghĩa} \\
+  \midrule
+  \texttt{ACTIVE} & Tài khoản hoạt động bình thường \\
+  \texttt{BANNED} & Bị khoá, trả về \texttt{403} khi cố đăng nhập \\
+  \bottomrule
+\end{tabular}
+\end{center}
+
+\subsubsection{Tính năng Admin}
+
+\begin{itemize}
+  \item \textbf{Danh sách user (\texttt{GET /admin/users}):} Bảng hiển
+        thị toàn bộ tài khoản với các cột: Avatar, Username, Email, Role,
+        Status, Ngày tạo. Hỗ trợ \textbf{phân trang} (20 user/trang) và
+        \textbf{sắp xếp} theo ngày tạo hoặc username.
+  \item \textbf{Tìm kiếm:} Thanh search lọc theo email hoặc username
+        (tìm kiếm không phân biệt hoa thường, \texttt{ILIKE}).
+  \item \textbf{Khoá tài khoản (\texttt{PATCH /admin/users/:id/ban}):}
+        Chuyển \texttt{status} từ \texttt{ACTIVE} sang \texttt{BANNED}.
+        User bị đăng xuất ngay lập tức (invalidate token bằng cách tăng
+        \texttt{token\_version} trong DB).
+  \item \textbf{Mở khoá tài khoản (\texttt{PATCH /admin/users/:id/unban}):}
+        Chuyển \texttt{status} về \texttt{ACTIVE}.
+  \item \textbf{Xem chi tiết user:} Trang profile đọc-only hiển thị
+        thông tin tài khoản và lịch sử hoạt động (số trip đã tạo, số
+        activity đã tham gia).
+\end{itemize}
+
+\subsubsection{Bảo vệ Route}
+
+\begin{lstlisting}[language={}]
+-- Backend: RolesGuard (NestJS)
+@Roles('ADMIN')
+@UseGuards(JwtAuthGuard, RolesGuard)
+@Get('/admin/users')
+listUsers() { ... }
+
+-- Frontend: Middleware Next.js
+-- Redirect ve /404 neu user.role !== 'ADMIN'
+export function middleware(request: NextRequest) {
+  const token = request.cookies.get('access_token');
+  const payload = decodeJwt(token);
+  if (payload.role !== 'ADMIN') {
+    return NextResponse.redirect('/404');
+  }
+}
+\end{lstlisting}
+
+\subsubsection{Tính năng UI (Admin)}
+
+\begin{itemize}
+  \item \textbf{Layout riêng:} Admin Site có sidebar navigation riêng
+        tách biệt với giao diện người dùng thông thường. Truy cập qua
+        \texttt{/admin}.
+  \item \textbf{User table:} Bảng dữ liệu với cột Status hiển thị badge
+        màu (xanh: Active, đỏ: Banned). Mỗi row có dropdown action ``Ban''
+        / ``Unban'' với confirm dialog trước khi thực thi.
+  \item \textbf{Search bar:} Lọc theo email hoặc username realtime với
+        debounce 300ms.
+  \item \textbf{Phân trang:} Pagination component ở cuối bảng, hiển thị
+        tổng số user và trang hiện tại.
+  \item \textbf{Toast notification:} Xác nhận hành động thành công hoặc
+        thất bại sau mỗi thao tác Ban/Unban.
+\end{itemize}
+
+% =============================================================================
+\section{Các Module Chính}
+% =============================================================================
+
+\subsection{Khám phá Địa điểm}
+
+\subsubsection{Bài toán}
+
+Khách du lịch nước ngoài cần một nơi tra cứu thông tin địa điểm du lịch tại
+Hà Nội một cách trực quan, có bản đồ tích hợp và khả năng lọc theo khu vực
+hoặc loại hình. Module này đóng vai trò \textbf{foundation data} cho toàn bộ
+hệ thống --- bộ dữ liệu 100--150 địa điểm được tái dụng bởi tất cả các module
+còn lại.
+
+\subsubsection{Tính năng}
+
+\begin{itemize}
+  \item \textbf{Danh sách địa điểm:} Hiển thị tên, ảnh, loại hình, khu vực,
+        giờ mở cửa, thời gian tham quan ước tính.
+  \item \textbf{Filter:} Lọc theo khu vực (Hoàn Kiếm, Ba Đình, Tây Hồ, Đống Đa,
+        Hai Bà Trưng, Cầu Giấy) và loại hình (di tích, bảo tàng, hồ, chùa,
+        công viên).
+  \item \textbf{Map view:} Hiển thị toàn bộ địa điểm dưới dạng pin trên bản đồ
+        Leaflet. Click vào pin để xem thông tin chi tiết.
+  \item \textbf{Trang chi tiết:} Thông tin đầy đủ kèm vị trí trên bản đồ và
+        địa điểm lân cận trong bán kính 1 km (tái dụng PostGIS).
+\end{itemize}
+
+\subsubsection{Triển khai}
+
+Dữ liệu địa điểm được lưu trong PostgreSQL với PostGIS. Truy vấn địa điểm lân
+cận tái dụng \texttt{ST\_DWithin} --- cùng cơ chế với Geospatial Search nhưng
+phục vụ trang chi tiết thay vì tìm kiếm theo GPS của user.
+
+\begin{lstlisting}
+SELECT id, name, category, district,
+       opening_hours, visit_duration_min,
+       ST_AsGeoJSON(location) AS geojson
+FROM   places
+WHERE  district = :district        -- filter khu vuc
+  AND  category = ANY(:categories) -- filter loai hinh
+ORDER  BY name;
+\end{lstlisting}
+
+% -------------------------------------------------------------------------
+\subsection{Trip Planner}
+
+\subsubsection{Bài toán}
+
+Người dùng chọn danh sách địa điểm du lịch muốn đến tại Hà Nội cùng số ngày
+và điểm xuất phát. Hệ thống tự động sắp xếp lịch trình theo ngày sao cho tổng
+quãng đường di chuyển là nhỏ nhất, đồng thời thoả mãn ràng buộc về giờ mở cửa
+và thời gian tham quan. Lịch trình được hiển thị trực tiếp trên bản đồ Leaflet.
+
+\subsubsection{Thuật toán}
+
+Bài toán được mô hình hoá như biến thể của \textbf{Travelling Salesman Problem
+(TSP)} có ràng buộc thời gian. Hệ thống triển khai thuật toán
+\textbf{Greedy Nearest Neighbor} kết hợp \textbf{Cluster-first, Route-second},
+với hai phương pháp tính khoảng cách khác nhau tuỳ theo mục đích:
+
+\begin{enumerate}
+  \item \textbf{Bước 1 --- Clustering:} Phân nhóm địa điểm theo khu vực địa lý
+        bằng K-Means. Khoảng cách dùng \textbf{Haversine Formula} --- đủ chính
+        xác cho so sánh tương đối, không cần khoảng cách đường thực tế.
+        Mỗi ngày được gán một cụm.
+
+  \item \textbf{Bước 2 --- Routing:} Trong mỗi cụm, sắp xếp thứ tự tham quan
+        bằng Greedy Nearest Neighbor. Hệ thống gọi \textbf{OSRM Table API}
+        một lần duy nhất để lấy ma trận khoảng cách đường thực tế giữa tất cả
+        các cặp địa điểm trong cụm --- tránh sai lệch do hồ, ngõ cụt, đường
+        một chiều. Tại mỗi bước chọn địa điểm gần nhất chưa được thăm và kiểm
+        tra ràng buộc giờ mở cửa.
+
+  \item \textbf{Bước 3 --- Ràng buộc:} Loại bỏ địa điểm không khả thi về thời
+        gian, đề xuất thay thế trong cùng khu vực.
+\end{enumerate}
+
+\subsubsection{Tính toán khoảng cách}
+
+\textbf{Bước 1 --- Haversine Formula} (K-Means clustering):
+
+\[
+  d = 2r \arcsin\!\left(\sqrt{
+    \sin^2\!\left(\frac{\Delta\phi}{2}\right)
+    + \cos\phi_1\cos\phi_2\sin^2\!\left(\frac{\Delta\lambda}{2}\right)
+  }\right)
+\]
+
+trong đó $\phi$ là vĩ độ, $\lambda$ là kinh độ, $r = 6{,}371\text{ km}$.
+
+\medskip
+\textbf{Bước 2 --- OSRM Table API} (Greedy Nearest Neighbor routing):
+
+OSRM (Open Source Routing Machine) là engine định tuyến mã nguồn mở dựa trên
+dữ liệu OpenStreetMap. Một request duy nhất trả về toàn bộ ma trận khoảng cách
+thực tế giữa $N$ địa điểm, thay vì $N(N-1)/2$ request riêng lẻ:
+
+\begin{lstlisting}[language={}]
+GET /table/v1/driving/
+  105.8412,21.0285;   -- Hoan Kiem
+  105.8412,21.0277;   -- Den Ngoc Son
+  105.8380,21.0227;   -- Bao tang HN
+  105.8360,21.0278    -- Van Mieu
+
+Response:
+  durations: [[0,   180, 420, 780],
+               [180,   0, 390, 750],
+               [420, 390,   0, 360],
+               [780, 750, 360,   0]]  -- giay
+\end{lstlisting}
+
+OSRM chạy dưới dạng service riêng trong \texttt{docker-compose}, dùng dữ liệu
+OSM Việt Nam, không phụ thuộc API ngoài, không phát sinh chi phí runtime.
+
+\subsubsection{Ví dụ đầu vào / đầu ra}
+
+\begin{lstlisting}[language={}]
+Input:
+  Dia diem: [Van Mieu, Ho Tay, Hoan Kiem, Bao tang HN, Lang Chu Tich]
+  So ngay: 2
+  Diem xuat phat: Hoan Kiem
+
+Output:
+  Ngay 1: Hoan Kiem (8:00) -> Bao tang HN (10:00) -> Van Mieu (14:00)
+  Ngay 2: Lang Chu Tich (8:00) -> Ho Tay (10:30)
+\end{lstlisting}
+
+% -------------------------------------------------------------------------
+\subsection{Activity \& Group Chat}
+
+\subsubsection{Bài toán}
+
+Khách du lịch solo muốn tìm người cùng tham gia một hoạt động cụ thể tại Hà
+Nội trong thời gian ngắn --- nhưng các nền tảng hiện tại (Facebook, Meetup)
+không gắn hoạt động trực tiếp lên bản đồ và không hỗ trợ group chat tức thì
+sau khi ghép nhóm.
+
+\subsubsection{Luồng hoạt động}
+
+\begin{enumerate}
+  \item \textbf{Tạo activity:} User điền tên hoạt động, thời gian, mô tả, số
+        người tối đa. Địa điểm có thể chọn từ dataset hoặc nhập tự do (kèm
+        toạ độ GPS).
+  \item \textbf{Hiển thị trên map:} Activity xuất hiện dưới dạng pin trên bản
+        đồ Leaflet. Các user khác click vào pin để xem chi tiết và gửi request
+        tham gia.
+  \item \textbf{Duyệt thành viên:} Chủ activity nhận thông báo, xem profile
+        người xin tham gia và duyệt hoặc từ chối.
+  \item \textbf{Group chat:} Sau khi được duyệt, thành viên tự động vào group
+        chat của activity. Chat đồng bộ realtime qua WebSocket và Redis Pub/Sub.
+\end{enumerate}
+
+\subsubsection{Triển khai}
+
+\begin{lstlisting}[language=SQL]
+CREATE TABLE activities (
+  id           uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+  host_id      uuid REFERENCES users(id),
+  place_id     uuid REFERENCES places(id),  -- null neu tu nhap
+  title        text NOT NULL,
+  description  text,
+  location     geometry(Point, 4326),       -- toa do hien tren map
+  scheduled_at timestamptz NOT NULL,
+  max_members  int DEFAULT 10,
+  created_at   timestamptz DEFAULT now()
+);
+
+CREATE TABLE activity_members (
+  activity_id  uuid REFERENCES activities(id),
+  user_id      uuid REFERENCES users(id),
+  status       text CHECK (status IN ('pending','approved','rejected')),
+  PRIMARY KEY (activity_id, user_id)
+);
+\end{lstlisting}
+
+\textbf{Realtime:} Tin nhắn group chat được phân phối qua \textbf{WebSocket
+Gateway} (NestJS) và \textbf{Redis Pub/Sub}. Mỗi activity có một Redis channel
+riêng theo \texttt{activity:\{id\}}. Khi thành viên được duyệt, server tự động
+subscribe user vào channel tương ứng.
+
+\begin{lstlisting}[language={}]
+-- Phan phoi tin nhan group chat
+Channel: activity:{activity_id}
+Payload: { userId, username, message, timestamp }
+
+-- Server subscribe user sau khi duyet
+redis.subscribe(`activity:${activityId}`)
+\end{lstlisting}
+
+% -------------------------------------------------------------------------
+\subsection{AI Mentor (tuỳ tiến độ)}
+
+\subsubsection{Bài toán}
+
+Khách du lịch cần gợi ý hotel và nhà hàng phù hợp với lịch trình và khu vực
+đang ở, thay vì phải tìm kiếm trên nhiều nền tảng khác nhau.
+
+\subsubsection{Triển khai}
+
+Module sử dụng \textbf{Claude API (claude-sonnet)} kết hợp \textbf{web search
+tool} để gợi ý dựa trên context lịch trình của user (khu vực, ngày, ngân sách).
+Thông tin hotel và nhà hàng được tìm kiếm realtime --- không cần maintain dataset
+riêng, tránh vấn đề dữ liệu lỗi thời.
+
+\begin{lstlisting}[language={}]
+System:
+  You are a Hanoi travel advisor.
+  Given the user's itinerary and current district,
+  suggest suitable hotels and restaurants nearby.
+  Use web search for current availability and reviews.
+  Keep suggestions concise with name, price range,
+  and one-line reason. Respond in English.
+
+User: I'm staying near Hoan Kiem for 2 nights,
+      budget mid-range. Any hotel suggestions?
+\end{lstlisting}
+
+% =============================================================================
+\section{Kiến trúc Hệ thống}
+% =============================================================================
+
+\subsection{Tổng quan}
+
+\begin{center}
+\begin{tabular}{ll}
+  \toprule
+  \textbf{Tầng} & \textbf{Công nghệ} \\
+  \midrule
+  Frontend         & Next.js 14, Tailwind CSS, Leaflet.js \\
+  Backend API      & NestJS (Node.js), WebSocket Gateway  \\
+  AI Integration   & Claude API (claude-sonnet) + web search tool \\
+  Routing engine   & OSRM (self-hosted, docker-compose)   \\
+  Database chính   & PostgreSQL + PostGIS                 \\
+  Cache / Realtime & Redis Pub/Sub                        \\
+  Maps             & OpenStreetMap + Leaflet (miễn phí)   \\
+  \bottomrule
+\end{tabular}
+\end{center}
+
+\subsection{Luồng dữ liệu chính}
+
+\begin{enumerate}
+  \item \textbf{Khám phá địa điểm:} Frontend gửi filter → NestJS truy vấn
+        PostgreSQL → trả về danh sách + GeoJSON để render Leaflet pins.
+
+  \item \textbf{Trip Planner:} Frontend gửi danh sách địa điểm và số ngày →
+        NestJS chạy K-Means (Haversine) → gọi OSRM Table API lấy ma trận
+        khoảng cách thực tế → chạy Greedy Nearest Neighbor → trả về lịch
+        trình JSON + GeoJSON route để render trên map.
+
+  \item \textbf{Activity \& Group Chat:} User tạo activity → lưu DB, render
+        pin trên map → user khác request tham gia → chủ duyệt → NestJS
+        subscribe user vào Redis channel → WebSocket đồng bộ group chat
+        realtime.
+
+  \item \textbf{AI Mentor:} Frontend gửi context lịch trình → NestJS gọi
+        Claude API → Claude web search nếu cần → trả về gợi ý dạng chat.
+\end{enumerate}
+
+% =============================================================================
+\section{Dữ liệu \& Nội dung}
+% =============================================================================
+
+Dự án sử dụng \textbf{một bộ dữ liệu duy nhất} (100--150 địa điểm du lịch tại
+Hà Nội) phục vụ cho cả ba module chính, tránh phân tán công sức thu thập và
+bảo trì. Dữ liệu được curate từ các nguồn mở:
+
+\begin{itemize}
+  \item \textbf{OpenStreetMap (Overpass API)} --- toạ độ, tên, phân loại
+        (giấy phép ODbL, miễn phí). Dữ liệu OSM Việt Nam cũng dùng để khởi
+        tạo OSRM routing engine.
+  \item \textbf{Bổ sung thủ công} --- giờ mở cửa, thời gian tham quan ước
+        tính, ảnh đại diện, mô tả ngắn bằng tiếng Anh.
+\end{itemize}
+
+\textbf{Phạm vi dữ liệu:} Chỉ bao gồm địa điểm du lịch (di tích, bảo tàng,
+hồ, công viên, chùa,...). Hotel và nhà hàng không nằm trong dataset tĩnh ---
+được tra cứu realtime bởi AI Mentor khi cần.
+
+\medskip
+Phân loại theo \textbf{khu vực} phục vụ clustering và filter:
+Hoàn Kiếm, Ba Đình, Tây Hồ, Đống Đa, Hai Bà Trưng, Cầu Giấy.
+
+\end{document}
