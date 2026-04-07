@@ -1,12 +1,10 @@
 "use client";
 
 import { useState } from "react";
-import { useRouter } from "next/navigation";
 import Link from "next/link";
-import { register } from "@/lib/actions";
+import { registerAction } from "@/lib/actions";
 
 export default function RegisterPage() {
-  const router = useRouter();
   const [formData, setFormData] = useState({
     username: "",
     email: "",
@@ -32,17 +30,18 @@ export default function RegisterPage() {
     }
 
     try {
-      await register({
+      const result = await registerAction({
         username: formData.username,
         email: formData.email,
         password: formData.password,
       });
-      // Đăng ký thành công, tự động login (backend đã trả về token)
-      // Tạm thời redirect về login hoặc home
-      router.push("/");
+      
+      if (result?.error) {
+        setError(result.error);
+        setLoading(false);
+      }
     } catch (err: any) {
-      setError(err.response?.data?.message || err.message);
-    } finally {
+      setError("Có lỗi hệ thống xảy ra");
       setLoading(false);
     }
   };

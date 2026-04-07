@@ -57,3 +57,35 @@
   white-space: nowrap;
   direction: ltr;
 }
+
+/* Discovery Map Background */
+.map-bg {
+  background-image: url(https://lh3.googleusercontent.com/aida-public/AB6AXuCDuj667b1KGLZvDyMCtmJfR_aCBOzrI4DWc7-8Pt_PrnjTxTTjJugC9QQmeQiRVoxebycJnQjg6Qujr7g3Cj-_n0onIvKmJlZ756UgehWB2UwVf1dfl-CEsVmsbMKEwZm4itFyEEQ7h9RZsMsNfw_YaKkObXD_i_mQViE7XXHK0FtdMEZPBD_9BTbHye6XAXKnEg5kBulYfAf11kZphBOZ03hEAQ63YGuAuFSBh0yg12wPCn4yeLjMyRiYUxkUgQAProsWDp98qHSI);
+  background-size: cover;
+  background-position: center;
+}
+
+/* Hide Scrollbar Utility */
+.hide-scrollbar::-webkit-scrollbar {
+  display: none;
+}
+.hide-scrollbar {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
+}
+
+/* Fill material symbols on active */
+.fill-1 {
+  font-variation-settings: 'FILL' 1, 'wght' 400, 'GRAD' 0, 'opsz' 24 !important;
+}
+
+/* Hide Browser Default Password Reveal Button (Edge, IE, etc) */
+input::-ms-reveal,
+input::-ms-clear {
+  display: none;
+}
+
+/* Focus visibility for better UX */
+input:focus::-ms-reveal {
+  display: none;
+}

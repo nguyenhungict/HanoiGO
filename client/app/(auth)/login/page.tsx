@@ -1,8 +1,32 @@
 "use client";
 
 import Link from "next/link";
+import { useState } from "react";
+import { loginAction } from "@/lib/actions";
 
 export default function LoginPage() {
+  const [error, setError] = useState<string | null>(null);
+  const [loading, setLoading] = useState(false);
+
+  const [showPassword, setShowPassword] = useState(false);
+
+  async function handleSubmit(e: React.FormEvent<HTMLFormElement>) {
+    e.preventDefault();
+    setError(null);
+    setLoading(true);
+
+    const formData = new FormData(e.currentTarget);
+    const email = formData.get("email");
+    const password = formData.get("password");
+
+    const result = await loginAction({ email, password });
+    
+    if (result?.error) {
+      setError(result.error);
+    }
+    setLoading(false);
+  }
+
   return (
     <div className="min-h-screen bg-surface font-body text-on-surface antialiased flex flex-col">
       {/* TopNavBar */}
@@ -69,14 +93,23 @@ export default function LoginPage() {
               <h1 className="text-4xl font-extrabold text-on-surface tracking-tight mb-2 font-headline leading-tight">Access your journey.</h1>
               <p className="text-on-surface-variant font-body">Don't have an account? <Link className="text-primary font-semibold hover:underline" href="/register">Create an account</Link></p>
             </header>
-            <form className="space-y-6" onSubmit={(e) => e.preventDefault()}>
+            
+            {error && (
+              <div className="mb-6 p-4 bg-error-container text-error rounded-xl text-sm font-medium border border-error/20">
+                {error}
+              </div>
+            )}
+
+            <form className="space-y-6" onSubmit={handleSubmit}>
               <div className="space-y-2">
                 <label className="block text-xs font-bold uppercase tracking-widest text-on-surface-variant ml-1" htmlFor="email">Email Address</label>
                 <input 
                   className="ghost-input w-full px-6 py-4 rounded-xl text-on-surface placeholder:text-outline/50 border border-outline-variant/30 focus:border-primary/50 outline-none transition-all" 
                   id="email" 
+                  name="email"
                   placeholder="name@hanoigo.com" 
                   type="email"
+                  required
                 />
               </div>
               <div className="space-y-2">
@@ -85,11 +118,19 @@ export default function LoginPage() {
                   <input 
                     className="ghost-input w-full px-6 py-4 rounded-xl text-on-surface placeholder:text-outline/50 border border-outline-variant/30 focus:border-primary/50 outline-none transition-all" 
                     id="password" 
+                    name="password"
                     placeholder="••••••••" 
-                    type="password"
+                    type={showPassword ? "text" : "password"}
+                    required
                   />
-                  <button className="absolute right-6 top-1/2 -translate-y-1/2 text-outline-variant hover:text-primary transition-colors" type="button">
-                    <span className="material-symbols-outlined text-lg">visibility</span>
+                  <button 
+                    onClick={() => setShowPassword(!showPassword)}
+                    className="absolute right-6 top-1/2 -translate-y-1/2 text-outline-variant hover:text-primary transition-colors" 
+                    type="button"
+                  >
+                    <span className="material-symbols-outlined text-lg">
+                      {showPassword ? "visibility_off" : "visibility"}
+                    </span>
                   </button>
                 </div>
               </div>
@@ -101,10 +142,11 @@ export default function LoginPage() {
                 <Link className="text-sm text-primary font-medium hover:underline" href="/forgot-password">Forgot password?</Link>
               </div>
               <button 
-                className="w-full bg-primary text-white py-5 rounded-xl font-bold text-lg shadow-lg shadow-primary/20 hover:shadow-primary/30 active:scale-[0.98] transition-all" 
+                disabled={loading}
+                className="w-full bg-primary text-white py-5 rounded-xl font-bold text-lg shadow-lg shadow-primary/20 hover:shadow-primary/30 active:scale-[0.98] transition-all disabled:opacity-50 disabled:active:scale-100" 
                 type="submit"
               >
-                Continue
+                {loading ? "Verifying..." : "Continue"}
               </button>
             </form>
             <footer className="mt-12 text-center">

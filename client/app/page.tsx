@@ -1,6 +1,12 @@
 import Link from 'next/link';
+import { cookies } from 'next/headers';
+import { logoutAction } from '@/lib/actions';
 
-export default function HomePage() {
+export default async function HomePage() {
+  const cookieStore = await cookies();
+  const token = cookieStore.get('accessToken')?.value;
+  const username = cookieStore.get('username')?.value;
+
   return (
     <div className="bg-surface text-on-surface antialiased min-h-screen">
       {/* Top Navigation Bar */}
@@ -13,13 +19,30 @@ export default function HomePage() {
             <a className="text-neutral-600 hover:text-rose-500 transition-colors duration-300" href="#experiences">Experiences</a>
             <a className="text-neutral-600 hover:text-rose-500 transition-colors duration-300" href="#">Bookings</a>
           </div>
+          
           <div className="flex items-center gap-4">
-            <Link href="/login">
-              <button className="text-neutral-600 font-medium px-4 py-2 hover:text-rose-500 transition-all">Log In</button>
-            </Link>
-            <Link href="/register">
-              <button className="bg-gradient-to-br from-primary to-primary-container text-white font-bold px-6 py-2.5 rounded-md hover:opacity-90 transition-all shadow-md">Sign Up</button>
-            </Link>
+            {token ? (
+              <div className="flex items-center gap-4">
+                <Link href="/discovery" className="flex items-center gap-2 group">
+                   <div className="w-8 h-8 rounded-full bg-rose-500/10 border border-rose-500/20 flex items-center justify-center overflow-hidden">
+                      <span className="material-symbols-outlined text-rose-500 text-xl">account_circle</span>
+                   </div>
+                   <span className="text-sm font-bold text-neutral-700 group-hover:text-rose-500 transition-colors">{username}</span>
+                </Link>
+                <form action={logoutAction}>
+                  <button type="submit" className="text-xs font-bold text-neutral-500 hover:text-rose-500 transition-colors uppercase tracking-widest border-l border-neutral-200 pl-4">Logout</button>
+                </form>
+              </div>
+            ) : (
+              <>
+                <Link href="/login">
+                  <button className="text-neutral-600 font-medium px-4 py-2 hover:text-rose-500 transition-all">Log In</button>
+                </Link>
+                <Link href="/register">
+                  <button className="bg-gradient-to-br from-primary to-primary-container text-white font-bold px-6 py-2.5 rounded-md hover:opacity-90 transition-all shadow-md">Sign Up</button>
+                </Link>
+              </>
+            )}
           </div>
         </div>
       </nav>
