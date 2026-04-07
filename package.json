@@ -1,10 +1,10 @@
 {
   "name": "hanoigo",
   "scripts": {
-    "dev": "concurrently \"npm run dev:api\" \"npm run dev:client\"",
-    "dev:api": "cd api && npm run start:dev",
+    "dev": "concurrently \"npm run dev:actions\" \"npm run dev:client\"",
+    "dev:actions": "cd actions && npm run start:dev",
     "dev:client": "cd client && npm run dev",
-    "install:all": "cd api && npm install && cd ../client && npm install"
+    "install:all": "cd actions && npm install && cd ../client && npm install"
   },
   "devDependencies": {
     "concurrently": "latest"

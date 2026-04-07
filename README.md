@@ -1,7 +1,7 @@
 # HanoiGO
 
 Repository structure:
-- `/api`: NestJS backend
+- `/actions`: NestJS backend
 - `/client`: Next.js frontend
 
 Scripts:
