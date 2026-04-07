@@ -11,6 +11,6 @@ export class RegisterDto {
   })
   password: string;
 
-  @IsNotEmpty()
-  fullName: string;
+  @IsNotEmpty({ message: 'Tên người dùng không được để trống' })
+  username: string;
 }

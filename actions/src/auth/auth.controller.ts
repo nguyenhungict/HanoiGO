@@ -40,14 +40,14 @@ export class AuthController {
 
   @UseGuards(AuthGuard('jwt'))
   @Post('logout')
-  async logout(@Request() req) {
+  async logout(@Request() req: any) {
     return this.authService.logout(req.user.userId);
   }
 
   // --- API MỚI: CHANGE PASSWORD ---
   @UseGuards(AuthGuard('jwt')) // Yêu cầu đăng nhập
   @Patch('change-password')
-  async changePassword(@Request() req, @Body() dto: ChangePasswordDto) {
+  async changePassword(@Request() req: any, @Body() dto: ChangePasswordDto) {
     return this.authService.changePassword(req.user.userId, dto);
   }
 }

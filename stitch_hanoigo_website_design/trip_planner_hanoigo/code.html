@@ -1,0 +1,326 @@
+<!DOCTYPE html>
+
+<html class="light" lang="vi"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>HanoiGO - Trip Planner</title>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=Be+Vietnam+Pro:wght@400;600;700;800&amp;family=Inter:wght@400;500;600&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<script id="tailwind-config">
+        tailwind.config = {
+            darkMode: "class",
+            theme: {
+                extend: {
+                    "colors": {
+                        "primary-container": "#ff5a5f",
+                        "on-primary-container": "#61000e",
+                        "on-tertiary": "#ffffff",
+                        "on-tertiary-fixed-variant": "#00531a",
+                        "secondary": "#685d4a",
+                        "error": "#ba1a1a",
+                        "tertiary": "#006e25",
+                        "error-container": "#ffdad6",
+                        "surface-container-lowest": "#ffffff",
+                        "on-error-container": "#93000a",
+                        "on-tertiary-fixed": "#002106",
+                        "background": "#faf9f6",
+                        "secondary-fixed": "#f0e0c8",
+                        "on-secondary-fixed-variant": "#4f4533",
+                        "surface-container-high": "#e9e8e5",
+                        "on-error": "#ffffff",
+                        "on-surface-variant": "#5a403f",
+                        "surface-dim": "#dbdad7",
+                        "on-background": "#1a1c1a",
+                        "on-primary-fixed": "#410007",
+                        "on-secondary-fixed": "#221b0b",
+                        "tertiary-fixed-dim": "#66df75",
+                        "primary-fixed": "#ffdad8",
+                        "surface-container-low": "#f4f3f1",
+                        "on-primary": "#ffffff",
+                        "on-secondary": "#ffffff",
+                        "on-secondary-container": "#6c614e",
+                        "surface-container-highest": "#e3e2e0",
+                        "surface-tint": "#b52330",
+                        "outline-variant": "#e2bebc",
+                        "on-surface": "#1a1c1a",
+                        "surface-variant": "#e3e2e0",
+                        "primary-fixed-dim": "#ffb3b0",
+                        "secondary-fixed-dim": "#d3c5ad",
+                        "surface-bright": "#faf9f6",
+                        "inverse-surface": "#2f312f",
+                        "secondary-container": "#eddec5",
+                        "outline": "#8e706f",
+                        "primary": "#b52330",
+                        "inverse-on-surface": "#f2f1ee",
+                        "on-tertiary-container": "#00350d",
+                        "tertiary-fixed": "#83fc8e",
+                        "surface-container": "#efeeeb",
+                        "tertiary-container": "#2ba947",
+                        "surface": "#faf9f6",
+                        "inverse-primary": "#ffb3b0",
+                        "on-primary-fixed-variant": "#92001b"
+                    },
+                    "borderRadius": {
+                        "DEFAULT": "0.25rem",
+                        "lg": "0.5rem",
+                        "xl": "0.75rem",
+                        "full": "9999px"
+                    },
+                    "fontFamily": {
+                        "headline": ["Be Vietnam Pro"],
+                        "body": ["Inter"],
+                        "label": ["Inter"]
+                    }
+                },
+            },
+        }
+    </script>
+<style>
+        .material-symbols-outlined {
+            font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24;
+            display: inline-block;
+            line-height: 1;
+        }
+        ::-webkit-scrollbar { width: 6px; height: 6px; }
+        ::-webkit-scrollbar-track { background: transparent; }
+        ::-webkit-scrollbar-thumb { background: #e3e2e0; border-radius: 10px; }
+        ::-webkit-scrollbar-thumb:hover { background: #d3c5ad; }
+    </style>
+</head>
+<body class="bg-background text-on-surface font-body antialiased overflow-hidden">
+<!-- Top Navigation Bar -->
+<nav class="fixed top-0 w-full z-50 flex justify-between items-center px-8 py-4 w-full bg-[#faf9f6]/80 backdrop-blur-md font-['Be_Vietnam_Pro'] text-sm tracking-wide">
+<div class="flex items-center gap-8">
+<span class="text-2xl font-bold tracking-tighter text-[#b52330]">HanoiGO</span>
+<div class="hidden md:flex gap-6">
+<a class="text-stone-600 hover:text-stone-900 transition-colors" href="#">Destinations</a>
+<a class="text-[#b52330] font-semibold border-b-2 border-[#b52330] pb-1" href="#">Itineraries</a>
+<a class="text-stone-600 hover:text-stone-900 transition-colors" href="#">Experiences</a>
+<a class="text-stone-600 hover:text-stone-900 transition-colors" href="#">Bookings</a>
+</div>
+</div>
+<div class="flex items-center gap-4">
+<button class="p-2 hover:bg-stone-100/50 rounded-lg transition-transform active:scale-95 duration-200">
+<span class="material-symbols-outlined" data-icon="notifications">notifications</span>
+</button>
+<button class="p-2 hover:bg-stone-100/50 rounded-lg transition-transform active:scale-95 duration-200">
+<span class="material-symbols-outlined" data-icon="account_circle">account_circle</span>
+</button>
+</div>
+</nav>
+<!-- Side Navigation Bar -->
+<aside class="h-screen w-64 fixed left-0 top-0 pt-24 bg-[#faf9f6] z-40 hidden md:block">
+<div class="px-6 mb-8">
+<div class="flex items-center gap-3 mb-4">
+<div class="w-10 h-10 rounded-full bg-surface-container-high overflow-hidden">
+<img class="w-full h-full object-cover" data-alt="professional portrait of a travel curator smiling in a soft lit studio environment" src="https://lh3.googleusercontent.com/aida-public/AB6AXuA7VsuLwmgGE2Qfx8ZLAbDDQF8IOtLaMhNxqW9HoD71Zo048aqpmR3X49wLUg89kfmZoY0R6we0OjxzIlKRiIBUBP3yAfaxKNYi6b6dW3V6MACarYuQ0euBDb2kIFreCqNZ2PSZ3GWdEq5Fjwg9UdgL2yWRNLwBI77jHU80rrFPLIbmE2-k271m7F3mwmIBaBbzAy_9DxdDlxr1cTUx9muIbXTDEpNzIeljT_-nIsCqrwtAA2vvoC5yAF3JKdMy_uiwYaskjtdrnEyu"/>
+</div>
+<div>
+<p class="font-semibold text-sm">Hanoi Curator</p>
+<p class="text-xs text-stone-500">Planning your soul journey</p>
+</div>
+</div>
+<button class="w-full py-3 bg-primary text-on-primary rounded-xl font-medium text-sm flex items-center justify-center gap-2 hover:opacity-90 transition-opacity">
+<span class="material-symbols-outlined text-sm" data-icon="add">add</span>
+                New Itinerary
+            </button>
+</div>
+<nav class="flex flex-col gap-2 pr-4 font-['Inter'] text-sm leading-relaxed">
+<a class="flex items-center gap-3 px-6 py-3 text-stone-500 hover:bg-stone-100 hover:translate-x-1 transition-transform rounded-r-full" href="#">
+<span class="material-symbols-outlined" data-icon="map">map</span> My Trips
+            </a>
+<a class="flex items-center gap-3 px-6 py-3 text-stone-500 hover:bg-stone-100 hover:translate-x-1 transition-transform rounded-r-full" href="#">
+<span class="material-symbols-outlined" data-icon="bookmark">bookmark</span> Saved Places
+            </a>
+<a class="flex items-center gap-3 px-6 py-3 bg-[#f0e0c8] text-[#1a1c1a] rounded-r-full font-medium" href="#">
+<span class="material-symbols-outlined" data-icon="route">route</span> Route Optimizer
+            </a>
+<a class="flex items-center gap-3 px-6 py-3 text-stone-500 hover:bg-stone-100 hover:translate-x-1 transition-transform rounded-r-full" href="#">
+<span class="material-symbols-outlined" data-icon="auto_awesome">auto_awesome</span> Local Guides
+            </a>
+<a class="flex items-center gap-3 px-6 py-3 text-stone-500 hover:bg-stone-100 hover:translate-x-1 transition-transform rounded-r-full" href="#">
+<span class="material-symbols-outlined" data-icon="settings">settings</span> Settings
+            </a>
+</nav>
+</aside>
+<!-- Main Content Shell (Notion-style Split Screen) -->
+<main class="pl-0 md:pl-64 pt-20 h-screen flex">
+<!-- Left Side: Timeline & Itinerary Blocks -->
+<section class="flex-1 h-full bg-surface-container-lowest overflow-y-auto px-10 py-12">
+<div class="max-w-3xl mx-auto">
+<header class="mb-10">
+<div class="flex items-center gap-2 text-stone-500 text-sm mb-2">
+<span>Vietnam</span>
+<span class="material-symbols-outlined text-xs" data-icon="chevron_right">chevron_right</span>
+<span>Hanoi Itinerary</span>
+</div>
+<h1 class="text-4xl font-extrabold font-headline tracking-tight mb-4">Old Quarter &amp; Beyond</h1>
+<div class="flex gap-4">
+<span class="bg-secondary-fixed text-on-secondary-fixed px-3 py-1 rounded-full text-xs font-medium">4 Days</span>
+<span class="bg-secondary-fixed text-on-secondary-fixed px-3 py-1 rounded-full text-xs font-medium">Cultural Heritage</span>
+</div>
+</header>
+<!-- Optimization Alert -->
+<div class="bg-[#28A745]/10 border-l-4 border-[#28A745] p-4 mb-10 flex items-center gap-3 rounded-r-xl">
+<span class="material-symbols-outlined text-[#28A745]" data-icon="check_circle">check_circle</span>
+<p class="text-[#28A745] font-medium text-sm">Optimal Route Calculated: 12.4km total travel distance</p>
+</div>
+<!-- Timeline Days -->
+<div class="space-y-12">
+<!-- Day 1 -->
+<div class="relative">
+<div class="flex items-center gap-4 mb-6">
+<h2 class="bg-[#F7E7CE] px-4 py-1.5 rounded-lg font-bold text-stone-800 text-sm uppercase tracking-wider">Day 1</h2>
+<p class="text-stone-400 font-medium text-sm">Monday, Oct 24</p>
+</div>
+<div class="space-y-6 ml-4 border-l-2 border-dashed border-surface-container-high pl-8 pb-4">
+<!-- Card 1 -->
+<div class="group bg-surface-container-low p-5 rounded-2xl flex gap-6 hover:bg-surface-container-high transition-colors cursor-grab active:cursor-grabbing">
+<div class="w-32 h-32 rounded-xl overflow-hidden flex-shrink-0">
+<img class="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500" data-alt="architectural close up of the temple of literature in hanoi with red lacquered pillars and traditional vietnamese roofing" src="https://lh3.googleusercontent.com/aida-public/AB6AXuB_8k4YSJIuC7aXYGBPjvd8ZFlmrc4i46FMXQnMIq6aw5ynF8QWo5Zt6nGOEOvWr97iG0hbFIy0yUpj05v4hCNg6eu2hlMI5DXtXlvsjAlmAGVWR7lUzkA-FIEihyfTRxM-JBH6tlDbsODLCEvTB8nXOuf0AAkCfQHDcy0SSwSQ_g3Yx8cDCpnH7bFzho8HU70pkBGTNyo1LDz08V8kvNkilnpIw5jMjbiSb49ZDE8KNy7jA_cJQvURtsvf8Ee3uMcBA7zhYHUzYlCJ"/>
+</div>
+<div class="flex flex-col justify-between py-1">
+<div>
+<div class="flex items-center gap-2 mb-1">
+<span class="material-symbols-outlined text-xs text-primary" data-icon="history_edu">history_edu</span>
+<span class="text-[10px] font-bold text-primary tracking-widest uppercase">Historic Site</span>
+</div>
+<h3 class="text-lg font-bold text-on-surface">Temple of Literature</h3>
+<p class="text-stone-500 text-sm leading-relaxed line-clamp-2">Vietnam's first national university, a masterpiece of 11th-century architecture.</p>
+</div>
+<div class="flex items-center gap-4 text-xs font-medium text-stone-600">
+<span class="flex items-center gap-1"><span class="material-symbols-outlined text-xs" data-icon="schedule">schedule</span> 09:00 AM</span>
+<span class="flex items-center gap-1"><span class="material-symbols-outlined text-xs" data-icon="location_on">location_on</span> 1.2 km from start</span>
+</div>
+</div>
+</div>
+<!-- Card 2 -->
+<div class="group bg-surface-container-low p-5 rounded-2xl flex gap-6 hover:bg-surface-container-high transition-colors cursor-grab active:cursor-grabbing">
+<div class="w-32 h-32 rounded-xl overflow-hidden flex-shrink-0">
+<img class="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500" data-alt="steaming bowl of traditional vietnamese beef pho with fresh green herbs and red chilies in a rustic ceramic bowl" src="https://lh3.googleusercontent.com/aida-public/AB6AXuCKcmvEjukb2Or6jggufo3jg7hVutoJKykyUeMu-cO8o9rRzZZuSu-GwyuWinJdp_H8zXtE2sQyyi_xrGgRDS4CtU04EwkFs3rp2V-dukMZytSSdY5j5yMnC-iHY0erE26uMUQ1cySiaz6DK3fy9VEgT3HNXChSNAjKF7pWL4UP-Uv6L5pIsNY4Gn5oytDfJDJj3KT_iN3Guii37Tn1etHZtKb_NZUks3AOc1VGd1u2NltE-70n1o1BRrOHEbktbwCWtvDJ43XJ0TVy"/>
+</div>
+<div class="flex flex-col justify-between py-1">
+<div>
+<div class="flex items-center gap-2 mb-1">
+<span class="material-symbols-outlined text-xs text-primary" data-icon="restaurant">restaurant</span>
+<span class="text-[10px] font-bold text-primary tracking-widest uppercase">Local Food</span>
+</div>
+<h3 class="text-lg font-bold text-on-surface">Phở Thìn Lò Đúc</h3>
+<p class="text-stone-500 text-sm leading-relaxed line-clamp-2">Legendary stir-fried beef pho with rich, smoky broth and generous green onions.</p>
+</div>
+<div class="flex items-center gap-4 text-xs font-medium text-stone-600">
+<span class="flex items-center gap-1"><span class="material-symbols-outlined text-xs" data-icon="schedule">schedule</span> 12:30 PM</span>
+<span class="flex items-center gap-1"><span class="material-symbols-outlined text-xs" data-icon="timer">timer</span> 45 mins spent</span>
+</div>
+</div>
+</div>
+</div>
+</div>
+<!-- Day 2 -->
+<div>
+<div class="flex items-center gap-4 mb-6">
+<h2 class="bg-[#F7E7CE] px-4 py-1.5 rounded-lg font-bold text-stone-800 text-sm uppercase tracking-wider">Day 2</h2>
+<p class="text-stone-400 font-medium text-sm">Tuesday, Oct 25</p>
+</div>
+<div class="space-y-6 ml-4 border-l-2 border-dashed border-surface-container-high pl-8">
+<div class="group bg-surface-container-low p-5 rounded-2xl flex gap-6 hover:bg-surface-container-high transition-colors cursor-grab active:cursor-grabbing">
+<div class="w-32 h-32 rounded-xl overflow-hidden flex-shrink-0">
+<img class="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500" data-alt="vibrant view of Hoan Kiem lake in Hanoi at sunrise with the red bridge reflecting in the calm water" src="https://lh3.googleusercontent.com/aida-public/AB6AXuBJ2sRkqBBKYphr-A3-4AT2ptArIVKftPA0XaOzt_27D2uV6X3vYPLIspcsN4-EJaaGuRsGTmmxFh5xd4zVFnOQqn5tVMFt65yP2PeUijF60E1ZumZ7hEGD_QfE8fvQ4ehKYMc2tPh1aVlhbV95L8Z4pffhD95SepTRKvoq-d4CLYegnoaNa9fq9Az8nvyzHIyhTFFKUXwRkd3rtdDO9Hl8I6nbVipfdj5N2duULm2EbqXmZgPTnx_O5ejqCxniykhzBOErAodm_7Kq"/>
+</div>
+<div class="flex flex-col justify-between py-1">
+<div>
+<div class="flex items-center gap-2 mb-1">
+<span class="material-symbols-outlined text-xs text-primary" data-icon="park">park</span>
+<span class="text-[10px] font-bold text-primary tracking-widest uppercase">Outdoors</span>
+</div>
+<h3 class="text-lg font-bold text-on-surface">Hoàn Kiếm Lake</h3>
+<p class="text-stone-500 text-sm leading-relaxed line-clamp-2">The heart of Hanoi, perfect for a morning walk and watching local Tai Chi.</p>
+</div>
+<div class="flex items-center gap-4 text-xs font-medium text-stone-600">
+<span class="flex items-center gap-1"><span class="material-symbols-outlined text-xs" data-icon="schedule">schedule</span> 07:00 AM</span>
+</div>
+</div>
+</div>
+</div>
+</div>
+</div>
+<!-- Add Activity Placeholder -->
+<button class="mt-12 w-full py-8 border-2 border-dashed border-surface-container-high rounded-2xl text-stone-400 hover:text-primary hover:border-primary/30 hover:bg-primary/5 transition-all flex flex-col items-center gap-2 group">
+<span class="material-symbols-outlined text-3xl group-hover:scale-110 transition-transform" data-icon="add_circle">add_circle</span>
+<span class="font-medium">Add another block or destination</span>
+</button>
+</div>
+</section>
+<!-- Right Side: Interactive Map Visualization -->
+<section class="w-[500px] xl:w-[600px] h-full bg-surface-container overflow-hidden relative">
+<div class="absolute inset-0 grayscale contrast-[0.9] opacity-90">
+<!-- Map Mockup Layer -->
+<div class="w-full h-full bg-[#efeeeb] flex items-center justify-center relative overflow-hidden" data-location="Hanoi, Vietnam" style="">
+<!-- Abstract Map Lines -->
+<svg class="absolute inset-0 w-full h-full" xmlns="http://www.w3.org/2000/svg">
+<path d="M-10,100 L200,300 L400,250 L600,450 L800,400" fill="none" opacity="0.4" stroke="#d3c5ad" stroke-width="20"></path>
+<path d="M100,-10 L150,200 L300,500 L200,800" fill="none" opacity="0.4" stroke="#d3c5ad" stroke-width="15"></path>
+<!-- Route Line -->
+<path d="M150,180 Q250,250 320,400 T500,550" fill="none" stroke="#ff5a5f" stroke-dasharray="8 8" stroke-width="4"></path>
+</svg>
+<!-- Destination Markers -->
+<div class="absolute top-[180px] left-[150px] group">
+<div class="bg-primary text-white w-8 h-8 rounded-full flex items-center justify-center shadow-lg transform group-hover:scale-110 transition-transform cursor-pointer">
+<span class="material-symbols-outlined text-sm" data-icon="account_balance">account_balance</span>
+</div>
+<div class="absolute top-10 left-1/2 -translate-x-1/2 bg-white px-3 py-1.5 rounded-lg shadow-sm whitespace-nowrap text-[10px] font-bold border border-stone-100">TEMPLE OF LITERATURE</div>
+</div>
+<div class="absolute top-[400px] left-[320px] group">
+<div class="bg-primary text-white w-8 h-8 rounded-full flex items-center justify-center shadow-lg transform group-hover:scale-110 transition-transform cursor-pointer">
+<span class="material-symbols-outlined text-sm" data-icon="restaurant">restaurant</span>
+</div>
+<div class="absolute top-10 left-1/2 -translate-x-1/2 bg-white px-3 py-1.5 rounded-lg shadow-sm whitespace-nowrap text-[10px] font-bold border border-stone-100">PHỞ THÌN</div>
+</div>
+<div class="absolute top-[550px] left-[500px] group">
+<div class="bg-primary text-white w-8 h-8 rounded-full flex items-center justify-center shadow-lg transform group-hover:scale-110 transition-transform cursor-pointer">
+<span class="material-symbols-outlined text-sm" data-icon="water">water</span>
+</div>
+<div class="absolute top-10 left-1/2 -translate-x-1/2 bg-white px-3 py-1.5 rounded-lg shadow-sm whitespace-nowrap text-[10px] font-bold border border-stone-100">HOÀN KIẾM LAKE</div>
+</div>
+</div>
+</div>
+<!-- Map Controls -->
+<div class="absolute bottom-10 right-10 flex flex-col gap-3">
+<button class="bg-white/90 backdrop-blur-md w-12 h-12 rounded-full flex items-center justify-center shadow-xl hover:bg-white transition-colors">
+<span class="material-symbols-outlined" data-icon="add">add</span>
+</button>
+<button class="bg-white/90 backdrop-blur-md w-12 h-12 rounded-full flex items-center justify-center shadow-xl hover:bg-white transition-colors">
+<span class="material-symbols-outlined" data-icon="remove">remove</span>
+</button>
+<button class="bg-primary text-white w-12 h-12 rounded-full flex items-center justify-center shadow-xl hover:bg-primary/90 transition-colors">
+<span class="material-symbols-outlined" data-icon="my_location">my_location</span>
+</button>
+</div>
+<!-- Float Info Panel -->
+<div class="absolute top-10 left-10 p-4 bg-white/80 backdrop-blur-lg rounded-2xl shadow-xl w-64 border border-white/50">
+<p class="text-xs font-bold text-stone-400 tracking-widest mb-3 uppercase">Live Traffic Info</p>
+<div class="flex items-center justify-between mb-4">
+<div class="flex items-center gap-2">
+<div class="w-2 h-2 rounded-full bg-tertiary"></div>
+<span class="text-sm font-medium">Lê Thái Tổ St.</span>
+</div>
+<span class="text-xs text-tertiary font-bold">CLEAR</span>
+</div>
+<div class="flex items-center justify-between">
+<div class="flex items-center gap-2">
+<div class="w-2 h-2 rounded-full bg-error"></div>
+<span class="text-sm font-medium">Trần Hưng Đạo St.</span>
+</div>
+<span class="text-xs text-error font-bold">HEAVY</span>
+</div>
+</div>
+</section>
+</main>
+<!-- Floating Action Bar (Suppressed on detail view as per rules, but shown here as primary task focus) -->
+<button class="fixed bottom-10 left-1/2 -translate-x-1/2 flex items-center gap-3 bg-primary text-white px-8 py-4 rounded-full shadow-2xl hover:scale-105 transition-transform font-bold tracking-wide z-50">
+<span class="material-symbols-outlined" data-icon="share">share</span>
+        Share Itinerary
+    </button>
+</body></html>

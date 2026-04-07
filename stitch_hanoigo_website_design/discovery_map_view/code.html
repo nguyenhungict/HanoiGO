@@ -1,0 +1,301 @@
+<!DOCTYPE html>
+
+<html class="light" lang="en"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>HanoiGO - Discovery Map</title>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<script id="tailwind-config">
+      tailwind.config = {
+        darkMode: "class",
+        theme: {
+          extend: {
+            "colors": {
+                    "on-background": "#1a1c1c",
+                    "inverse-primary": "#ffb3b0",
+                    "secondary-fixed-dim": "#d3c5ad",
+                    "on-primary-fixed-variant": "#92001b",
+                    "on-tertiary-fixed": "#002106",
+                    "primary-fixed-dim": "#ffb3b0",
+                    "surface-container-highest": "#e2e2e2",
+                    "primary-container": "#ff5a5f",
+                    "surface-bright": "#f9f9f9",
+                    "inverse-surface": "#2f3131",
+                    "on-primary": "#ffffff",
+                    "on-tertiary-fixed-variant": "#00531a",
+                    "surface-container": "#eeeeee",
+                    "surface-container-high": "#e8e8e8",
+                    "on-surface": "#1a1c1c",
+                    "outline": "#8e706f",
+                    "error": "#ba1a1a",
+                    "on-secondary-fixed-variant": "#4f4533",
+                    "on-secondary": "#ffffff",
+                    "secondary": "#685d4a",
+                    "secondary-fixed": "#f0e0c8",
+                    "surface-dim": "#dadada",
+                    "on-error": "#ffffff",
+                    "secondary-container": "#eddec5",
+                    "tertiary-container": "#2ba947",
+                    "on-tertiary": "#ffffff",
+                    "inverse-on-surface": "#f0f1f1",
+                    "tertiary-fixed": "#83fc8e",
+                    "on-primary-fixed": "#410007",
+                    "primary": "#b52330",
+                    "surface-container-low": "#f3f3f3",
+                    "error-container": "#ffdad6",
+                    "outline-variant": "#e2bebc",
+                    "primary-fixed": "#ffdad8",
+                    "on-secondary-container": "#6c614e",
+                    "on-tertiary-container": "#00350d",
+                    "on-secondary-fixed": "#221b0b",
+                    "on-primary-container": "#61000e",
+                    "surface-container-lowest": "#ffffff",
+                    "on-error-container": "#93000a",
+                    "tertiary-fixed-dim": "#66df75",
+                    "surface-tint": "#b52330",
+                    "on-surface-variant": "#5a403f",
+                    "surface-variant": "#e2e2e2",
+                    "tertiary": "#006e25",
+                    "surface": "#f9f9f9",
+                    "background": "#f9f9f9"
+            },
+            "borderRadius": {
+                    "DEFAULT": "0.25rem",
+                    "lg": "0.5rem",
+                    "xl": "1.5rem",
+                    "full": "9999px"
+            },
+            "fontFamily": {
+                    "headline": ["Inter"],
+                    "body": ["Inter"],
+                    "label": ["Inter"]
+            }
+          },
+        },
+      }
+    </script>
+<style>.material-symbols-outlined {
+    font-variation-settings: "FILL" 0, "wght" 400, "GRAD" 0, "opsz" 24
+    }
+body {
+    font-family: "Inter", sans-serif;
+    background-color: #f9f9f9
+    }
+.map-bg {
+    background-image: url(https://lh3.googleusercontent.com/aida-public/AB6AXuCDuj667b1KGLZvDyMCtmJfR_aCBOzrI4DWc7-8Pt_PrnjTxTTjJugC9QQmeQiRVoxebycJnQjg6Qujr7g3Cj-_n0onIvKmJlZ756UgehWB2UwVf1dfl-CEsVmsbMKEwZm4itFyEEQ7h9RZsMsNfw_YaKkObXD_i_mQViE7XXHK0FtdMEZPBD_9BTbHye6XAXKnEg5kBulYfAf11kZphBOZ03hEAQ63YGuAuFSBh0yg12wPCn4yeLjMyRiYUxkUgQAProsWDp98qHSI);
+    background-size: cover;
+    background-position: center
+    }
+.hide-scrollbar::-webkit-scrollbar {
+    display: none
+    }
+.hide-scrollbar {
+    -ms-overflow-style: none;
+    scrollbar-width: none
+    }</style>
+</head>
+<body class="text-on-surface overflow-hidden">
+<!-- TopNavBar -->
+<nav class="flex justify-between items-center w-full px-8 py-4 sticky top-0 z-50 bg-white/80 backdrop-blur-md">
+<div class="text-2xl font-bold tracking-tighter text-[#FF5A5F]">HanoiGO</div>
+<div class="hidden md:flex items-center space-x-8">
+<a class="text-[#FF5A5F] font-bold border-b-2 border-[#FF5A5F] pb-1 font-['Inter'] tracking-tight text-sm font-medium" href="#">Destinations</a>
+<a class="text-stone-600 hover:text-[#FF5A5F] transition-opacity duration-300 font-['Inter'] tracking-tight text-sm font-medium" href="#">Itineraries</a>
+<a class="text-stone-600 hover:text-[#FF5A5F] transition-opacity duration-300 font-['Inter'] tracking-tight text-sm font-medium" href="#">Experiences</a>
+<a class="text-stone-600 hover:text-[#FF5A5F] transition-opacity duration-300 font-['Inter'] tracking-tight text-sm font-medium" href="#">Bookings</a>
+</div>
+<div class="flex items-center space-x-4">
+<button class="text-stone-600 font-medium text-sm hover:opacity-80 transition-opacity">Log In</button>
+<button class="bg-[#FF5A5F] text-white px-6 py-2 rounded-full font-bold text-sm hover:opacity-90 transition-opacity">Sign Up</button>
+</div>
+</nav>
+<main class="flex h-[calc(100vh-72px)] w-full overflow-hidden">
+<!-- Sidebar (30%) -->
+<aside class="w-[30%] min-w-[400px] bg-surface-container-lowest z-20 flex flex-col shadow-[20px_0_40px_rgba(0,0,0,0.02)]">
+<div class="p-8 space-y-8 flex-1 overflow-y-auto hide-scrollbar">
+<!-- Search & Header -->
+<div class="space-y-4">
+<h1 class="text-3xl font-extrabold tracking-tighter text-on-surface">Explore Hanoi</h1>
+<div class="relative group">
+<span class="material-symbols-outlined absolute left-4 top-1/2 -translate-y-1/2 text-on-surface-variant">search</span>
+<input class="w-full pl-12 pr-4 py-4 bg-surface-container-high border-none rounded-xl focus:ring-0 focus:bg-surface-container-highest transition-colors text-sm" placeholder="Search heritage, food, or districts..." type="text"/>
+</div>
+</div>
+<!-- Filters -->
+<div class="space-y-6">
+<div>
+<label class="font-label text-[10px] uppercase tracking-widest text-on-surface-variant font-bold mb-3 block">Districts</label>
+<div class="flex flex-wrap gap-2">
+<span class="px-4 py-2 bg-tertiary-container text-on-tertiary-container rounded-full text-xs font-semibold cursor-pointer">Hoan Kiem</span>
+<span class="px-4 py-2 bg-surface-container-high text-on-surface-variant rounded-full text-xs font-semibold cursor-pointer hover:bg-surface-container-highest transition-colors">Ba Dinh</span>
+<span class="px-4 py-2 bg-surface-container-high text-on-surface-variant rounded-full text-xs font-semibold cursor-pointer hover:bg-surface-container-highest transition-colors">Tay Ho</span>
+</div>
+</div>
+<div>
+<label class="font-label text-[10px] uppercase tracking-widest text-on-surface-variant font-bold mb-3 block">Categories</label>
+<div class="flex flex-wrap gap-2">
+<span class="px-4 py-2 bg-surface-container-high text-on-surface-variant rounded-full text-xs font-semibold cursor-pointer hover:bg-surface-container-highest transition-colors flex items-center gap-2">
+<span class="material-symbols-outlined text-[16px]">account_balance</span> Heritage
+                            </span>
+<span class="px-4 py-2 bg-surface-container-high text-on-surface-variant rounded-full text-xs font-semibold cursor-pointer hover:bg-surface-container-highest transition-colors flex items-center gap-2">
+<span class="material-symbols-outlined text-[16px]">restaurant</span> Food
+                            </span>
+<span class="px-4 py-2 bg-surface-container-high text-on-surface-variant rounded-full text-xs font-semibold cursor-pointer hover:bg-surface-container-highest transition-colors flex items-center gap-2">
+<span class="material-symbols-outlined text-[16px]">palette</span> Arts
+                            </span>
+</div>
+</div>
+</div>
+<!-- Results List -->
+<div class="space-y-4 pt-4">
+<label class="font-label text-[10px] uppercase tracking-widest text-on-surface-variant font-bold block">Recommended Near You</label>
+<!-- Card 1 -->
+<div class="group cursor-pointer bg-surface-container-low hover:bg-surface-container-lowest p-4 rounded-xl transition-all duration-300 flex gap-4 hover:shadow-[0_12_32px_rgba(181,35,48,0.04)]">
+<div class="w-20 h-20 rounded-lg overflow-hidden flex-shrink-0">
+<img class="w-full h-full object-cover grayscale group-hover:grayscale-0 transition-all" data-alt="architectural close-up of a traditional vietnamese temple roof with intricate ceramic tiles and dragon motifs" src="https://lh3.googleusercontent.com/aida-public/AB6AXuA3_3Ys6itfzI-qcjC6GGAbPLzJ7GlOiFbBkyfA4InHZ5en20ct237GwITHy0C4SOOdps7VFI7xdoeb9p_Z5_BMnT3ySaCiYB71MraVhFBrC-uUbEmbKfbOalGDYQQ5ykZ3qrTaRNMhfNtTIMtVao-GOB1PN-AMTM2tM8hD3lTIEl9oYZWVyIvGxxYzmtIHaVh_KXThvrJAn9-C83750PhxLWhu8EnknsR1kAxyQcdsFE3xOSjEeyMyo3GtQBjK3b1DG7-pyT2w8cDY"/>
+</div>
+<div class="flex flex-col justify-between py-1">
+<div>
+<h3 class="font-bold text-on-surface leading-tight">Temple of Literature</h3>
+<p class="text-xs text-on-surface-variant mt-1">Hoan Kiem • Heritage</p>
+</div>
+<div class="flex items-center gap-1 text-[#FF5A5F]">
+<span class="material-symbols-outlined text-[14px]" style="font-variation-settings: 'FILL' 1;">star</span>
+<span class="text-[10px] font-bold">4.9 (1.2k reviews)</span>
+</div>
+</div>
+</div>
+<!-- Card 2 -->
+<div class="group cursor-pointer bg-surface-container-low hover:bg-surface-container-lowest p-4 rounded-xl transition-all duration-300 flex gap-4 hover:shadow-[0_12_32px_rgba(181,35,48,0.04)]">
+<div class="w-20 h-20 rounded-lg overflow-hidden flex-shrink-0">
+<img class="w-full h-full object-cover grayscale group-hover:grayscale-0 transition-all" data-alt="vibrant bowl of vietnamese pho with fresh herbs and steam rising in a rustic colonial style restaurant" src="https://lh3.googleusercontent.com/aida-public/AB6AXuBL6vbRrgIuyaCLQqXZPieu0zDTB94RxL58Rhx-Mx9A0orXu05t9KhsG2ivrVvl8ev4qFbasdUI_xeYtMEoCMjcfR1GZljqqUnIu5VcBtZ1FJkZD7oaok6UjCfpd31pUedKLdASoy8OLNZwCEV3T0N3ADmENV0Q4739c02mJmJLRmQ9gFsl0In-Tk2e50TvFCJnLVOJbvNNpqUMaMrnJxO1VRY9wZRM7gTB1JJjm7JLiwzcjzIi8NOlTmzajudDMIH5ihBC4IJtK7G5"/>
+</div>
+<div class="flex flex-col justify-between py-1">
+<div>
+<h3 class="font-bold text-on-surface leading-tight">Phở Thìn Lò Đúc</h3>
+<p class="text-xs text-on-surface-variant mt-1">Hai Ba Trung • Food</p>
+</div>
+<div class="flex items-center gap-1 text-[#FF5A5F]">
+<span class="material-symbols-outlined text-[14px]" style="font-variation-settings: 'FILL' 1;">star</span>
+<span class="text-[10px] font-bold">4.7 (850 reviews)</span>
+</div>
+</div>
+<div class="ml-auto">
+<div class="w-2 h-2 rounded-full bg-secondary"></div>
+</div>
+</div>
+<!-- Card 3 -->
+<div class="group cursor-pointer bg-surface-container-low hover:bg-surface-container-lowest p-4 rounded-xl transition-all duration-300 flex gap-4 hover:shadow-[0_12_32px_rgba(181,35,48,0.04)]">
+<div class="w-20 h-20 rounded-lg overflow-hidden flex-shrink-0">
+<img class="w-full h-full object-cover grayscale group-hover:grayscale-0 transition-all" data-alt="view of a calm lake in hanoi with a small traditional pagoda reflected in the water during sunset" src="https://lh3.googleusercontent.com/aida-public/AB6AXuAiDDwvxWuAAOyzPIxfAVgQO4Q9RoNJfGDgEnckkfjpYlZFLujiudmfOI5j2qp3GMldpShSE4_hi_o8obKKh63VzYuPZlgD3SDPlvOjisWY6U7K0gpGl1JPU_wTKhaiLUirtpvAXLJYvCd0rAdKgsbaFbG4O2vS-W0GfFTGXEZVr6v8rR4nb0dObCEODrVB-0d3TuIPY8CSpCNVmzw_h-5lbP-WuIExhGpJvv3G33EfwSOsT53kk6vzgrgQuYtk13FFMms9c-Q6v7Ra"/>
+</div>
+<div class="flex flex-col justify-between py-1">
+<div>
+<h3 class="font-bold text-on-surface leading-tight">Hoan Kiem Lake</h3>
+<p class="text-xs text-on-surface-variant mt-1">Hoan Kiem • Scenic</p>
+</div>
+<div class="flex items-center gap-1 text-[#FF5A5F]">
+<span class="material-symbols-outlined text-[14px]" style="font-variation-settings: 'FILL' 1;">star</span>
+<span class="text-[10px] font-bold">4.8 (2.4k reviews)</span>
+</div>
+</div>
+</div>
+</div>
+</div>
+<!-- Footer Attachment -->
+<footer class="w-full py-4 px-8 flex justify-between items-center bg-[#F7E7CE]">
+<p class="font-['Inter'] text-[10px] uppercase tracking-widest text-stone-500">© 2024 HanoiGO.</p>
+<div class="flex gap-4">
+<a class="font-['Inter'] text-[10px] uppercase tracking-widest text-stone-500 hover:text-[#FF5A5F] transition-colors" href="#">Support</a>
+<a class="font-['Inter'] text-[10px] uppercase tracking-widest text-stone-500 hover:text-[#FF5A5F] transition-colors" href="#">Terms</a>
+</div>
+</footer>
+</aside>
+<!-- Map Section (70%) -->
+<section class="w-[70%] relative overflow-hidden bg-surface-container">
+<!-- Map Layer -->
+<div class="absolute inset-0 map-bg grayscale-[0.3] brightness-[0.9] contrast-[1.1]" data-location="Hanoi, Vietnam" style="">
+<!-- Overlay for texture -->
+<div class="absolute inset-0 bg-secondary/5 pointer-events-none"></div>
+<!-- Pins -->
+<!-- Active Pin & Pop-over -->
+<div class="absolute top-[40%] left-[45%] z-30">
+<div class="relative flex flex-col items-center">
+<!-- Pop-over Detail Card -->
+<div class="absolute bottom-full mb-4 w-72 bg-surface-container-lowest rounded-xl shadow-[0_20px_50px_rgba(0,0,0,0.15)] overflow-hidden animate-in fade-in slide-in-from-bottom-4 duration-500">
+<div class="h-40 relative">
+<img class="w-full h-full object-cover" data-alt="wide shot of the ancient courtyard at the temple of literature in hanoi with lush trees and stone paths" src="https://lh3.googleusercontent.com/aida-public/AB6AXuAVc2wfEhkM85eOwrrcrrrRp_RxYZ9y0ePi-_OqRhsueNfuqqe9jTXGu4rGYfr-6hQa3fTwiN39LF5KsUQfLiJX_V7eq-UE6xgcekNTBfV-dnZsuw-3cvWQPFyIDFtruFoSRT-Tmkow1VoK1CJOF_5UGHWuPTILg9ZnMxsHT_8qXHBSdAsZ7PpevwCGUDbpfUwZbgq0BtCmnZr7sos87wNeiIu3zRV_Q7eNE4Vn_mtsUSg2nYgF4Jcj1enK6MwZ6kw2BTkX9OFERFui"/>
+<div class="absolute top-3 right-3 bg-white/90 backdrop-blur-md p-1.5 rounded-full flex items-center justify-center cursor-pointer shadow-sm">
+<span class="material-symbols-outlined text-[18px] text-[#FF5A5F]">favorite</span>
+</div>
+</div>
+<div class="p-5 space-y-3">
+<div>
+<h4 class="text-xl font-bold text-on-surface leading-none tracking-tight">Temple of Literature</h4>
+<p class="text-xs text-on-surface-variant mt-1 font-medium">Ancient Confucian Temple &amp; University</p>
+</div>
+<div class="flex items-center justify-between pt-2">
+<div class="flex items-center gap-1">
+<span class="material-symbols-outlined text-[16px] text-secondary">schedule</span>
+<span class="text-[11px] font-bold text-on-secondary-container">Open until 5:00 PM</span>
+</div>
+<button class="bg-[#28A745] text-white px-5 py-2 rounded-full text-xs font-bold hover:opacity-90 transition-all shadow-[0_8px_16px_rgba(40,167,69,0.2)]">
+                                        Book a Guide
+                                    </button>
+</div>
+</div>
+<!-- Arrow -->
+<div class="absolute -bottom-2 left-1/2 -translate-x-1/2 w-4 h-4 bg-surface-container-lowest rotate-45"></div>
+</div>
+<!-- The Pin Itself -->
+<div class="w-8 h-8 bg-[#FF5A5F] rounded-full border-4 border-white shadow-xl flex items-center justify-center group cursor-pointer transition-transform hover:scale-110">
+<div class="w-2 h-2 bg-white rounded-full"></div>
+</div>
+</div>
+</div>
+<!-- Secondary Pins -->
+<div class="absolute top-[60%] left-[55%]">
+<div class="w-5 h-5 bg-secondary rounded-full border-2 border-white shadow-lg cursor-pointer hover:bg-[#FF5A5F] transition-colors"></div>
+</div>
+<div class="absolute top-[30%] left-[65%]">
+<div class="w-5 h-5 bg-secondary rounded-full border-2 border-white shadow-lg cursor-pointer hover:bg-[#FF5A5F] transition-colors"></div>
+</div>
+<div class="absolute top-[25%] left-[30%]">
+<div class="w-5 h-5 bg-secondary rounded-full border-2 border-white shadow-lg cursor-pointer hover:bg-[#FF5A5F] transition-colors"></div>
+</div>
+<div class="absolute top-[75%] left-[40%]">
+<div class="w-5 h-5 bg-secondary rounded-full border-2 border-white shadow-lg cursor-pointer hover:bg-[#FF5A5F] transition-colors"></div>
+</div>
+</div>
+<!-- Map Controls -->
+<div class="absolute bottom-10 right-10 flex flex-col gap-3">
+<button class="w-12 h-12 bg-white rounded-xl shadow-xl flex items-center justify-center text-on-surface-variant hover:text-[#FF5A5F] transition-colors">
+<span class="material-symbols-outlined">add</span>
+</button>
+<button class="w-12 h-12 bg-white rounded-xl shadow-xl flex items-center justify-center text-on-surface-variant hover:text-[#FF5A5F] transition-colors">
+<span class="material-symbols-outlined">remove</span>
+</button>
+<button class="w-12 h-12 bg-[#FF5A5F] text-white rounded-xl shadow-xl flex items-center justify-center mt-2">
+<span class="material-symbols-outlined">my_location</span>
+</button>
+</div>
+<!-- Floating View Options -->
+<div class="absolute top-8 left-1/2 -translate-x-1/2 bg-white/90 backdrop-blur-xl px-6 py-3 rounded-full shadow-2xl flex items-center gap-6">
+<button class="flex items-center gap-2 text-xs font-bold text-[#FF5A5F]">
+<span class="material-symbols-outlined text-[18px]">map</span> Map View
+                </button>
+<div class="w-px h-4 bg-stone-200"></div>
+<button class="flex items-center gap-2 text-xs font-bold text-on-surface-variant hover:text-[#FF5A5F] transition-colors">
+<span class="material-symbols-outlined text-[18px]">list</span> Gallery View
+                </button>
+<div class="w-px h-4 bg-stone-200"></div>
+<button class="flex items-center gap-2 text-xs font-bold text-on-surface-variant hover:text-[#FF5A5F] transition-colors">
+<span class="material-symbols-outlined text-[18px]">history_edu</span> Heritage Trail
+                </button>
+</div>
+</section>
+</main>
+</body></html>

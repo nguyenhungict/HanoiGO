@@ -1,0 +1,175 @@
+<!DOCTYPE html>
+
+<html lang="en"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<script id="tailwind-config">
+      tailwind.config = {
+        darkMode: "class",
+        theme: {
+          extend: {
+            "colors": {
+                    "background": "#f9f9f9",
+                    "surface-container-high": "#e8e8e8",
+                    "surface-container-lowest": "#ffffff",
+                    "inverse-surface": "#2f3131",
+                    "surface-dim": "#dadada",
+                    "outline": "#8e706f",
+                    "on-primary-container": "#61000e",
+                    "outline-variant": "#e2bebc",
+                    "on-error": "#ffffff",
+                    "on-secondary": "#ffffff",
+                    "on-primary": "#ffffff",
+                    "on-tertiary-fixed-variant": "#00531a",
+                    "surface-bright": "#f9f9f9",
+                    "surface-container": "#eeeeee",
+                    "primary": "#b52330",
+                    "on-background": "#1a1c1c",
+                    "inverse-on-surface": "#f0f1f1",
+                    "secondary-container": "#eddec5",
+                    "on-secondary-fixed": "#221b0b",
+                    "on-surface": "#1a1c1c",
+                    "surface-tint": "#b52330",
+                    "tertiary-container": "#2ba947",
+                    "error-container": "#ffdad6",
+                    "secondary": "#685d4a",
+                    "on-primary-fixed": "#410007",
+                    "on-primary-fixed-variant": "#92001b",
+                    "on-secondary-fixed-variant": "#4f4533",
+                    "secondary-fixed-dim": "#d3c5ad",
+                    "tertiary-fixed-dim": "#66df75",
+                    "on-tertiary-fixed": "#002106",
+                    "on-tertiary-container": "#00350d",
+                    "on-error-container": "#93000a",
+                    "inverse-primary": "#ffb3b0",
+                    "surface-container-highest": "#e2e2e2",
+                    "primary-fixed-dim": "#ffb3b0",
+                    "secondary-fixed": "#f0e0c8",
+                    "on-tertiary": "#ffffff",
+                    "primary-fixed": "#ffdad8",
+                    "surface": "#f9f9f9",
+                    "on-surface-variant": "#5a403f",
+                    "tertiary-fixed": "#83fc8e",
+                    "surface-variant": "#e2e2e2",
+                    "on-secondary-container": "#6c614e",
+                    "primary-container": "#ff5a5f",
+                    "error": "#ba1a1a",
+                    "surface-container-low": "#f3f3f3",
+                    "tertiary": "#006e25"
+            },
+            "borderRadius": {
+                    "DEFAULT": "0.125rem",
+                    "lg": "0.25rem",
+                    "xl": "0.5rem",
+                    "full": "0.75rem"
+            },
+            "fontFamily": {
+                    "headline": ["Inter"],
+                    "body": ["Inter"],
+                    "label": ["Inter"]
+            }
+          },
+        },
+      }
+    </script>
+<style>
+        .material-symbols-outlined {
+            font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24;
+        }
+        .glass-nav {
+            background: rgba(255, 255, 255, 0.8);
+            backdrop-filter: blur(20px);
+        }
+        .signature-gradient {
+            background: linear-gradient(135deg, #b52330 0%, #ff5a5f 100%);
+        }
+    </style>
+</head>
+<body class="bg-surface font-body text-on-surface antialiased">
+<!-- TopNavBar: Suppressed per "The Destination Rule" for Transactional (Sign-up) page -->
+<main class="min-h-screen flex flex-col md:flex-row">
+<!-- Left Side: Sign Up Form -->
+<section class="w-full md:w-1/2 bg-surface-container-lowest flex items-center justify-center p-8 md:p-24 lg:p-32 relative">
+<div class="w-full max-w-md">
+<!-- Brand Anchor -->
+<div class="mb-12">
+<span class="text-2xl font-bold tracking-tight text-[#b52330] font-headline">Editorial Heritage</span>
+</div>
+<div class="space-y-2 mb-10">
+<h1 class="text-[3.5rem] font-bold leading-tight tracking-[-0.02em] text-on-surface">Begin your story.</h1>
+<p class="text-secondary font-medium">Join our community of intentional travelers.</p>
+</div>
+<form class="space-y-6">
+<div class="space-y-2">
+<label class="font-label text-[0.75rem] uppercase tracking-[0.04em] font-medium text-secondary">Full Name</label>
+<input class="w-full px-5 py-4 bg-surface-container-high border-0 rounded-xl focus:ring-2 focus:ring-primary/20 focus:bg-surface-container-lowest transition-all duration-300 outline-none text-on-surface placeholder:text-surface-dim" placeholder="Trần Văn Minh" type="text"/>
+</div>
+<div class="space-y-2">
+<label class="font-label text-[0.75rem] uppercase tracking-[0.04em] font-medium text-secondary">Email Address</label>
+<input class="w-full px-5 py-4 bg-surface-container-high border-0 rounded-xl focus:ring-2 focus:ring-primary/20 focus:bg-surface-container-lowest transition-all duration-300 outline-none text-on-surface placeholder:text-surface-dim" placeholder="minh.tran@heritage.com" type="email"/>
+</div>
+<div class="space-y-2">
+<label class="font-label text-[0.75rem] uppercase tracking-[0.04em] font-medium text-secondary">Password</label>
+<input class="w-full px-5 py-4 bg-surface-container-high border-0 rounded-xl focus:ring-2 focus:ring-primary/20 focus:bg-surface-container-lowest transition-all duration-300 outline-none text-on-surface" placeholder="••••••••" type="password"/>
+<!-- Password Strength Indicator -->
+<div class="pt-2 flex items-center gap-2">
+<div class="flex-1 h-1 rounded-full bg-surface-container-high overflow-hidden">
+<div class="h-full bg-tertiary-container w-[75%]"></div>
+</div>
+<span class="text-[0.75rem] font-medium text-tertiary-container">Strong</span>
+</div>
+</div>
+<div class="pt-4">
+<button class="w-full py-5 signature-gradient text-on-primary font-semibold rounded-xl active:scale-95 transition-transform duration-200" type="submit">
+                            Create Account
+                        </button>
+</div>
+</form>
+<div class="mt-8 text-center">
+<p class="text-secondary font-medium">
+                        Already have an account? 
+                        <a class="text-primary font-bold hover:underline decoration-2 underline-offset-4 ml-1" href="#">Log In</a>
+</p>
+</div>
+</div>
+</section>
+<!-- Right Side: Inspirational Photography -->
+<section class="hidden md:block md:w-1/2 relative overflow-hidden">
+<div class="absolute inset-0 bg-secondary/10 z-10"></div>
+<img alt="Daylight Hanoi" class="w-full h-full object-cover" data-alt="Stunning daylight photograph of Hanoi's Old Quarter with golden sunlight hitting weathered ochre walls and lush green trees overhanging the street." src="https://lh3.googleusercontent.com/aida-public/AB6AXuC4l6qFXcRx1p4xZQL87lk-z71eQQaisvPtM9gEW6DAFg9aOZwZCu53mXk5Fc1upTEtYUvDw5JQQETN_MqQW4VLfUd3fu_F2uk7WDMgAWpGMpXD5rFlSqN5V_I8ke0xe4LRTyj3MjfKSc-QixhLtHXpbdU87qRP1q_XR9iiyR9Qx7JapaXNTfqzBloGmNzno3RJNE_xStIyr5o0w3BIc4Ysg66fitfkU3ZoSMIOSSoJnNdEHVB4eZvXYTWhkQg9LhwkhtobbY7n3LRy"/>
+<!-- Overlay Content -->
+<div class="absolute bottom-16 left-16 right-16 z-20 text-on-primary">
+<div class="bg-surface-container-lowest/10 backdrop-blur-xl p-8 rounded-xl">
+<div class="flex items-center gap-4 mb-4">
+<span class="material-symbols-outlined text-surface-container-lowest">location_on</span>
+<span class="font-label text-[0.75rem] uppercase tracking-[0.04em] font-medium">Hanoi, Vietnam</span>
+</div>
+<blockquote class="text-2xl font-medium leading-relaxed italic mb-4">
+                        "The soul of Vietnam is found in the layers of its heritage, where every stone tells a thousand-year-old story."
+                    </blockquote>
+<p class="font-label text-[0.75rem] uppercase tracking-[0.04em] text-surface-container-lowest/80">Featured Experience: The Old Quarter Wanderer</p>
+</div>
+</div>
+</section>
+</main>
+<!-- Footer -->
+<footer class="w-full py-12 bg-[#f7e7ce] dark:bg-stone-800 transition-opacity duration-300">
+<div class="flex flex-col md:flex-row justify-between items-center px-12 w-full">
+<div class="mb-8 md:mb-0">
+<span class="text-lg font-bold text-[#b52330] font-headline">Editorial Heritage</span>
+</div>
+<div class="flex gap-8 mb-8 md:mb-0">
+<a class="font-['Inter'] text-[0.75rem] uppercase tracking-[0.04em] font-medium text-stone-700 hover:underline decoration-2 underline-offset-4 transition-all" href="#">About</a>
+<a class="font-['Inter'] text-[0.75rem] uppercase tracking-[0.04em] font-medium text-stone-700 hover:underline decoration-2 underline-offset-4 transition-all" href="#">Community</a>
+<a class="font-['Inter'] text-[0.75rem] uppercase tracking-[0.04em] font-medium text-stone-700 hover:underline decoration-2 underline-offset-4 transition-all" href="#">Support</a>
+</div>
+<div>
+<p class="font-['Inter'] text-[0.75rem] uppercase tracking-[0.04em] font-medium text-stone-700">© 2024 Editorial Heritage. All rights reserved.</p>
+</div>
+</div>
+</footer>
+</body></html>

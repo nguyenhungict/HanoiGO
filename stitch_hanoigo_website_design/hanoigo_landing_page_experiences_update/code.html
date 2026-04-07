@@ -1,0 +1,285 @@
+<!DOCTYPE html>
+
+<html class="light" lang="en"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>HanoiGO | The Modern Archivist</title>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<style>
+        body { font-family: 'Inter', sans-serif; background-color: #fff8f7; color: #261817; }
+        .material-symbols-outlined {
+            font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24;
+        }
+        .glass-nav {
+            backdrop-filter: blur(20px);
+            -webkit-backdrop-filter: blur(20px);
+        }
+        /* Custom underline animation for tertiary buttons */
+        .tertiary-hover::after {
+            content: '';
+            display: block;
+            width: 0;
+            height: 2px;
+            background: #b52330;
+            transition: width .3s;
+        }
+        .tertiary-hover:hover::after {
+            width: 100%;
+        }
+    </style>
+<script id="tailwind-config">
+        tailwind.config = {
+          darkMode: "class",
+          theme: {
+            extend: {
+              "colors": {
+                      "on-secondary-fixed-variant": "#4f4533",
+                      "on-secondary": "#ffffff",
+                      "secondary": "#685d4a",
+                      "secondary-fixed": "#f0e0c8",
+                      "surface-dim": "#efd4d2",
+                      "on-error": "#ffffff",
+                      "secondary-container": "#eddec5",
+                      "on-primary": "#ffffff",
+                      "on-tertiary-fixed-variant": "#00531a",
+                      "surface-container": "#ffe9e7",
+                      "surface-container-high": "#fde2e0",
+                      "on-surface": "#261817",
+                      "outline": "#8e706f",
+                      "error": "#ba1a1a",
+                      "surface-container-highest": "#f7dcdb",
+                      "surface-bright": "#fff8f7",
+                      "primary-container": "#ff5a5f",
+                      "inverse-surface": "#3d2c2c",
+                      "on-background": "#261817",
+                      "inverse-primary": "#ffb3b0",
+                      "secondary-fixed-dim": "#d3c5ad",
+                      "on-primary-fixed-variant": "#92001b",
+                      "on-tertiary-fixed": "#002106",
+                      "primary-fixed-dim": "#ffb3b0",
+                      "tertiary": "#006e25",
+                      "surface": "#fff8f7",
+                      "background": "#fff8f7",
+                      "on-primary-container": "#61000e",
+                      "surface-container-lowest": "#ffffff",
+                      "on-error-container": "#93000a",
+                      "tertiary-fixed-dim": "#66df75",
+                      "surface-tint": "#b52330",
+                      "on-surface-variant": "#5a403f",
+                      "surface-variant": "#f7dcdb",
+                      "primary-fixed": "#ffdad8",
+                      "on-secondary-container": "#6c614e",
+                      "on-tertiary-container": "#00350d",
+                      "on-secondary-fixed": "#221b0b",
+                      "tertiary-container": "#2ba947",
+                      "on-tertiary": "#ffffff",
+                      "inverse-on-surface": "#ffedeb",
+                      "tertiary-fixed": "#83fc8e",
+                      "on-primary-fixed": "#410007",
+                      "primary": "#b52330",
+                      "surface-container-low": "#fff0ef",
+                      "error-container": "#ffdad6",
+                      "outline-variant": "#e2bebc"
+              },
+              "borderRadius": {
+                      "DEFAULT": "0.25rem",
+                      "lg": "0.5rem",
+                      "xl": "0.75rem",
+                      "full": "9999px"
+              }
+            },
+          }
+        }
+      </script>
+</head>
+<body class="bg-surface text-on-surface antialiased">
+<!-- Top Navigation Bar -->
+<nav class="fixed top-0 w-full z-50 bg-white/80 dark:bg-neutral-900/80 backdrop-blur-xl shadow-sm shadow-rose-900/5 dark:shadow-none">
+<div class="max-w-7xl mx-auto flex justify-between items-center px-8 py-4">
+<div class="text-2xl font-black text-rose-500 dark:text-rose-400 tracking-tighter">HanoiGO</div>
+<div class="hidden md:flex items-center gap-8 font-['Inter'] tracking-tight font-medium">
+<a class="text-neutral-600 dark:text-neutral-400 hover:text-rose-500 transition-colors duration-300" href="#">Destinations</a>
+<a class="text-neutral-600 dark:text-neutral-400 hover:text-rose-500 transition-colors duration-300" href="#">Itineraries</a>
+<a class="text-neutral-600 dark:text-neutral-400 hover:text-rose-500 transition-colors duration-300" href="#">Experiences</a>
+<a class="text-neutral-600 dark:text-neutral-400 hover:text-rose-500 transition-colors duration-300" href="#">Bookings</a>
+</div>
+<div class="flex items-center gap-4">
+<button class="text-neutral-600 font-medium px-4 py-2 hover:text-rose-500 transition-all">Log In</button>
+<button class="bg-gradient-to-br from-primary to-primary-container text-white font-bold px-6 py-2.5 rounded-md hover:opacity-90 transition-all">Sign Up</button>
+</div>
+</div>
+</nav>
+<!-- Hero Section -->
+<header class="relative h-[85vh] w-full overflow-hidden flex items-center justify-center pt-20">
+<div class="absolute inset-0 z-0">
+<img alt="Hanoi Landscape" class="w-full h-full object-cover" data-alt="wide cinematic shot of Hoan Kiem Lake in Hanoi at twilight with the Turtle Tower illuminated and soft city lights reflecting on water" src="https://lh3.googleusercontent.com/aida-public/AB6AXuDl2anxIUu4LaW-_eUEJbMBIEF1GwUAZyFkXwOncE-5I9f3JjSzCMIXmJQ-2ILY5dVuT1uZT2c0jCbkLEY7MbpGeen0wfH-YB-kfTYV2iKGjFE3g-t5jTpvX6A-UnZo90LB_JoeWY8kZMdsn3oNifx6pU0ECGwFo-5JOyDm_c1fpl3U1RlbWVdkYEq5a1xM7C_6K8QVBobPMq9pcetHCPm22oRNFQYJqADL4JTIbKtjr2H4d96W-KxVN1WeGSV2DtDzBalrajDQPkhy"/>
+<div class="absolute inset-0 bg-gradient-to-b from-black/20 via-on-surface/30 to-on-surface/60"></div>
+</div>
+<div class="relative z-10 text-center px-4 max-w-4xl">
+<span class="text-white text-sm font-bold tracking-[0.3em] uppercase mb-6 block drop-shadow-md">The Modern Archivist</span>
+<h1 class="text-6xl md:text-8xl font-extrabold text-white tracking-tighter mb-10 leading-[1.1] drop-shadow-lg">
+                Curated Heritage, <br/>Hyper-Modern Hanoi.
+            </h1>
+<p class="text-white/90 text-lg md:text-xl font-medium max-w-2xl mx-auto mb-10 leading-relaxed drop-shadow-md">
+                Experience the soulful intersection of timeless tradition and contemporary luxury in Vietnam's vibrant capital.
+            </p>
+<div class="flex flex-wrap justify-center gap-6">
+<button class="bg-primary text-white px-10 py-4 rounded-md font-bold hover:scale-105 transition-transform shadow-lg">Start Your Journey</button>
+<button class="bg-white/10 backdrop-blur-md border border-white/30 text-white px-10 py-4 rounded-md font-bold hover:bg-white/20 transition-all">Explore Destinations</button>
+</div>
+</div>
+</header>
+<!-- Top Heritage Places -->
+<section class="py-24 px-8 bg-surface">
+<div class="max-w-7xl mx-auto">
+<div class="flex justify-between items-end mb-12">
+<div>
+<span class="text-primary text-xs font-bold tracking-[0.2em] uppercase mb-2 block">Curation</span>
+<h2 class="text-4xl font-extrabold tracking-tighter text-on-surface">Top Heritage Places</h2>
+</div>
+<button class="text-primary font-bold text-sm tracking-tight border-b-2 border-primary/20 hover:border-primary transition-all pb-1">View All Destinations</button>
+</div>
+<!-- Asymmetric Bento Grid -->
+<div class="grid grid-cols-1 md:grid-cols-12 gap-6 h-[700px]">
+<div class="md:col-span-8 relative rounded-xl overflow-hidden group shadow-sm transition-transform duration-500 hover:scale-[1.01]">
+<img alt="Old Quarter" class="w-full h-full object-cover transition-transform duration-700 group-hover:scale-110" data-alt="atmospheric street level view of Hanoi Old Quarter with motorbikes, hanging lanterns, and historical colonial buildings in warm afternoon light" src="https://lh3.googleusercontent.com/aida-public/AB6AXuCDKYva0dlQQbS8kWyDgEp9i23xcqdPTI0h_PjaAO8kjj94BVYBLViqJb5jDttyiApQJPKEEfd5Aw_FyroHXMLADpK6MiJ5faIo8g9Zxr8SU00o3_4B1QLFARD_IgE8VXPRjZMselTRqQLsHXLdPtxksEa1OnTPykQ0fAhqSmqmY9EKrv-nncsorn8LAQTlCRkbvZ9CWerKQkaMoiQM3LnY-B062jaXy0AAf3PE8CcE4ZnIkN2EKynvMUEnE8lbVYr-UGPDA1g8dAhp"/>
+<div class="absolute top-6 left-6 bg-secondary-fixed text-on-secondary-fixed-variant px-4 py-1.5 rounded-full text-xs font-bold shadow-sm">AUTHENTIC</div>
+<div class="absolute bottom-0 inset-x-0 p-8 bg-gradient-to-t from-black/80 to-transparent">
+<h3 class="text-white text-2xl font-bold mb-2">The Old Quarter</h3>
+<p class="text-white/80 text-sm max-w-md">36 streets of history, craftsmanship, and the beating heart of Hanoi's soul.</p>
+</div>
+</div>
+<div class="md:col-span-4 grid grid-rows-2 gap-6">
+<div class="relative rounded-xl overflow-hidden group shadow-sm">
+<img alt="Temple of Literature" class="w-full h-full object-cover transition-transform duration-700 group-hover:scale-110" data-alt="Ancient architectural detail of the Temple of Literature in Hanoi with intricate red woodwork and stone carvings" src="https://lh3.googleusercontent.com/aida-public/AB6AXuBjJo1pbLd7sCmPylz7bQ_HqpBxa7MvMzBKqwrjDw5J9pkrVnj34DNqEaQqgFD0K_RCEcKO8I9aQqgFD0K_RCEcKO8I9aKgSAjq-qPca-QQixQoG1r_x5vzIDlGDUgsTqCbuhtTLeDZaNg4gx-dA4s7ClGEWwX2PiQpP42diXzr3pxSl1rS2xU5fJLQenhIAWSdss9bKzzr-_elS4-2cVZab27BbgTJSa-g0jbF1LwNqiLXl2ioGTER7Vd3nNNXmEj37Y9iwIPEOY-UAVoqXiW7n_TFkcNrsS"/>
+<div class="absolute top-6 left-6 bg-secondary-fixed text-on-secondary-fixed-variant px-4 py-1.5 rounded-full text-xs font-bold">SCHOLARSHIP</div>
+<div class="absolute bottom-0 inset-x-0 p-6 bg-gradient-to-t from-black/80 to-transparent">
+<h3 class="text-white text-xl font-bold">Temple of Literature</h3>
+</div>
+</div>
+<div class="relative rounded-xl overflow-hidden group shadow-sm">
+<img alt="Opera House" class="w-full h-full object-cover transition-transform duration-700 group-hover:scale-110" data-alt="Elegant yellow French colonial facade of the Hanoi Opera House at dusk with bright street lamps and blue sky" src="https://lh3.googleusercontent.com/aida-public/AB6AXuDrMeOw0lnCTXsl_D_yB6Q60M4bdMT0f7Bsd1-J-8NUXLy7905okpRPBGkLwbzTxm0ZqzujmOoqx8UPl1Xatz7q1lJoyLv9P8GLGT6n1ahQ3hW_Dy3MJNplf8zvasUQPja2Tnmo8uCdsQYiQhugt_RYMmmp5X63QleZJV8M4UxVOynfHChX4l9vJFJqhtQKMD4NaPB4hl1xtr55jIv_9JxUk4KpD8ZN_xaaVCwyKk_mUvm28ZMxrptAgeRj-9rYpNIWFyuQNwVBwZQG"/>
+<div class="absolute top-6 left-6 bg-secondary-fixed text-on-secondary-fixed-variant px-4 py-1.5 rounded-full text-xs font-bold">COLONIAL</div>
+<div class="absolute bottom-0 inset-x-0 p-6 bg-gradient-to-t from-black/80 to-transparent">
+<h3 class="text-white text-xl font-bold">Hanoi Opera House</h3>
+</div>
+</div>
+</div>
+</div>
+</div>
+</section>
+<!-- Discover Itineraries Section -->
+<section class="py-24 px-8 bg-surface-container-low">
+<div class="max-w-7xl mx-auto">
+<div class="mb-16 max-w-2xl">
+<span class="text-primary text-xs font-bold tracking-[0.2em] uppercase mb-2 block">Planned Journeys</span>
+<h2 class="text-4xl font-extrabold tracking-tighter text-on-surface mb-4">Discover Itineraries</h2>
+<p class="text-on-surface-variant leading-relaxed">Our archivists have mapped out the most evocative routes through the city, balancing mandatory landmarks with secret local haunts.</p>
+</div>
+<div class="grid grid-cols-1 md:grid-cols-3 gap-8">
+<!-- Itinerary Card 1 -->
+<div class="bg-surface-container-lowest rounded-xl overflow-hidden shadow-sm hover:shadow-md transition-shadow group">
+<div class="h-64 overflow-hidden">
+<img alt="Food Tour" class="w-full h-full object-cover transition-transform duration-500 group-hover:scale-105" data-alt="close up of steaming bowl of pho noodle soup with fresh herbs and lime on a rustic wooden table in Hanoi" src="https://lh3.googleusercontent.com/aida-public/AB6AXuDkUDoMZfAQIR73a1iggTlfYshLqdNHm6hnmcUEIXu0ADTkLK6PvV2MoXt5DfNvMmFY_MatarPoNJYvR1H-hUrGfeoPUsOJjkGTpZiPXJZ-NvUqR69WgUoCxa_UcEuk9JV89RbJtP7T21QZCfKcyrnlXa3X2GC9fYlYCoVa37nGgUO-KQOWyRk0LAonnAISQBOxqUNT30na60sXFCeMLciY7Jir6hkTlOVg2wK_usllN75cEHpP93duu7BjhVH44Nb5aoKF04DioKhd"/>
+</div>
+<div class="p-8">
+<div class="flex items-center gap-2 mb-4">
+<span class="material-symbols-outlined text-primary text-sm">schedule</span>
+<span class="text-xs font-bold text-on-surface-variant uppercase tracking-widest">48 Hours</span>
+</div>
+<h3 class="text-xl font-bold text-on-surface mb-3">The Culinary Archivist</h3>
+<p class="text-sm text-on-surface-variant mb-6 line-clamp-2">A deep dive into the street food culture of the north, from secret Pho stalls to hidden egg coffee cafes.</p>
+<button class="text-primary font-extrabold text-sm flex items-center gap-2 group/btn">
+                            Explore Route
+                            <span class="material-symbols-outlined text-base transition-transform group-hover/btn:translate-x-1">arrow_forward</span>
+</button>
+</div>
+</div>
+<!-- Itinerary Card 2 -->
+<div class="bg-surface-container-lowest rounded-xl overflow-hidden shadow-sm hover:shadow-md transition-shadow group">
+<div class="h-64 overflow-hidden">
+<img alt="Portrait Photographer" class="w-full h-full object-cover transition-transform duration-500 group-hover:scale-105" data-alt="portrait of a local artisan in a workshop with soft natural window lighting and warm tones" src="https://lh3.googleusercontent.com/aida-public/AB6AXuDPmHg-KQczEJ1gb-UUq-TZxFcuQNSmabTOBZffMXd7S8ipz1KXhvK1mVVM_3qIYc6u0uaeU2-fvvA4zVwBA2x9GIoVZDohWDLNQEgpe-4Ni_4ZcjKE1ShxV3Y606-kACICBOyaewV3VsP19-Dd8GS862-cJfbn5Z0cCdfgxx3avJmvFAxTz9ZXKTTmnBD6Y1vDy_JbaRpkVBxDu5OjMSv75ETrK6qPAGLwQpqWdvQ5VnGnzl9vYQ-WIl0ksdmn6uOQvOCa84f36Lg6"/>
+</div>
+<div class="p-8">
+<div class="flex items-center gap-2 mb-4">
+<span class="material-symbols-outlined text-primary text-sm">schedule</span>
+<span class="text-xs font-bold text-on-surface-variant uppercase tracking-widest">3 Days</span>
+</div>
+<h3 class="text-xl font-bold text-on-surface mb-3">Artisans &amp; Guilds</h3>
+<p class="text-sm text-on-surface-variant mb-6 line-clamp-2">Trace the history of the 36 guilds, visiting multi-generational workshops in the heart of the city.</p>
+<button class="text-primary font-extrabold text-sm flex items-center gap-2 group/btn">
+                            Explore Route
+                            <span class="material-symbols-outlined text-base transition-transform group-hover/btn:translate-x-1">arrow_forward</span>
+</button>
+</div>
+</div>
+<!-- Experience Card (Updated) -->
+<div class="bg-surface-container-lowest rounded-xl overflow-hidden shadow-sm hover:shadow-md transition-shadow group">
+<div class="h-64 overflow-hidden">
+<img alt="Traditional Craft" class="w-full h-full object-cover transition-transform duration-500 group-hover:scale-105" data-alt="Close up of artisan hands painting intricate lacquerware with gold leaf in a traditional sunlit Vietnamese workshop" src="https://lh3.googleusercontent.com/aida-public/AB6AXuB26Z8T7x8BqG-G8R3f3I8O5B7H-Q2W1Y-Z7x3B5C7D-Q2W1Y-Z7x3B5C7D-Q2W1Y-Z7x3B5C7D-Q2W1Y-Z7x3B5C7D-Q2W1Y-Z7x3B5C7D_Hanoi_Craft"/>
+</div>
+<div class="p-8">
+<div class="flex items-center gap-2 mb-4">
+<span class="material-symbols-outlined text-primary text-sm">palette</span>
+<span class="text-xs font-bold text-on-surface-variant uppercase tracking-widest">Immersion</span>
+</div>
+<h3 class="text-xl font-bold text-on-surface mb-3">Ancient Craft Workshops</h3>
+<p class="text-sm text-on-surface-variant mb-6 line-clamp-2">Join local artisans in the hidden courtyards of the Old Quarter for traditional lacquer and silk workshops.</p>
+<button class="text-primary font-extrabold text-sm flex items-center gap-2 group/btn">
+                            Book Experience
+                            <span class="material-symbols-outlined text-base transition-transform group-hover/btn:translate-x-1">arrow_forward</span>
+</button>
+</div>
+</div>
+</div>
+</div>
+</section>
+<!-- Map/CTA Section -->
+<section class="relative h-[400px] w-full bg-surface-dim flex items-center justify-center overflow-hidden">
+<div class="absolute inset-0 grayscale opacity-20">
+<img class="w-full h-full object-cover" data-alt="stylized architectural map texture of hanoi streets with subtle paper grain" data-location="Hanoi" src="https://lh3.googleusercontent.com/aida-public/AB6AXuBIP-AFPU1-8Iy_JaIV_pqT5TofmPo5NYbbiydkCFFhANNo3Z9GwfOWmxoT6HUZdvubliUFFjAhg-WZ3dtbm29dzFm2Ft4lBZt8hxKZHdM4abHLVFyL0S4kgJiJCLweZ2-cUYuo3PK9TKON6d9waTdhJr4AGUahHs_zlkq5D8ZygdsKfCPbWu6Ix4SF37VVlm-I7qRre8__OuiqPzZ3oumrT0nCW40OsmHnEx-mR-vV3Dhjw33GmizknlXKjkDDCCOl_2B9B5xkm0_u"/>
+</div>
+<div class="relative z-10 text-center px-8">
+<h2 class="text-4xl font-extrabold tracking-tighter text-on-surface mb-6">Ready to write your own chapter?</h2>
+<div class="flex flex-wrap justify-center gap-4">
+<button class="bg-primary text-white px-10 py-4 rounded-md font-bold hover:scale-105 transition-transform">Book Your Experience</button>
+<button class="bg-secondary-container text-on-secondary-container px-10 py-4 rounded-md font-bold hover:opacity-90 transition-opacity">Contact a Local Expert</button>
+</div>
+</div>
+</section>
+<!-- Footer -->
+<footer class="bg-neutral-50 dark:bg-neutral-950 w-full py-12 px-8 tonal-shift">
+<div class="max-w-7xl mx-auto grid grid-cols-1 md:grid-cols-3 gap-8">
+<div class="space-y-4">
+<div class="font-bold text-rose-500 text-2xl tracking-tighter">HanoiGO</div>
+<p class="font-['Inter'] text-sm leading-relaxed text-neutral-500 dark:text-neutral-400 max-w-xs">
+                    Curating the intersection of heritage and modernity. We are your premium guide to the soul of the North.
+                </p>
+</div>
+<div class="grid grid-cols-2 gap-4">
+<div class="space-y-2">
+<h4 class="text-xs font-black uppercase tracking-widest text-on-surface mb-4">Company</h4>
+<a class="block text-neutral-500 dark:text-neutral-400 hover:text-rose-500 transition-colors text-sm" href="#">About</a>
+<a class="block text-neutral-500 dark:text-neutral-400 hover:text-rose-500 transition-colors text-sm" href="#">Community</a>
+<a class="block text-neutral-500 dark:text-neutral-400 hover:text-rose-500 transition-colors text-sm" href="#">Support</a>
+</div>
+<div class="space-y-2">
+<h4 class="text-xs font-black uppercase tracking-widest text-on-surface mb-4">Services</h4>
+<a class="block text-neutral-500 dark:text-neutral-400 hover:text-rose-500 transition-colors text-sm" href="#">Private Tours</a>
+<a class="block text-neutral-500 dark:text-neutral-400 hover:text-rose-500 transition-colors text-sm" href="#">Hotel Curation</a>
+<a class="block text-neutral-500 dark:text-neutral-400 hover:text-rose-500 transition-colors text-sm" href="#">Concierge</a>
+</div>
+</div>
+<div class="space-y-4">
+<h4 class="text-xs font-black uppercase tracking-widest text-on-surface">Newsletter</h4>
+<div class="flex gap-2">
+<input class="bg-white border-none rounded-md px-4 py-2 flex-1 text-sm focus:ring-2 focus:ring-rose-500 outline-none" placeholder="Your email" type="email"/>
+<button class="bg-on-surface text-white px-4 py-2 rounded-md font-bold text-sm">Join</button>
+</div>
+<p class="text-[10px] text-neutral-400">© 2024 HanoiGO. The Modern Archivist.</p>
+</div>
+</div>
+</footer>
+</body></html>

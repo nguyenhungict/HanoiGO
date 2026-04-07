@@ -1,0 +1,246 @@
+<!DOCTYPE html>
+
+<html class="light" lang="en"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<script id="tailwind-config">
+      tailwind.config = {
+        darkMode: "class",
+        theme: {
+          extend: {
+            "colors": {
+                    "secondary-fixed-dim": "#d3c5ad",
+                    "on-tertiary-fixed": "#002106",
+                    "on-primary-container": "#61000e",
+                    "surface-container-low": "#fff0ef",
+                    "on-tertiary-container": "#00350d",
+                    "secondary-container": "#eddec5",
+                    "tertiary-container": "#2ba947",
+                    "inverse-on-surface": "#ffedeb",
+                    "on-error-container": "#93000a",
+                    "tertiary-fixed-dim": "#66df75",
+                    "on-secondary-fixed-variant": "#4f4533",
+                    "surface-variant": "#f7dcdb",
+                    "surface": "#fff8f7",
+                    "error": "#ba1a1a",
+                    "on-tertiary": "#ffffff",
+                    "on-secondary-container": "#6c614e",
+                    "primary": "#b52330",
+                    "on-surface": "#261817",
+                    "secondary-fixed": "#f0e0c8",
+                    "inverse-primary": "#ffb3b0",
+                    "surface-container-lowest": "#ffffff",
+                    "surface-container-high": "#fde2e0",
+                    "on-primary": "#ffffff",
+                    "tertiary": "#006e25",
+                    "error-container": "#ffdad6",
+                    "secondary": "#685d4a",
+                    "on-tertiary-fixed-variant": "#00531a",
+                    "surface-bright": "#fff8f7",
+                    "outline-variant": "#e2bebc",
+                    "background": "#fff8f7",
+                    "surface-container-highest": "#f7dcdb",
+                    "on-secondary-fixed": "#221b0b",
+                    "primary-fixed-dim": "#ffb3b0",
+                    "primary-fixed": "#ffdad8",
+                    "on-error": "#ffffff",
+                    "surface-tint": "#b52330",
+                    "primary-container": "#ff5a5f",
+                    "on-secondary": "#ffffff",
+                    "outline": "#8e706f",
+                    "surface-dim": "#efd4d2",
+                    "tertiary-fixed": "#83fc8e",
+                    "on-surface-variant": "#5a403f",
+                    "on-primary-fixed": "#410007",
+                    "surface-container": "#ffe9e7",
+                    "inverse-surface": "#3d2c2c",
+                    "on-primary-fixed-variant": "#92001b",
+                    "on-background": "#261817"
+            },
+            "borderRadius": {
+                    "DEFAULT": "0.25rem",
+                    "lg": "0.5rem",
+                    "xl": "0.75rem",
+                    "full": "9999px"
+            },
+            "fontFamily": {
+                    "headline": ["Inter"],
+                    "body": ["Inter"],
+                    "label": ["Inter"]
+            }
+          },
+        },
+      }
+    </script>
+<style>
+        .material-symbols-outlined {
+            font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24;
+        }
+        .glass-card {
+            background: rgba(255, 255, 255, 0.15);
+            backdrop-filter: blur(24px);
+            -webkit-backdrop-filter: blur(24px);
+        }
+        .ghost-input {
+            border: 1px solid rgba(226, 190, 188, 0.15);
+            background: transparent;
+            transition: all 0.3s ease;
+        }
+        .ghost-input:focus {
+            outline: none;
+            border-color: #ff5a5f;
+            background: rgba(255, 255, 255, 0.5);
+        }
+    </style>
+</head>
+<body class="bg-surface font-body text-on-surface antialiased">
+<!-- TopNavBar -->
+<nav class="fixed top-0 w-full z-50 bg-white/80 dark:bg-neutral-900/80 backdrop-blur-xl shadow-sm shadow-rose-900/5 dark:shadow-none">
+<div class="max-w-7xl mx-auto flex justify-between items-center px-8 py-4">
+<div class="text-2xl font-black text-rose-500 dark:text-rose-400 tracking-tighter font-['Inter']">
+                HanoiGO
+            </div>
+<div class="hidden md:flex items-center gap-8">
+<a class="text-neutral-600 dark:text-neutral-400 hover:text-rose-500 font-['Inter'] tracking-tight font-medium transition-colors duration-300" href="#">Destinations</a>
+<a class="text-neutral-600 dark:text-neutral-400 hover:text-rose-500 font-['Inter'] tracking-tight font-medium transition-colors duration-300" href="#">Itineraries</a>
+<a class="text-neutral-600 dark:text-neutral-400 hover:text-rose-500 font-['Inter'] tracking-tight font-medium transition-colors duration-300" href="#">Experiences</a>
+<a class="text-neutral-600 dark:text-neutral-400 hover:text-rose-500 font-['Inter'] tracking-tight font-medium transition-colors duration-300" href="#">Bookings</a>
+</div>
+<div class="flex items-center gap-4">
+<button class="text-neutral-600 dark:text-neutral-400 hover:text-rose-500 font-['Inter'] tracking-tight font-medium px-4 py-2 transition-colors duration-300">Log In</button>
+<button class="bg-rose-500 hover:bg-rose-600 text-white font-['Inter'] tracking-tight font-medium px-6 py-2 rounded-md transition-all active:opacity-80">Sign Up</button>
+</div>
+</div>
+</nav>
+<!-- Main Content: Split Screen -->
+<main class="min-h-screen pt-16 flex overflow-hidden">
+<!-- Left Half: Photography & Branding Overlay -->
+<section class="relative w-1/2 hidden lg:flex items-center justify-center overflow-hidden">
+<img alt="Hanoi Streets" class="absolute inset-0 w-full h-full object-cover" data-alt="Cinematic wide shot of a bustling Hanoi street during daylight, golden sun rays filtering through colonial architecture and lush green trees." src="https://lh3.googleusercontent.com/aida-public/AB6AXuA4-iPwl61wIu2fTOvlPGHdynooI11BBN20UA0Lh_jjmsGeVSnz84vQb18GYamR1CDOncYAkiZOtfiP_TGbK0OMR39ZsGmTsSKr2KvjOBSmNn8m4JnEeijwB-NrfhFQyccJJWrO60ItlhNRLQgroYS6pjSQkJG2zyGTDgBbVjInVcCYocOHECqFYmZ-I7XU7sqZ6ux_4H9tqis2Qs1N-dygzHhIFkFeZboQ7m3_048PWQVBMAkVpfDQMvojSauf_65O5V2TTO-eSdwq"/>
+<div class="absolute inset-0 bg-black/10"></div>
+<!-- Glassmorphic Overlay -->
+<div class="glass-card p-12 rounded-3xl relative z-10 max-w-md border border-white/20">
+<div class="text-white">
+<h2 class="text-5xl font-black tracking-tighter mb-4 font-headline">HanoiGO</h2>
+<p class="text-lg font-light leading-relaxed opacity-90 mb-8">
+                        Experience the soul of Vietnam through curated journeys that blend timeless heritage with modern luxury.
+                    </p>
+<div class="flex items-center gap-4">
+<div class="flex -space-x-3">
+<div class="w-10 h-10 rounded-full border-2 border-white overflow-hidden bg-neutral-200">
+<img class="w-full h-full object-cover" data-alt="Close-up portrait of a smiling male traveler in Hanoi" src="https://lh3.googleusercontent.com/aida-public/AB6AXuBS6b92EyHcnxNeXz_VuUVdBhOGbY0U1p20ztvsYraHcQgwBWkOV3MGDMBMiRJjB73lDLFk_mL2aTNyRTbevMFwiBxEbOfyeamd296xaZM5MqDWofZLafllT67TOi2UIoSNFl2rOMjDGM3l3L-4aBBQvSKqpiC0Gi4E3-GJS-nGidgnY1Wb8siJIGHY4wl2oocysO9Pmhb_P8sAJDAdIcsO69CXTa-BkPTmdPekdAIHJrDZpZzvUKIyCJe1ZlQ7MO4gsbzI9wSgovoD"/>
+</div>
+<div class="w-10 h-10 rounded-full border-2 border-white overflow-hidden bg-neutral-200">
+<img class="w-full h-full object-cover" data-alt="Close-up portrait of a smiling female traveler in Hanoi" src="https://lh3.googleusercontent.com/aida-public/AB6AXuCAu-bsocWiyWuntmqkceDix7iu9B_lCjqkd8THoMPAYyySq06xkjoN8ab1KWyc0bQ76lBdutb9EhKJnMFPbUJctc_RfKLXOD1gVPwJFhmp7deSURHzJrDSnTiru3q0YixUdcScUuKkOgaC1PyfI8PsrOvrlURK9aiaNfAMqR-uchBx5F6tQDo66Lt6MweYl8naUC0TwXxnKhD3blcui1INTjX2FmJan50Hw27diuXiATAUNwthyZCDCS2-0MkG9XJsb0DoR635pV7x"/>
+</div>
+<div class="w-10 h-10 rounded-full border-2 border-white overflow-hidden bg-neutral-200">
+<img class="w-full h-full object-cover" data-alt="Close-up portrait of an elderly traveler in a scenic urban setting" src="https://lh3.googleusercontent.com/aida-public/AB6AXuCUcb09-OU-PKqF4hvCUG86LA-QniQbew0tz6sYH3KwrgrghSMScD7PcAW6AJSwPPUhRHwi_o-_wtPIGJuqQBSMOA5QxY4uxJTH4eQ6avu5HSv8cH60MSyxiMdllftlWnvqzRHmJEArbUZkHMmgBt8OYncNWfaDsTCuh6Riz2tx18jAGp0I4s3mihAjvT28FKz0jbp9UDWzCI7qGn4ElHL4PeqW14p_jafw3-mWVwu2UbLoEjNmF6OJvKkUF85f74mqsVhs9PUJZKGu"/>
+</div>
+</div>
+<span class="text-sm font-medium tracking-wide">Join 12k+ travelers</span>
+</div>
+</div>
+</div>
+</section>
+<!-- Right Half: Clean Login/Sign-up Container -->
+<section class="w-full lg:w-1/2 bg-surface-container-lowest flex items-center justify-center p-8 lg:p-24">
+<div class="w-full max-w-md">
+<header class="mb-12">
+<span class="text-primary font-bold tracking-[0.2em] uppercase text-xs mb-3 block">Welcome Back</span>
+<h1 class="text-4xl font-extrabold text-on-surface tracking-tight mb-2 font-headline">Access your journey.</h1>
+<p class="text-on-surface-variant font-body">Don't have an account? <a class="text-primary font-semibold hover:underline" href="#">Create an account</a></p>
+</header>
+<form class="space-y-6">
+<div class="space-y-2">
+<label class="block text-xs font-bold uppercase tracking-widest text-on-surface-variant ml-1" for="email">Email Address</label>
+<input class="ghost-input w-full px-6 py-4 rounded-xl text-on-surface placeholder:text-outline/50" id="email" placeholder="name@archivist.com" type="email"/>
+</div>
+<div class="space-y-2">
+<label class="block text-xs font-bold uppercase tracking-widest text-on-surface-variant ml-1" for="password">Password</label>
+<div class="relative">
+<input class="ghost-input w-full px-6 py-4 rounded-xl text-on-surface placeholder:text-outline/50" id="password" placeholder="••••••••" type="password"/>
+<button class="absolute right-6 top-1/2 -translate-y-1/2 text-outline-variant hover:text-primary transition-colors" type="button">
+<span class="material-symbols-outlined text-lg">visibility</span>
+</button>
+</div>
+<!-- Modern Password Strength Indicator -->
+<div class="flex gap-1.5 mt-3 px-1">
+<div class="h-1 flex-1 rounded-full bg-tertiary"></div>
+<div class="h-1 flex-1 rounded-full bg-tertiary"></div>
+<div class="h-1 flex-1 rounded-full bg-tertiary-container"></div>
+<div class="h-1 flex-1 rounded-full bg-outline-variant/20"></div>
+</div>
+<p class="text-[10px] text-tertiary font-medium flex items-center gap-1 mt-1 px-1">
+<span class="material-symbols-outlined text-[12px]" style="font-variation-settings: 'FILL' 1;">check_circle</span>
+                            Strong password detected
+                        </p>
+</div>
+<div class="flex items-center justify-between pt-2">
+<label class="flex items-center gap-2 cursor-pointer group">
+<input class="w-4 h-4 rounded-md border-outline-variant text-primary focus:ring-primary/20" type="checkbox"/>
+<span class="text-sm text-on-surface-variant group-hover:text-on-surface transition-colors">Keep me signed in</span>
+</label>
+<a class="text-sm text-primary font-medium hover:underline" href="#">Forgot password?</a>
+</div>
+<button class="w-full bg-primary-container text-white py-4 rounded-xl font-bold text-lg shadow-lg shadow-primary/20 hover:shadow-primary/30 active:scale-[0.98] transition-all" type="submit">
+                        Continue
+                    </button>
+<div class="relative py-4">
+<div class="absolute inset-0 flex items-center">
+<div class="w-full border-t border-outline-variant/10"></div>
+</div>
+<div class="relative flex justify-center text-xs uppercase tracking-widest">
+<span class="bg-surface-container-lowest px-4 text-outline">or continue with</span>
+</div>
+</div>
+<div class="grid grid-cols-2 gap-4">
+<button class="ghost-input flex items-center justify-center gap-3 py-3.5 rounded-xl hover:bg-surface-container-low transition-colors" type="button">
+<img alt="Google" class="w-5 h-5" src="https://lh3.googleusercontent.com/aida-public/AB6AXuBzlWT8x1GP_dskl01ni1Fg3cOnOnBfr5o-u9GpXCNJ7kdjGi_bbOjh7q55SqVlh8j9Dy3XWxQGUm12gEoMvkfiqv-lJNz-oOBQmi4nRHBHV0TXw0Bina8b0X42VAKOiE-R-az4-ctDJ0Mp07W60OUOMEiRggDQXicWFzbYOM4kfWwUlsV1J_lBIjtYl4unlzxzEAZVz5BY1zh6O9FRPegBJ-gTTq3feSMwdenLHZyfJPmv0WDV3h1r3Ds6Bc6aA6Xh2Z5piCgaStUo"/>
+<span class="text-sm font-semibold">Google</span>
+</button>
+<button class="ghost-input flex items-center justify-center gap-3 py-3.5 rounded-xl hover:bg-surface-container-low transition-colors" type="button">
+<span class="material-symbols-outlined text-xl" style="font-variation-settings: 'FILL' 1;">ios</span>
+<span class="text-sm font-semibold">Apple</span>
+</button>
+</div>
+</form>
+<footer class="mt-12 text-center">
+<p class="text-[11px] text-outline leading-relaxed px-8">
+                        By continuing, you agree to HanoiGO's <a class="underline hover:text-primary" href="#">Terms of Service</a> and <a class="underline hover:text-primary" href="#">Privacy Policy</a>.
+                    </p>
+</footer>
+</div>
+</section>
+</main>
+<!-- Footer -->
+<footer class="w-full py-12 px-8 tonal-shift bg-neutral-100 dark:bg-neutral-900 border-t border-outline-variant/5">
+<div class="max-w-7xl mx-auto grid grid-cols-1 md:grid-cols-3 gap-8">
+<div class="space-y-4">
+<div class="font-bold text-rose-500 text-xl tracking-tighter">HanoiGO</div>
+<p class="font-['Inter'] text-sm leading-relaxed text-neutral-500 dark:text-neutral-400 max-w-xs">
+                    Curating the heritage of Hanoi into unforgettable journeys for the modern traveler.
+                </p>
+</div>
+<div class="flex flex-col gap-3">
+<h4 class="font-bold text-on-surface text-sm uppercase tracking-widest">Platform</h4>
+<a class="text-neutral-500 dark:text-neutral-400 hover:text-rose-500 transition-colors font-['Inter'] text-sm leading-relaxed" href="#">About</a>
+<a class="text-neutral-500 dark:text-neutral-400 hover:text-rose-500 transition-colors font-['Inter'] text-sm leading-relaxed" href="#">Community</a>
+<a class="text-neutral-500 dark:text-neutral-400 hover:text-rose-500 transition-colors font-['Inter'] text-sm leading-relaxed" href="#">Support</a>
+</div>
+<div class="flex flex-col justify-between items-start md:items-end">
+<div class="flex gap-4">
+<span class="material-symbols-outlined text-neutral-400 hover:text-rose-500 cursor-pointer">public</span>
+<span class="material-symbols-outlined text-neutral-400 hover:text-rose-500 cursor-pointer">share</span>
+<span class="material-symbols-outlined text-neutral-400 hover:text-rose-500 cursor-pointer">mail</span>
+</div>
+<div class="font-['Inter'] text-sm leading-relaxed text-neutral-500 dark:text-neutral-400">
+                    © 2024 HanoiGO. The Modern Archivist.
+                </div>
+</div>
+</div>
+</footer>
+</body></html>

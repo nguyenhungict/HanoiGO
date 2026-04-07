@@ -6,3 +6,186 @@ datasource db {
   provider = "postgresql"
   url      = env("DATABASE_URL")
 }
+
+enum Role {
+  USER
+  ADMIN
+}
+
+model User {
+  id            String    @id @default(uuid()) @db.Uuid
+  email         String    @unique
+  passwordHash  String    @map("password_hash")
+  username      String    @unique
+  avatarUrl     String?   @map("avatar_url")
+  nationality   String?
+  languages     String[]
+  role          Role      @default(USER)
+  tokenVersion  Int       @default(1) @map("token_version")
+  createdAt     DateTime  @default(now()) @db.Timestamptz @map("created_at")
+
+  // Relationships
+  trips           Trip[]
+  activities      Activity[]      @relation("HostActivities")
+  activityMembers ActivityMember[]
+  messages        Message[]
+  passwordResets  PasswordReset[]
+  notifications   Notification[]
+
+  @@map("users")
+}
+
+model Place {
+  id                String    @id @default(uuid()) @db.Uuid
+  name              String
+  nameEn            String?   @map("name_en")
+  descriptionEn     String?   @map("description_en")
+  category          String
+  district          String
+  address           String?
+  lat               Float
+  lng               Float
+  location          Unsupported("geometry(Point, 4326)")
+  openingHours      Json?     @map("opening_hours")
+  visitDurationMin  Int?      @map("visit_duration_min")
+  imageUrl          String?   @map("image_url")
+  tags              String[]
+  createdAt         DateTime  @default(now()) @db.Timestamptz @map("created_at")
+
+  // Relationships
+  trips          Trip[]     @relation("StartPlace")
+  tripStops      TripStop[]
+  activities     Activity[]
+
+  @@map("places")
+}
+
+model Trip {
+  id            String    @id @default(uuid()) @db.Uuid
+  userId        String    @map("user_id") @db.Uuid
+  title         String?
+  numDays       Int       @map("num_days")
+  startPlaceId  String?   @map("start_place_id") @db.Uuid
+  createdAt     DateTime  @default(now()) @db.Timestamptz @map("created_at")
+
+  // Relationships
+  user        User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  startPlace  Place?    @relation("StartPlace", fields: [startPlaceId], references: [id])
+  tripDays    TripDay[]
+
+  @@map("trips")
+}
+
+model TripDay {
+  id         String    @id @default(uuid()) @db.Uuid
+  tripId     String    @map("trip_id") @db.Uuid
+  dayNumber  Int       @map("day_number")
+  district   String?
+
+  // Relationships
+  trip       Trip       @relation(fields: [tripId], references: [id], onDelete: Cascade)
+  tripStops  TripStop[]
+
+  @@map("trip_days")
+}
+
+model TripStop {
+  id                String    @id @default(uuid()) @db.Uuid
+  tripDayId         String    @map("trip_day_id") @db.Uuid
+  placeId           String    @map("place_id") @db.Uuid
+  stopOrder         Int       @map("stop_order")
+  arriveAt          DateTime? @db.Time @map("arrive_at")
+  departAt          DateTime? @db.Time @map("depart_at")
+  distanceFromPrevM Int?      @map("distance_from_prev_m")
+  durationFromPrevS Int?      @map("duration_from_prev_s")
+  isSkipped         Boolean   @default(false) @map("is_skipped")
+
+  // Relationships
+  tripDay  TripDay @relation(fields: [tripDayId], references: [id], onDelete: Cascade)
+  place    Place   @relation(fields: [placeId], references: [id])
+
+  @@map("trip_stops")
+}
+
+model Activity {
+  id           String    @id @default(uuid()) @db.Uuid
+  hostId       String    @map("host_id") @db.Uuid
+  placeId      String?   @map("place_id") @db.Uuid
+  title        String
+  description  String?
+  address      String?
+  lat          Float
+  lng          Float
+  location     Unsupported("geometry(Point, 4326)")
+  scheduledAt  DateTime  @db.Timestamptz @map("scheduled_at")
+  maxMembers   Int?      @default(10) @map("max_members")
+  status       String?   @default("open")
+  createdAt     DateTime  @default(now()) @db.Timestamptz @map("created_at")
+
+  // Relationships
+  host            User             @relation("HostActivities", fields: [hostId], references: [id], onDelete: Cascade)
+  place           Place?           @relation(fields: [placeId], references: [id])
+  activityMembers ActivityMember[]
+  messages        Message[]
+
+  @@map("activities")
+}
+
+model ActivityMember {
+  activityId String    @map("activity_id") @db.Uuid
+  userId     String    @map("user_id") @db.Uuid
+  status     String
+  joinedAt   DateTime  @default(now()) @db.Timestamptz @map("joined_at")
+
+  // Relationships
+  activity Activity @relation(fields: [activityId], references: [id], onDelete: Cascade)
+  user     User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@id([activityId, userId])
+  @@map("activity_members")
+}
+
+model Message {
+  id         String    @id @default(uuid()) @db.Uuid
+  activityId String    @map("activity_id") @db.Uuid
+  userId     String    @map("user_id") @db.Uuid
+  content    String
+  createdAt  DateTime  @default(now()) @db.Timestamptz @map("created_at")
+
+  // Relationships
+  activity Activity @relation(fields: [activityId], references: [id], onDelete: Cascade)
+  user     User     @relation(fields: [userId], references: [id])
+
+  @@map("messages")
+}
+
+model PasswordReset {
+  id        String    @id @default(uuid()) @db.Uuid
+  userId    String    @map("user_id") @db.Uuid
+  token     String    @unique
+  expiresAt DateTime  @db.Timestamptz @map("expires_at")
+  usedAt    DateTime? @db.Timestamptz @map("used_at")
+  createdAt DateTime  @default(now()) @db.Timestamptz @map("created_at")
+
+  // Relationships
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@map("password_resets")
+}
+
+model Notification {
+  id         String    @id @default(uuid()) @db.Uuid
+  userId     String    @map("user_id") @db.Uuid
+  type       String
+  title      String
+  body       String?
+  entityType String?   @map("entity_type")
+  entityId   String?   @map("entity_id") @db.Uuid
+  isRead     Boolean   @default(false) @map("is_read")
+  createdAt  DateTime  @default(now()) @db.Timestamptz @map("created_at")
+
+  // Relationships
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@map("notifications")
+}

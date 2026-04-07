@@ -15,6 +15,8 @@ async function bootstrap() {
     }),
   );
 
+  app.enableCors(); // Bật CORS để cho phép Frontend 3000 gọi API
+
   await app.listen(process.env.PORT ?? 8888);
 }
 bootstrap();
