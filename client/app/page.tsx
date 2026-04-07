@@ -14,16 +14,16 @@ export default async function HomePage() {
         <div className="max-w-7xl mx-auto flex justify-between items-center px-8 py-4">
           <Link href="/" className="text-2xl font-black text-rose-500 tracking-tighter">HanoiGO</Link>
           <div className="hidden md:flex items-center gap-8 font-['Inter'] tracking-tight font-medium">
-            <a className="text-neutral-600 hover:text-rose-500 transition-colors duration-300" href="#destinations">Destinations</a>
-            <a className="text-neutral-600 hover:text-rose-500 transition-colors duration-300" href="#itineraries">Itineraries</a>
-            <a className="text-neutral-600 hover:text-rose-500 transition-colors duration-300" href="#experiences">Experiences</a>
-            <a className="text-neutral-600 hover:text-rose-500 transition-colors duration-300" href="#">Bookings</a>
+            
+            <a className="text-neutral-600 hover:text-rose-500 transition-colors duration-300" href="/discovery">Discovery</a>
+            <a className="text-neutral-600 hover:text-rose-500 transition-colors duration-300" href="/trips">Trips</a>
+            <a className="text-neutral-600 hover:text-rose-500 transition-colors duration-300" href="/activities">Activities</a>
           </div>
           
           <div className="flex items-center gap-4">
             {token ? (
               <div className="flex items-center gap-4">
-                <Link href="/discovery" className="flex items-center gap-2 group">
+                <Link href="/profile" className="flex items-center gap-2 group">
                    <div className="w-8 h-8 rounded-full bg-rose-500/10 border border-rose-500/20 flex items-center justify-center overflow-hidden">
                       <span className="material-symbols-outlined text-rose-500 text-xl">account_circle</span>
                    </div>
