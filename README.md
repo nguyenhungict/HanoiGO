@@ -1,4 +1,4 @@
-# SpeakUp
+# HanoiGO
 
 Repository structure:
 - `/api`: NestJS backend
