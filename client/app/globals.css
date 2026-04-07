@@ -1,0 +1,59 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer utilities {
+  .glass-card {
+    background: rgba(255, 255, 255, 0.15);
+    backdrop-filter: blur(24px);
+    -webkit-backdrop-filter: blur(24px);
+  }
+  .ghost-input {
+    border: 1px solid rgba(226, 190, 188, 0.15);
+    background: transparent;
+    transition: all 0.3s ease;
+  }
+  .ghost-input:focus {
+    outline: none;
+    border-color: #ff5a5f;
+    background: rgba(255, 255, 255, 0.5);
+  }
+  .tonal-shift {
+    transition: background-color 0.3s ease, box-shadow 0.3s ease;
+  }
+  .glass-nav {
+    backdrop-filter: blur(20px);
+    -webkit-backdrop-filter: blur(20px);
+  }
+}
+
+@layer base {
+  body {
+    @apply bg-surface font-body text-on-surface antialiased;
+  }
+}
+
+/* Custom underline animation for tertiary buttons */
+.tertiary-hover::after {
+  content: '';
+  display: block;
+  width: 0;
+  height: 2px;
+  background: #b52330;
+  transition: width .3s;
+}
+.tertiary-hover:hover::after {
+  width: 100%;
+}
+
+/* Material Symbols support */
+.material-symbols-outlined {
+  font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24;
+  display: inline-block;
+  line-height: 1;
+  text-transform: none;
+  letter-spacing: normal;
+  word-wrap: normal;
+  white-space: nowrap;
+  direction: ltr;
+}
