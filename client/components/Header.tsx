@@ -15,28 +15,29 @@ export default function Header({ username }: HeaderProps) {
     { name: 'Discovery', href: '/discovery', icon: 'explore' },
     { name: 'Trips', href: '/trips', icon: 'map' },
     { name: 'Activities', href: '/activities', icon: 'groups' },
+    { name: 'Places', href: '/places', icon: 'account_balance' },
   ];
 
   return (
-    <header className="h-20 border-b border-outline-variant/30 bg-surface/80 backdrop-blur-xl px-8 flex items-center justify-between sticky top-0 z-50">
+    <header className="h-20 border-b border-outline/5 bg-white/80 backdrop-blur-2xl px-8 flex items-center justify-between sticky top-0 z-50 transition-all">
       {/* Left: Logo & Core Nav */}
-      <div className="flex items-center gap-12">
-        <Link href="/" className="text-2xl font-black text-primary tracking-tighter">HanoiGO</Link>
+      <div className="flex items-center gap-14">
+        <Link href="/" className="text-2xl font-black text-primary tracking-tighter uppercase transition-transform hover:scale-105">HanoiGO</Link>
         
-        <nav className="hidden lg:flex items-center gap-1">
+        <nav className="hidden lg:flex items-center gap-2">
           {navItems.map((item) => {
             const isActive = pathname === item.href;
             return (
               <Link 
                 key={item.name}
                 href={item.href}
-                className={`flex items-center gap-2 px-6 py-2.5 rounded-full transition-all duration-300 font-bold text-sm tracking-tight ${
+                className={`flex items-center gap-2.5 px-6 py-2.5 rounded-[1.25rem] transition-all duration-500 text-[10px] font-black uppercase tracking-[0.2em] ${
                   isActive 
-                    ? 'bg-primary text-white shadow-lg shadow-primary/20 scale-105' 
-                    : 'text-outline hover:bg-surface-container-high hover:text-on-surface'
+                    ? 'bg-primary text-white shadow-xl shadow-primary/20 scale-105' 
+                    : 'text-outline hover:text-primary hover:bg-primary/5'
                 }`}
               >
-                <span className={`material-symbols-outlined text-[20px] ${isActive ? 'fill-1' : ''}`}>{item.icon}</span>
+                <span className={`material-symbols-outlined text-[18px] ${isActive ? 'fill-1' : ''}`}>{item.icon}</span>
                 {item.name}
               </Link>
             );
@@ -46,24 +47,20 @@ export default function Header({ username }: HeaderProps) {
 
       {/* Right: Search & Profile */}
       <div className="flex items-center gap-6">
-        {/* Discovery Filter Context - Show only if on Discovery */}
-        {pathname === '/discovery' && (
-          <div className="hidden xl:flex items-center gap-2 animate-in fade-in zoom-in duration-500 mr-4">
-             
-          </div>
-        )}
-
-        
-
-        <div className="flex items-center gap-3 pl-4 border-l border-outline-variant/30">
+        <div className="flex items-center gap-4 pl-8 border-l border-outline/10">
           <div className="text-right hidden sm:block">
-            <p className="text-[11px] font-black text-on-surface uppercase tracking-tighter leading-none">{username}</p>
+            <p className="text-[9px] font-black text-outline uppercase tracking-widest leading-none mb-1">Explorer</p>
+            <p className="text-xs font-black text-on-surface tracking-tighter leading-none">{username}</p>
           </div>
-          <Link href="/profile" className="w-10 h-10 rounded-full bg-primary/10 border border-primary/20 flex items-center justify-center overflow-hidden hover:rotate-12 transition-all shadow-inner">
-             <span className="material-symbols-outlined text-primary text-2xl">account_circle</span>
+          <Link href="/profile" className="group">
+            <div className="w-11 h-11 rounded-2xl bg-surface-container-high border border-outline/10 flex items-center justify-center overflow-hidden hover:rotate-[15deg] transition-all duration-500 shadow-inner group-hover:border-primary/30">
+               <span className="material-symbols-outlined text-outline group-hover:text-primary transition-colors text-2xl">person</span>
+            </div>
           </Link>
           <form action={logoutAction}>
-            <button type="submit" className="material-symbols-outlined text-outline-variant hover:text-error transition-colors ml-1 text-xl">logout</button>
+            <button type="submit" className="w-10 h-10 rounded-2xl flex items-center justify-center text-outline/30 hover:text-primary hover:bg-primary/5 transition-all ml-1 active:scale-90">
+              <span className="material-symbols-outlined text-xl">logout</span>
+            </button>
           </form>
         </div>
       </div>

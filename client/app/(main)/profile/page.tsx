@@ -46,7 +46,9 @@ export default function ProfilePage() {
                 </p>
 
                 <div className="flex items-center justify-center gap-3 pt-4">
-                  <button className="flex-1 bg-primary text-white py-3.5 rounded-2xl text-[10px] font-black uppercase tracking-widest shadow-lg shadow-primary/20 hover:opacity-90 transition-all">Edit Profile</button>
+                  <Link href="/profile/edit" className="flex-1 bg-primary text-white py-3.5 rounded-2xl text-[10px] font-black uppercase text-center tracking-widest shadow-lg shadow-primary/20 hover:opacity-90 transition-all">
+                    Edit Profile
+                  </Link>
                   <button className="w-12 h-12 flex items-center justify-center bg-surface-container-high text-on-surface rounded-2xl hover:bg-primary/5 transition-all">
                     <span className="material-symbols-outlined">settings</span>
                   </button>

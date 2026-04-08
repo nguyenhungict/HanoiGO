@@ -9,6 +9,9 @@ const api = axios.create({
   withCredentials: true,
 });
 
+const COOKIE_MAX_AGE = 60 * 60 * 24 * 7; // 7 ngày
+const IS_PRODUCTION = process.env.NODE_ENV === 'production';
+
 /**
  * Xử lý đăng ký người dùng mới
  */
@@ -22,15 +25,25 @@ export async function registerAction(formData: any) {
       const cookieStore = await cookies();
       cookieStore.set('accessToken', accessToken, {
         httpOnly: true,
-        secure: process.env.NODE_ENV === 'production',
+        secure: IS_PRODUCTION,
         sameSite: 'strict',
-        maxAge: 60 * 60 * 24 * 7, // 7 ngày
+        maxAge: COOKIE_MAX_AGE,
         path: '/',
       });
 
       // 2. Có thể lưu thêm thông tin user định danh (chỉ role/id/username) nếu cần
-      cookieStore.set('user_role', user.role, { path: '/' });
-      cookieStore.set('username', user.username, { path: '/' });
+      cookieStore.set('user_role', user.role, { 
+        path: '/', 
+        maxAge: COOKIE_MAX_AGE,
+        secure: IS_PRODUCTION,
+        sameSite: 'strict'
+      });
+      cookieStore.set('username', user.username, { 
+        path: '/', 
+        maxAge: COOKIE_MAX_AGE,
+        secure: IS_PRODUCTION,
+        sameSite: 'strict'
+      });
     }
 
     // return { success: true, user: response.data.user };
@@ -54,14 +67,24 @@ export async function loginAction(credentials: any) {
       const cookieStore = await cookies();
       cookieStore.set('accessToken', accessToken, {
         httpOnly: true,
-        secure: process.env.NODE_ENV === 'production',
+        secure: IS_PRODUCTION,
         sameSite: 'strict',
-        maxAge: 60 * 60 * 24 * 7,
+        maxAge: COOKIE_MAX_AGE,
         path: '/',
       });
 
-      cookieStore.set('user_role', user.role, { path: '/' });
-      cookieStore.set('username', user.username, { path: '/' });
+      cookieStore.set('user_role', user.role, { 
+        path: '/', 
+        maxAge: COOKIE_MAX_AGE,
+        secure: IS_PRODUCTION,
+        sameSite: 'strict'
+      });
+      cookieStore.set('username', user.username, { 
+        path: '/', 
+        maxAge: COOKIE_MAX_AGE,
+        secure: IS_PRODUCTION,
+        sameSite: 'strict'
+      });
     }
   } catch (error: any) {
     return { error: error.response?.data?.message || 'Đăng nhập thất bại' };

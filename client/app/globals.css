@@ -8,19 +8,23 @@
     backdrop-filter: blur(24px);
     -webkit-backdrop-filter: blur(24px);
   }
+
   .ghost-input {
     border: 1px solid rgba(226, 190, 188, 0.15);
     background: transparent;
     transition: all 0.3s ease;
   }
+
   .ghost-input:focus {
     outline: none;
     border-color: #ff5a5f;
     background: rgba(255, 255, 255, 0.5);
   }
+
   .tonal-shift {
     transition: background-color 0.3s ease, box-shadow 0.3s ease;
   }
+
   .glass-nav {
     backdrop-filter: blur(20px);
     -webkit-backdrop-filter: blur(20px);
@@ -42,6 +46,7 @@
   background: #b52330;
   transition: width .3s;
 }
+
 .tertiary-hover:hover::after {
   width: 100%;
 }
@@ -69,6 +74,7 @@
 .hide-scrollbar::-webkit-scrollbar {
   display: none;
 }
+
 .hide-scrollbar {
   -ms-overflow-style: none;
   scrollbar-width: none;

@@ -52,110 +52,100 @@ export default function ResetPasswordPage() {
   };
 
   return (
-    <div className="bg-surface text-on-surface min-h-screen flex flex-col font-body">
-      {/* TopAppBar */}
-      <header className="fixed top-0 left-0 right-0 z-50 bg-surface">
-        <div className="flex justify-between items-center w-full px-6 py-4 max-w-7xl mx-auto">
-          <div className="flex items-center gap-2">
-             <Link href="/" className="text-2xl font-black text-primary tracking-tighter">HanoiGO</Link>
+    <div className="min-h-screen bg-background font-body text-on-surface antialiased flex flex-col">
+      {/* Top Navigation Bar */}
+      <nav className="fixed top-0 w-full z-50 bg-white/80 backdrop-blur-xl shadow-sm transition-all glass-nav border-b border-outline/5">
+        <div className="max-w-7xl mx-auto flex justify-between items-center px-8 py-4">
+          <Link href="/" className="text-2xl font-black text-primary tracking-tighter uppercase">HanoiGO</Link>
+          <div className="flex items-center gap-4">
+             <Link href="/login" className="text-on-surface-variant font-bold px-4 py-2 hover:text-primary transition-colors text-[10px] uppercase tracking-widest">Auth Access</Link>
           </div>
         </div>
-        <div className="bg-outline-variant/30 h-[1px] w-full"></div>
-      </header>
+      </nav>
 
-      {/* Main Content Canvas */}
-      <main className="flex-grow flex items-center justify-center pt-24 pb-12 px-6">
-        <section className="w-full max-w-md mx-auto">
-          <div className="bg-surface-container-lowest shadow-[0px_20px_40px_rgba(104,93,74,0.08)] rounded-2xl p-10 md:p-12 relative overflow-hidden border border-outline-variant/10">
+      <main className="flex-grow pt-24 pb-12 px-6 flex items-center justify-center">
+        <section className="w-full max-w-sm mx-auto animate-in fade-in slide-in-from-bottom-8 duration-700">
+          <div className="bg-white rounded-[2.5rem] p-12 border border-outline/10 shadow-2xl shadow-rose-900/5 relative overflow-hidden">
             <div className="absolute top-0 left-0 w-full h-2 bg-primary"></div>
             
-            <div className="flex flex-col gap-8">
-              <div className="space-y-3">
-                <h1 className="text-[2rem] font-black tracking-tighter leading-tight text-on-surface text-left italic underline decoration-primary/30">Set New Password</h1>
-                <p className="text-on-surface-variant text-sm leading-relaxed font-medium text-left">
-                  Please choose a strong, unique password to secure your HanoiGO account.
-                </p>
+            <header className="mb-10 text-center">
+              <span className="text-primary font-black tracking-[0.4em] uppercase text-[10px] mb-4 block">Security</span>
+              <h1 className="text-4xl font-black text-on-surface tracking-tighter mb-4 leading-tight">New Credentials.</h1>
+              <p className="text-outline font-medium text-xs leading-relaxed px-4">
+                Choose a robust password to re-establish your journey.
+              </p>
+            </header>
+
+            {message && (
+              <div className={`mb-8 p-6 rounded-2xl text-[11px] font-black uppercase tracking-widest border flex items-center gap-3 ${
+                message.type === 'success' 
+                  ? 'bg-green-50 text-green-700 border-green-100' 
+                  : 'bg-primary/5 text-primary border-primary/10'
+              }`}>
+                <span className="material-symbols-outlined text-xl">
+                  {message.type === 'success' ? 'check_circle' : 'error'}
+                </span>
+                {message.text}
+              </div>
+            )}
+
+            <form className="space-y-8" onSubmit={handleSubmit}>
+              <div className="space-y-6">
+                <div className="space-y-3">
+                  <label className="block text-[10px] font-black uppercase tracking-[0.2em] text-outline ml-1" htmlFor="newPassword">New Password</label>
+                  <div className="relative">
+                    <span className="material-symbols-outlined absolute left-6 top-1/2 -translate-y-1/2 text-outline/30">lock</span>
+                    <input 
+                      className="w-full bg-surface-container-low px-14 py-5 rounded-2xl text-on-surface placeholder:text-outline/40 border border-outline/10 focus:border-primary/50 focus:ring-4 focus:ring-primary/5 outline-none transition-all font-bold" 
+                      id="newPassword" 
+                      placeholder="••••••••" 
+                      type="password" 
+                      required
+                      value={formData.newPassword}
+                      onChange={(e) => setFormData({...formData, newPassword: e.target.value})}
+                    />
+                  </div>
+                </div>
+
+                <div className="space-y-3">
+                  <label className="block text-[10px] font-black uppercase tracking-[0.2em] text-outline ml-1" htmlFor="confirmPassword">Confirm Access</label>
+                  <div className="relative">
+                    <span className="material-symbols-outlined absolute left-6 top-1/2 -translate-y-1/2 text-outline/30">verified_user</span>
+                    <input 
+                      className="w-full bg-surface-container-low px-14 py-5 rounded-2xl text-on-surface placeholder:text-outline/40 border border-outline/10 focus:border-primary/50 focus:ring-4 focus:ring-primary/5 outline-none transition-all font-bold" 
+                      id="confirmPassword" 
+                      placeholder="••••••••" 
+                      type="password" 
+                      required
+                      value={formData.confirmPassword}
+                      onChange={(e) => setFormData({...formData, confirmPassword: e.target.value})}
+                    />
+                  </div>
+                </div>
               </div>
 
-              {/* Status Message */}
-              {message && (
-                <div className={`p-4 rounded-xl text-sm font-bold flex items-center gap-3 animate-in fade-in slide-in-from-top-2 ${
-                  message.type === 'success' 
-                    ? 'bg-green-50 text-green-700 border border-green-100' 
-                    : 'bg-red-50 text-red-700 border border-red-100'
-                }`}>
-                  <span className="material-symbols-outlined text-lg">
-                    {message.type === 'success' ? 'check_circle' : 'error'}
-                  </span>
-                  {message.text}
-                </div>
-              )}
-
-              {/* Input Form */}
-              <form className="space-y-6" onSubmit={handleSubmit}>
-                <div className="space-y-4">
-                  <div className="space-y-2 text-left">
-                    <label className="block text-[10px] font-black uppercase tracking-widest text-outline ml-1" htmlFor="newPassword">
-                      New Password
-                    </label>
-                    <div className="group relative">
-                      <span className="material-symbols-outlined absolute left-4 top-1/2 -translate-y-1/2 text-outline-variant group-focus-within:text-primary transition-colors">lock</span>
-                      <input 
-                        className="w-full bg-surface-container-low border border-transparent rounded-2xl pl-12 pr-4 py-4 text-on-surface placeholder:text-outline-variant focus:ring-2 focus:ring-primary/20 focus:bg-white focus:border-primary/30 transition-all outline-none font-medium" 
-                        id="newPassword" 
-                        placeholder="••••••••" 
-                        type="password" 
-                        required
-                        value={formData.newPassword}
-                        onChange={(e) => setFormData({...formData, newPassword: e.target.value})}
-                      />
-                    </div>
-                  </div>
-
-                  <div className="space-y-2 text-left">
-                    <label className="block text-[10px] font-black uppercase tracking-widest text-outline ml-1" htmlFor="confirmPassword">
-                      Confirm New Password
-                    </label>
-                    <div className="group relative">
-                      <span className="material-symbols-outlined absolute left-4 top-1/2 -translate-y-1/2 text-outline-variant group-focus-within:text-primary transition-colors">verified_user</span>
-                      <input 
-                        className="w-full bg-surface-container-low border border-transparent rounded-2xl pl-12 pr-4 py-4 text-on-surface placeholder:text-outline-variant focus:ring-2 focus:ring-primary/20 focus:bg-white focus:border-primary/30 transition-all outline-none font-medium" 
-                        id="confirmPassword" 
-                        placeholder="••••••••" 
-                        type="password" 
-                        required
-                        value={formData.confirmPassword}
-                        onChange={(e) => setFormData({...formData, confirmPassword: e.target.value})}
-                      />
-                    </div>
-                  </div>
-                </div>
-
-                <button 
-                  disabled={loading || !token}
-                  className="bg-primary w-full py-5 rounded-full text-white font-black text-xs uppercase tracking-widest active:scale-95 duration-150 transition-all shadow-lg shadow-primary/20 hover:opacity-90 disabled:opacity-50 disabled:scale-100 flex items-center justify-center gap-2"
-                >
-                  {loading ? (
-                    <span className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin"></span>
-                  ) : (
-                    <>
-                      <span>Update Password</span>
-                      <span className="material-symbols-outlined text-sm">key</span>
-                    </>
-                  )}
-                </button>
-              </form>
-            </div>
+              <button 
+                disabled={loading || !token}
+                className="w-full bg-primary text-white py-6 rounded-[2rem] font-black text-[11px] uppercase tracking-[0.3em] shadow-2xl shadow-primary/20 hover:opacity-95 hover:scale-[1.02] active:scale-[0.98] transition-all disabled:opacity-50 disabled:active:scale-100" 
+                type="submit"
+              >
+                {loading ? "Updating..." : "Establish Access"}
+              </button>
+            </form>
           </div>
         </section>
       </main>
 
       {/* Footer */}
-      <footer className="py-12 mt-auto">
-        <div className="max-w-7xl mx-auto px-6 flex flex-col md:flex-row justify-between items-center gap-6">
-          <p className="text-[10px] font-bold text-outline uppercase tracking-widest">© 2024 HanoiGO. The Modern Archivist.</p>
+      <footer className="w-full py-12 px-8 bg-surface border-t border-outline/5 mt-auto">
+        <div className="max-w-7xl mx-auto flex flex-col md:flex-row justify-between items-center gap-8">
+          <div className="font-black text-primary text-2xl tracking-tighter uppercase">HanoiGO</div>
+          <p className="text-[10px] font-black text-outline uppercase tracking-[0.2em]">
+            © 2024 HanoiGO. Secure Heritage Access.
+          </p>
         </div>
       </footer>
     </div>
+
   );
 }
