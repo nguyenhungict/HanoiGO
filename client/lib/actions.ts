@@ -51,8 +51,8 @@ export async function registerAction(formData: any) {
     return { error: error.response?.data?.message || 'Đăng ký thất bại' };
   }
 
-  // 3. Chuyển hướng về trang khám phá
-  redirect('/discovery');
+  // 3. Chuyển hướng về trang hoàn thiện hồ sơ cho người dùng mới
+  redirect('/profile/edit');
 }
 
 /**
@@ -125,5 +125,55 @@ export async function resetPasswordAction(formData: any) {
     return { success: true, message: response.data.message };
   } catch (error: any) {
     return { error: error.response?.data?.message || 'Không thể đặt lại mật khẩu' };
+  }
+}
+
+/**
+ * Lấy thông tin hồ sơ của người dùng hiện tại
+ */
+export async function getProfileAction() {
+  try {
+    const cookieStore = await cookies();
+    const token = cookieStore.get('accessToken')?.value;
+
+    if (!token) return { error: 'Chưa đăng nhập' };
+
+    const response = await api.get('/users/profile', {
+      headers: { Authorization: `Bearer ${token}` }
+    });
+
+    return { success: true, data: response.data };
+  } catch (error: any) {
+    return { error: error.response?.data?.message || 'Không thể lấy thông tin hồ sơ' };
+  }
+}
+
+/**
+ * Cập nhật thông tin hồ sơ
+ */
+export async function updateProfileAction(data: any) {
+  try {
+    const cookieStore = await cookies();
+    const token = cookieStore.get('accessToken')?.value;
+
+    if (!token) redirect('/login');
+
+    const response = await api.patch('/users/profile', data, {
+      headers: { Authorization: `Bearer ${token}` }
+    });
+
+    // Cập nhật lại cookie username nếu user có đổi tên định danh
+    if (data.username) {
+      cookieStore.set('username', data.username, { 
+        path: '/', 
+        maxAge: COOKIE_MAX_AGE,
+        secure: IS_PRODUCTION,
+        sameSite: 'strict'
+      });
+    }
+
+    return { success: true, data: response.data };
+  } catch (error: any) {
+    return { error: error.response?.data?.message || 'Cập nhật hồ sơ thất bại' };
   }
 }

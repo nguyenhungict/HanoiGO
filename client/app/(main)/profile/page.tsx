@@ -1,10 +1,24 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import Link from 'next/link';
+import { getProfileAction } from '@/lib/actions';
 
 export default function ProfilePage() {
   const [activeTab, setActiveTab] = useState('trips');
+  const [loading, setLoading] = useState(true);
+  const [user, setUser] = useState<any>(null);
+
+  useEffect(() => {
+    async function loadProfile() {
+      const res = await getProfileAction();
+      if (res.success) {
+        setUser(res.data);
+      }
+      setLoading(false);
+    }
+    loadProfile();
+  }, []);
 
   const stats = [
     { label: 'Trips', value: '12', icon: 'map' },
@@ -13,8 +27,16 @@ export default function ProfilePage() {
     { label: 'Community', value: '1.2k', icon: 'groups' }
   ];
 
+  if (loading) {
+    return (
+      <div className="h-[70vh] w-full flex items-center justify-center bg-surface-container-lowest">
+        <div className="w-12 h-12 border-4 border-primary border-t-transparent rounded-full animate-spin"></div>
+      </div>
+    );
+  }
+
   return (
-    <div className="h-full w-full overflow-y-auto hide-scrollbar bg-surface-container-lowest animate-in fade-in duration-1000">
+    <div className="w-full bg-surface-container-lowest animate-in fade-in duration-1000">
       {/* Hero Header Section */}
       <div className="relative h-80 w-full overflow-hidden">
         <img
@@ -32,18 +54,40 @@ export default function ProfilePage() {
           <aside className="w-full lg:w-1/3 space-y-6">
             <div className="bg-white rounded-[2.5rem] p-10 shadow-2xl shadow-rose-900/10 border border-outline-variant/10 relative">
               <div className="absolute -top-16 left-1/2 -translate-x-1/2">
-                <div className="w-32 h-32 rounded-full border-[6px] border-white bg-surface-container-high overflow-hidden shadow-xl ring-4 ring-primary/5">
-                  <div className="w-full h-full bg-primary flex items-center justify-center text-white text-4xl font-black">H</div>
+                <div className="w-32 h-32 rounded-full border-[6px] border-white bg-surface-container-high overflow-hidden shadow-xl ring-4 ring-primary/5 capitalize">
+                  <div className="w-full h-full bg-primary flex items-center justify-center text-white text-4xl font-black">
+                    {user?.username?.charAt(0) || 'H'}
+                  </div>
                 </div>
               </div>
 
               <div className="pt-16 text-center space-y-4">
                 <div className="space-y-1">
-                  <h1 className="text-3xl font-black tracking-tighter text-on-surface leading-none decoration-primary/30">Hung Nguyen</h1>
+                  <h1 className="text-3xl font-black tracking-tighter text-on-surface leading-none decoration-primary/30">
+                    {user?.fullName || user?.username || 'Traveler'}
+                  </h1>
+                  <p className="text-xs text-outline font-medium tracking-widest uppercase">@{user?.username}</p>
                 </div>
-                <p className="text-sm text-outline font-medium leading-relaxed">
-                  Passionate heritage explorer and street food enthusiast from Hanoi. Always looking for the soul of the city.
+                <p className="text-sm text-outline font-medium leading-relaxed italic">
+                  "{user?.bio || 'No bio yet. Edit your profile to tell explorers about your journey!'}"
                 </p>
+
+                <div className="flex flex-col gap-3 py-4 border-y border-outline/5 text-left">
+                  <div className="flex items-center gap-3 text-on-surface">
+                    <span className="material-symbols-outlined text-primary text-xl">flag</span>
+                    <div>
+                      <p className="text-[10px] font-black uppercase tracking-widest text-outline">Country</p>
+                      <p className="text-xs font-bold text-on-surface">{user?.nationality || 'Global Citizen'}</p>
+                    </div>
+                  </div>
+                  <div className="flex items-center gap-3 text-on-surface">
+                    <span className="material-symbols-outlined text-primary text-xl">translate</span>
+                    <div>
+                      <p className="text-[10px] font-black uppercase tracking-widest text-outline">Languages</p>
+                      <p className="text-xs font-bold text-on-surface">{user?.languages?.join(', ') || 'Various'}</p>
+                    </div>
+                  </div>
+                </div>
 
                 <div className="flex items-center justify-center gap-3 pt-4">
                   <Link href="/profile/edit" className="flex-1 bg-primary text-white py-3.5 rounded-2xl text-[10px] font-black uppercase text-center tracking-widest shadow-lg shadow-primary/20 hover:opacity-90 transition-all">
@@ -77,8 +121,8 @@ export default function ProfilePage() {
                   key={tab}
                   onClick={() => setActiveTab(tab)}
                   className={`px-8 py-3 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all ${activeTab === tab
-                      ? 'bg-white text-primary shadow-sm'
-                      : 'text-outline hover:text-on-surface'
+                    ? 'bg-white text-primary shadow-sm'
+                    : 'text-outline hover:text-on-surface'
                     }`}
                 >
                   {tab}

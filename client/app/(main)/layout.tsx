@@ -10,12 +10,9 @@ export default async function MainLayout({ children }: { children: React.ReactNo
       {/* Top Header Navigation Hub */}
       <Header username={username} />
 
-      <div className="flex flex-1 overflow-hidden">
-        {/* Content Area - Now truly Full Width */}
-        <main className="flex-1 relative overflow-hidden bg-surface-container-lowest h-full w-full">
-          {children}
-        </main>
-      </div>
+      <main className="flex-1 overflow-y-auto bg-surface-container-lowest relative">
+        {children}
+      </main>
     </div>
   );
 }
