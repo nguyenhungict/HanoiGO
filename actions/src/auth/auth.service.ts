@@ -82,15 +82,20 @@ export class AuthService {
 
   async login(loginDto: any) {
     const { email, password } = loginDto;
-    const user = await this.usersService.findOneByEmail(email);
+    
+    // Tìm user theo email HOẶC username
+    let user = await this.usersService.findOneByEmail(email);
+    if (!user) {
+      user = await this.usersService.findOneByUsername(email);
+    }
 
     if (!user) {
-      throw new ConflictException('Email hoặc mật khẩu không đúng');
+      throw new ConflictException('Tài khoản hoặc mật khẩu không đúng');
     }
 
     const isPasswordValid = await bcrypt.compare(password, user.passwordHash);
     if (!isPasswordValid) {
-      throw new ConflictException('Email hoặc mật khẩu không đúng');
+      throw new ConflictException('Tài khoản hoặc mật khẩu không đúng');
     }
 
     const tokens = await this.generateTokens(user.id, user.username, user.role);

@@ -10,21 +10,30 @@ export function middleware(request: NextRequest) {
 
   // 3. Định nghĩa các nhóm trang
   const authRoutes = ['/login', '/register'];
-  const protectedRoutes = ['/discovery', '/trips', '/activities', '/places'];
+  const protectedRoutes = ['/discovery', '/trips', '/activities', '/places', '/profile'];
+  const adminRoutes = ['/admin'];
 
-  // TRƯỜNG HỢP 1: Chưa đăng nhập (Không có token)
-  // Nếu đang cố vào các trang bảo vệ (protected) -> Đẩy về /login
+  // Lấy role từ cookies
+  const role = request.cookies.get('user_role')?.value;
+
+  // TRƯỜNG HỢP 1: Chưa đăng nhập
   if (!token && protectedRoutes.some(route => pathname.startsWith(route))) {
     return NextResponse.redirect(new URL('/login', request.url));
   }
 
-  // TRƯỜNG HỢP 2: Đã đăng nhập (Có token rồi)
-  // Nếu cố vào các trang auth (như /login) -> Đẩy thẳng vào /discovery
+  // TRƯỜNG HỢP 2: Đã đăng nhập nhưng vào trang Auth
   if (token && authRoutes.some(route => pathname.startsWith(route))) {
-    return NextResponse.redirect(new URL('/discovery', request.url));
+    const target = role === 'ADMIN' ? '/admin/dashboard' : '/discovery';
+    return NextResponse.redirect(new URL(target, request.url));
   }
 
-  // Cho phép đi tiếp nếu không vi phạm các luật trên
+  // TRƯỜNG HỢP 3: Bảo vệ trang Admin (Trừ trang login của admin)
+  if (pathname.startsWith('/admin') && pathname !== '/admin/login') {
+    if (!token || role !== 'ADMIN') {
+      return NextResponse.redirect(new URL('/discovery', request.url));
+    }
+  }
+
   return NextResponse.next();
 }
 
@@ -35,6 +44,8 @@ export const config = {
     '/trips/:path*',
     '/activities/:path*',
     '/places/:path*',
+    '/profile/:path*',
+    '/admin/:path*',
     '/login',
     '/register'
   ],

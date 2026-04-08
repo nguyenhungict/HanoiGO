@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import { useState } from "react";
+import { useRouter } from "next/navigation";
 import { loginAction } from "@/lib/actions";
 
 export default function LoginPage() {
@@ -9,6 +10,8 @@ export default function LoginPage() {
   const [loading, setLoading] = useState(false);
 
   const [showPassword, setShowPassword] = useState(false);
+
+  const router = useRouter();
 
   async function handleSubmit(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault();
@@ -19,12 +22,20 @@ export default function LoginPage() {
     const email = formData.get("email");
     const password = formData.get("password");
 
-    const result = await loginAction({ email, password });
+    const result = await loginAction({ email, password }) as any;
     
     if (result?.error) {
       setError(result.error);
+      setLoading(false);
+    } else {
+      // Chuyển hướng dựa trên Role
+      if (result.user?.role === 'ADMIN') {
+        router.push('/admin/dashboard');
+      } else {
+        router.push('/discovery');
+      }
+      router.refresh();
     }
-    setLoading(false);
   }
 
   return (

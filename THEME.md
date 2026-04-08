@@ -22,7 +22,7 @@ This document defines the visual theme and design principles for the HanoiGO pro
 
 ## Typography
 
-- **Main Font Family**: `Inter`, sans-serif.
+- **Main Font Family**: `Manrope`, sans-serif.
 - **Headlines**: Semi-bold to Extra-bold, tight tracking (`tracking-tighter`), larger sizes for impact.
 - **Body**: Regular to Medium weight, comfortable line heights.
 - **Labels**: Bold, often uppercase, with wide tracking for a premium feel.

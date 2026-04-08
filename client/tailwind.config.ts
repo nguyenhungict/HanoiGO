@@ -51,9 +51,9 @@ const config: Config = {
         "on-tertiary-fixed-variant": "#00531a",
       },
       fontFamily: {
-        headline: ["Inter", "sans-serif"],
-        body: ["Inter", "sans-serif"],
-        label: ["Inter", "sans-serif"],
+        headline: ["Manrope", "sans-serif"],
+        body: ["Manrope", "sans-serif"],
+        label: ["Manrope", "sans-serif"],
       },
     },
   },

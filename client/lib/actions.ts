@@ -85,12 +85,13 @@ export async function loginAction(credentials: any) {
         secure: IS_PRODUCTION,
         sameSite: 'strict'
       });
+      return { success: true, user };
     }
+
+    return { success: true };
   } catch (error: any) {
     return { error: error.response?.data?.message || 'Đăng nhập thất bại' };
   }
-
-  redirect('/discovery');
 }
 
 /**
