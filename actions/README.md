@@ -21,6 +21,39 @@
   <!--[![Backers on Open Collective](https://opencollective.com/nest/backers/badge.svg)](https://opencollective.com/nest#backer)
   [![Sponsors on Open Collective](https://opencollective.com/nest/sponsors/badge.svg)](https://opencollective.com/nest#sponsor)-->
 
+## Quản lý Database (Prisma) 🛠️
+
+Mỗi khi bạn **thêm, sửa, hoặc xóa** các Model trong file `prisma/schema.prisma`, hãy làm theo các bước dưới đây để cập nhật Database:
+
+### 1. Quy trình chuẩn (Migrate - Khuyên dùng)
+Dùng quy trình này để lưu lại lịch sử thay đổi (tạo ra các file `.sql` trong folder `migrations`).
+
+*   **Bước 1:** Chỉnh sửa file `prisma/schema.prisma` theo ý muốn.
+*   **Bước 2:** Chạy lệnh sau để tạo bản ghi lịch sử và cập nhật DB:
+    ```bash
+    npx prisma migrate dev --name <ten_thay_doi>
+    ```
+    *(Thay `<ten_thay_doi>` bằng nội dung ngắn gọn, ví dụ: `add_report_table`)*
+*   **Bước 3 (Tùy chọn):** Nếu code bỗng nhiên không nhận các trường mới, hãy chạy lệnh này để cập nhật thư viện Prisma:
+    ```bash
+    npx prisma generate
+    ```
+
+### Chạy seed: 
+npx prisma db seed (seed user)
+npx ts-node scripts/seed-admin.ts (seed admin)
+
+### 2. Dùng cho thử nghiệm nhanh (DB Push)
+Dùng khi bạn chỉ muốn thử nhanh trên máy cá nhân mà không cần quan tâm lịch sử migrate.
+*   **Lệnh:** `npx prisma db push`
+*   *Lưu ý: Lệnh này có thể làm mất dữ liệu nếu có xung đột schema.*
+
+### 3. Xem dữ liệu trực quan (GUI)
+Để mở giao diện web xem và sửa dữ liệu trực tiếp trong các bảng:
+*   **Lệnh:** `npx prisma studio`
+
+---
+
 ## Description
 
 [Nest](https://github.com/nestjs/nest) framework TypeScript starter repository.
@@ -96,3 +129,4 @@ Nest is an MIT-licensed open source project. It can grow thanks to the sponsors 
 ## License
 
 Nest is [MIT licensed](https://github.com/nestjs/nest/blob/master/LICENSE).
+

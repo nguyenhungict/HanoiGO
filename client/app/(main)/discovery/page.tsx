@@ -1,11 +1,17 @@
 'use client';
 
 import React from 'react';
+import dynamic from 'next/dynamic';
+
+const DiscoveryMap = dynamic(() => import('@/components/map/DiscoveryMap'), {
+  ssr: false,
+  loading: () => <div className="w-full h-full flex items-center justify-center bg-slate-100 animate-pulse text-gray-400">Loading Map...</div>
+});
 
 export default function DiscoveryPage() {
   return (
-    <div className="flex h-full w-full overflow-hidden animate-in fade-in duration-500">
-      {/* Sidebar (30%) - Heritage Explorer Panel (Restored) */}
+    <div className="flex h-screen w-full overflow-hidden animate-in fade-in duration-500">
+      {/* Sidebar (30%) - Heritage Explorer Panel */}
       <aside className="w-[30%] min-w-[420px] bg-white z-20 flex flex-col border-r border-outline/10 shadow-2xl shadow-black/5">
         <div className="p-8 space-y-8 flex-1 overflow-y-auto hide-scrollbar">
           {/* Header Section */}
@@ -99,54 +105,9 @@ export default function DiscoveryPage() {
         </div>
       </aside>
 
-
-
-      {/* Map Section (65%) - Interactive Layer */}
-      <section className="flex-1 relative overflow-hidden bg-surface-container bg-neutral-100">
-        <div className="absolute inset-0 map-bg grayscale-[0.2] brightness-[0.95] contrast-[1.05]">
-          <div className="absolute inset-0 bg-primary/5 pointer-events-none"></div>
-
-          {/* Active Pin & Pop-over */}
-          <div className="absolute top-[35%] left-[42%] z-30">
-            <div className="relative flex flex-col items-center">
-              {/* Pop-over Detail Card */}
-              <div className="absolute bottom-full mb-6 w-80 bg-white rounded-[2rem] shadow-[0_32px_64px_rgba(0,0,0,0.15)] overflow-hidden border border-outline-variant/10 transition-all">
-                <div className="h-44 relative">
-                  <img 
-                    className="w-full h-full object-cover" 
-                    src="https://lh3.googleusercontent.com/aida-public/AB6AXuAVc2wfEhkM85eOwrrcrrrRp_RxYZ9y0ePi-_OqRhsueNfuqqe9jTXGu4rGYfr-6hQa3fTwiN39LF5KsUQfLiJX_V7eq-UE6xgcekNTBfV-dnZsuw-3cvWQPFyIDFtruFoSRT-Tmkow1VoK1CJOF_5UGHWuPTILg9ZnMxsHT_8qXHBSdAsZ7PpevwCGUDbpfUwZbgq0BtCmnZr7sos87wNeiIu3zRV_Q7eNE4Vn_mtsUSg2nYgF4Jcj1enK6MwZ6kw2BTkX9OFERFui" 
-                    alt="Temple Detail" 
-                  />
-                </div>
-                <div className="p-6 space-y-4">
-                  <h4 className="text-xl font-black text-on-surface leading-none tracking-tighter">Temple of Literature</h4>
-                  <button className="w-full bg-primary text-white px-5 py-3 rounded-xl text-[10px] font-black shadow-lg shadow-primary/20 hover:opacity-90 transition-all uppercase tracking-widest">Explore Site</button>
-                </div>
-                <div className="absolute -bottom-3 left-1/2 -translate-x-1/2 w-6 h-6 bg-white rotate-45 border-r border-b border-outline-variant/10"></div>
-              </div>
-
-              {/* The Pulse Pin */}
-              <div className="relative w-10 h-10 flex items-center justify-center cursor-pointer group">
-                <div className="absolute inset-0 bg-primary/30 rounded-full animate-ping"></div>
-                <div className="relative w-10 h-10 bg-primary rounded-full border-[4px] border-white shadow-2xl flex items-center justify-center group-hover:scale-125 transition-transform">
-                  <div className="w-2 h-2 bg-white rounded-full"></div>
-                </div>
-              </div>
-            </div>
-          </div>
-
-          {/* Zoom Controls */}
-          <div className="absolute bottom-10 right-10 flex flex-col gap-4">
-            <div className="bg-white/90 backdrop-blur-xl p-2 rounded-2xl shadow-gray-200 shadow-xl flex flex-col gap-2 border border-white/50">
-              <button className="w-12 h-12 flex items-center justify-center text-outline-variant hover:text-primary border-b border-outline-variant/10 transition-colors">
-                <span className="material-symbols-outlined">add</span>
-              </button>
-              <button className="w-12 h-12 flex items-center justify-center text-outline-variant hover:text-primary transition-colors">
-                <span className="material-symbols-outlined">remove</span>
-              </button>
-            </div>
-          </div>
-        </div>
+      {/* Map Section (70% viewport) - Leaflet Interactive Layer */}
+      <section className="flex-1 relative overflow-hidden bg-surface-container bg-neutral-100 z-0">
+        <DiscoveryMap />
       </section>
     </div>
   );

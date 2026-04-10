@@ -12,6 +12,23 @@ const api = axios.create({
 const COOKIE_MAX_AGE = 60 * 60 * 24 * 7; // 7 ngày
 const IS_PRODUCTION = process.env.NODE_ENV === 'production';
 
+// ── Helper: Lấy token từ cookie ────────────────────────────────────
+async function getToken(): Promise<string | null> {
+  const cookieStore = await cookies();
+  return cookieStore.get('accessToken')?.value || null;
+}
+
+// ── Helper: Tạo header Authorization ────────────────────────────────
+async function authHeaders() {
+  const token = await getToken();
+  if (!token) return {};
+  return { Authorization: `Bearer ${token}` };
+}
+
+// ============================================================
+// AUTH ACTIONS
+// ============================================================
+
 /**
  * Xử lý đăng ký người dùng mới
  */
@@ -21,7 +38,6 @@ export async function registerAction(formData: any) {
     const { accessToken, user } = response.data;
 
     if (accessToken) {
-      // 1. Lưu token vào cookie an toàn
       const cookieStore = await cookies();
       cookieStore.set('accessToken', accessToken, {
         httpOnly: true,
@@ -31,13 +47,7 @@ export async function registerAction(formData: any) {
         path: '/',
       });
 
-      // 2. Có thể lưu thêm thông tin user định danh (chỉ role/id/username) nếu cần
-      cookieStore.set('user_role', user.role, { 
-        path: '/', 
-        maxAge: COOKIE_MAX_AGE,
-        secure: IS_PRODUCTION,
-        sameSite: 'strict'
-      });
+      // Lưu username để hiển thị (không nhạy cảm)
       cookieStore.set('username', user.username, { 
         path: '/', 
         maxAge: COOKIE_MAX_AGE,
@@ -45,13 +55,10 @@ export async function registerAction(formData: any) {
         sameSite: 'strict'
       });
     }
-
-    // return { success: true, user: response.data.user };
   } catch (error: any) {
     return { error: error.response?.data?.message || 'Đăng ký thất bại' };
   }
 
-  // 3. Chuyển hướng về trang hoàn thiện hồ sơ cho người dùng mới
   redirect('/profile/edit');
 }
 
@@ -73,18 +80,13 @@ export async function loginAction(credentials: any) {
         path: '/',
       });
 
-      cookieStore.set('user_role', user.role, { 
-        path: '/', 
-        maxAge: COOKIE_MAX_AGE,
-        secure: IS_PRODUCTION,
-        sameSite: 'strict'
-      });
       cookieStore.set('username', user.username, { 
         path: '/', 
         maxAge: COOKIE_MAX_AGE,
         secure: IS_PRODUCTION,
         sameSite: 'strict'
       });
+
       return { success: true, user };
     }
 
@@ -100,14 +102,15 @@ export async function loginAction(credentials: any) {
 export async function logoutAction() {
   const cookieStore = await cookies();
   cookieStore.delete('accessToken');
-  cookieStore.delete('user_role');
   cookieStore.delete('username');
+  cookieStore.delete('user_role'); // Dọn sạch cookie cũ (legacy)
   redirect('/');
 }
 
-/**
- * Yêu cầu gửi email khôi phục mật khẩu
- */
+// ============================================================
+// PASSWORD ACTIONS
+// ============================================================
+
 export async function forgotPasswordAction(formData: any) {
   try {
     const response = await api.post('/auth/forgot-password', formData);
@@ -117,9 +120,6 @@ export async function forgotPasswordAction(formData: any) {
   }
 }
 
-/**
- * Đặt lại mật khẩu mới với token
- */
 export async function resetPasswordAction(formData: any) {
   try {
     const response = await api.post('/auth/reset-password', formData);
@@ -129,42 +129,31 @@ export async function resetPasswordAction(formData: any) {
   }
 }
 
-/**
- * Lấy thông tin hồ sơ của người dùng hiện tại
- */
+// ============================================================
+// USER PROFILE ACTIONS
+// ============================================================
+
 export async function getProfileAction() {
   try {
-    const cookieStore = await cookies();
-    const token = cookieStore.get('accessToken')?.value;
+    const headers = await authHeaders();
+    if (!headers.Authorization) return { error: 'Chưa đăng nhập' };
 
-    if (!token) return { error: 'Chưa đăng nhập' };
-
-    const response = await api.get('/users/profile', {
-      headers: { Authorization: `Bearer ${token}` }
-    });
-
+    const response = await api.get('/users/profile', { headers });
     return { success: true, data: response.data };
   } catch (error: any) {
     return { error: error.response?.data?.message || 'Không thể lấy thông tin hồ sơ' };
   }
 }
 
-/**
- * Cập nhật thông tin hồ sơ
- */
 export async function updateProfileAction(data: any) {
   try {
-    const cookieStore = await cookies();
-    const token = cookieStore.get('accessToken')?.value;
+    const headers = await authHeaders();
+    if (!headers.Authorization) redirect('/login');
 
-    if (!token) redirect('/login');
+    const response = await api.patch('/users/profile', data, { headers });
 
-    const response = await api.patch('/users/profile', data, {
-      headers: { Authorization: `Bearer ${token}` }
-    });
-
-    // Cập nhật lại cookie username nếu user có đổi tên định danh
     if (data.username) {
+      const cookieStore = await cookies();
       cookieStore.set('username', data.username, { 
         path: '/', 
         maxAge: COOKIE_MAX_AGE,
@@ -176,5 +165,113 @@ export async function updateProfileAction(data: any) {
     return { success: true, data: response.data };
   } catch (error: any) {
     return { error: error.response?.data?.message || 'Cập nhật hồ sơ thất bại' };
+  }
+}
+
+// ============================================================
+// ADMIN ACTIONS
+// ============================================================
+
+export async function getAdminStatsAction() {
+  try {
+    const headers = await authHeaders();
+    const response = await api.get('/admin/stats', { headers });
+    return response.data;
+  } catch (error: any) {
+    return null;
+  }
+}
+
+export async function getAdminGrowthAction() {
+  try {
+    const headers = await authHeaders();
+    const response = await api.get('/admin/stats/growth', { headers });
+    return response.data;
+  } catch (error: any) {
+    return [];
+  }
+}
+
+export async function getAdminPopularPlacesAction() {
+  try {
+    const headers = await authHeaders();
+    const response = await api.get('/admin/stats/popular-places', { headers });
+    return response.data;
+  } catch (error: any) {
+    return [];
+  }
+}
+
+export async function getAdminViolationsAction() {
+  try {
+    const headers = await authHeaders();
+    const response = await api.get('/admin/stats/violations', { headers });
+    return response.data;
+  } catch (error: any) {
+    return [];
+  }
+}
+
+export async function getAdminReportSummaryAction() {
+  try {
+    const headers = await authHeaders();
+    const response = await api.get('/admin/stats/reports', { headers });
+    return response.data;
+  } catch (error: any) {
+    return null;
+  }
+}
+
+export async function getAdminUsersAction(page = 1, limit = 10, search?: string, status?: string) {
+  try {
+    const headers = await authHeaders();
+    const params = new URLSearchParams({ page: String(page), limit: String(limit) });
+    if (search) params.set('search', search);
+    if (status) params.set('status', status);
+
+    const response = await api.get(`/admin/users?${params}`, { headers });
+    return response.data;
+  } catch (error: any) {
+    return { users: [], total: 0, page: 1, lastPage: 1 };
+  }
+}
+
+import { revalidatePath } from 'next/cache';
+
+export async function banUserAction(userId: string, reason: string, description?: string) {
+  try {
+    const headers = await authHeaders();
+    const response = await api.patch(`/admin/users/${userId}/ban`, { reason, description }, { headers });
+    revalidatePath('/admin/users');
+    revalidatePath('/admin/dashboard');
+    return { success: true, ...response.data };
+  } catch (error: any) {
+    const errorMsg = error.response?.data?.message || error.message || 'Không thể ban user';
+    console.error('banUserAction ERROR:', errorMsg);
+    return { error: Array.isArray(errorMsg) ? errorMsg.join(', ') : errorMsg };
+  }
+}
+
+export async function unbanUserAction(userId: string) {
+  try {
+    const headers = await authHeaders();
+    const response = await api.patch(`/admin/users/${userId}/unban`, {}, { headers });
+    revalidatePath('/admin/users');
+    revalidatePath('/admin/dashboard');
+    return { success: true, ...response.data };
+  } catch (error: any) {
+    const errorMsg = error.response?.data?.message || error.message || 'Không thể unban user';
+    console.error('unbanUserAction ERROR:', errorMsg);
+    return { error: Array.isArray(errorMsg) ? errorMsg.join(', ') : errorMsg };
+  }
+}
+
+export async function getAdminUserDetailsAction(userId: string) {
+  try {
+    const headers = await authHeaders();
+    const response = await api.get(`/admin/users/${userId}`, { headers });
+    return response.data;
+  } catch (error: any) {
+    return null;
   }
 }

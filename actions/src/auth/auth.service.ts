@@ -9,9 +9,9 @@ import { UsersService } from '../users/users.service';
 import { JwtService } from '@nestjs/jwt';
 import { PrismaService } from '../prisma/prisma.service';
 import * as bcrypt from 'bcrypt';
-import * as crypto from 'crypto';
 import * as nodemailer from 'nodemailer';
 import { RegisterDto } from './dto/register.dto';
+import { ConfigService } from '@nestjs/config';
 
 @Injectable()
 export class AuthService {
@@ -21,6 +21,7 @@ export class AuthService {
     private usersService: UsersService,
     private jwtService: JwtService,
     private prisma: PrismaService,
+    private configService: ConfigService,
   ) {
     // Khởi tạo Nodemailer transporter với Gmail
     this.transporter = nodemailer.createTransport({
@@ -119,19 +120,15 @@ export class AuthService {
       return { message: 'Nếu email tồn tại, bạn sẽ nhận được link đặt lại mật khẩu.' };
     }
 
-    // 2. Tạo token ngẫu nhiên (64 ký tự hex)
-    const resetToken = crypto.randomBytes(32).toString('hex');
+    // 2. Tạo JWT reset token — ký bằng (JWT_SECRET + passwordHash)
+    //    → Khi user đổi mật khẩu, passwordHash thay đổi → token cũ tự hết hiệu lực
+    const resetSecret = this.getResetSecret(user.passwordHash);
+    const resetToken = await this.jwtService.signAsync(
+      { sub: user.id, purpose: 'reset-password' },
+      { secret: resetSecret, expiresIn: '15m' },
+    );
 
-    // 3. Lưu vào bảng PasswordReset, hết hạn sau 15 phút
-    await this.prisma.passwordReset.create({
-      data: {
-        userId: user.id,
-        token: resetToken,
-        expiresAt: new Date(Date.now() + 15 * 60 * 1000), // 15 phút
-      },
-    });
-
-    // 4. Gửi email
+    // 3. Gửi email
     const resetUrl = `${process.env.CLIENT_URL || 'http://localhost:3000'}/reset-password?token=${resetToken}`;
 
     await this.transporter.sendMail({
@@ -161,40 +158,49 @@ export class AuthService {
   }
 
   async resetPassword(token: string, newPassword: string) {
-    // 1. Tìm bản ghi PasswordReset theo token
-    const record = await this.prisma.passwordReset.findUnique({
-      where: { token },
-    });
-
-    if (!record) {
+    // 1. Decode token để lấy userId (chưa verify)
+    let payload: any;
+    try {
+      payload = this.jwtService.decode(token);
+    } catch {
       throw new BadRequestException('Token không hợp lệ');
     }
 
-    // 2. Kiểm tra hết hạn
-    if (record.expiresAt < new Date()) {
-      throw new BadRequestException('Token đã hết hạn. Vui lòng yêu cầu lại.');
+    if (!payload?.sub || payload?.purpose !== 'reset-password') {
+      throw new BadRequestException('Token không hợp lệ');
     }
 
-    // 3. Kiểm tra đã sử dụng chưa
-    if (record.usedAt) {
-      throw new BadRequestException('Token đã được sử dụng.');
+    // 2. Lấy user hiện tại để tạo lại secret
+    const user = await this.prisma.user.findUnique({ where: { id: payload.sub } });
+    if (!user) {
+      throw new BadRequestException('Token không hợp lệ');
+    }
+
+    // 3. Verify token bằng (JWT_SECRET + passwordHash hiện tại)
+    //    Nếu user đã đổi mật khẩu → passwordHash khác → secret khác → verify thất bại
+    //    → Token chỉ dùng được 1 lần (one-time use miễn phí)
+    const resetSecret = this.getResetSecret(user.passwordHash);
+    try {
+      await this.jwtService.verifyAsync(token, { secret: resetSecret });
+    } catch {
+      throw new BadRequestException('Token đã hết hạn hoặc đã được sử dụng.');
     }
 
     // 4. Hash mật khẩu mới và cập nhật user
     const hashedPassword = await bcrypt.hash(newPassword, 12);
-
     await this.prisma.user.update({
-      where: { id: record.userId },
+      where: { id: user.id },
       data: { passwordHash: hashedPassword },
     });
 
-    // 5. Đánh dấu token đã sử dụng
-    await this.prisma.passwordReset.update({
-      where: { token },
-      data: { usedAt: new Date() },
-    });
-
     return { message: 'Mật khẩu đã được cập nhật thành công.' };
+  }
+
+  // Tạo secret riêng cho reset token: JWT_SECRET + passwordHash
+  // → Khi passwordHash thay đổi, tất cả token cũ tự động hết hiệu lực
+  private getResetSecret(passwordHash: string): string {
+    const jwtSecret = this.configService.get<string>('JWT_SECRET') || 'secretKey';
+    return `${jwtSecret}:${passwordHash}`;
   }
 
   // ============================================================

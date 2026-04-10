@@ -12,6 +12,11 @@ enum Role {
   ADMIN
 }
 
+enum UserStatus {
+  ACTIVE
+  BANNED
+}
+
 model User {
   id            String    @id @default(uuid()) @db.Uuid
   email         String    @unique
@@ -23,6 +28,7 @@ model User {
   nationality   String?
   languages     String[]
   role          Role      @default(USER)
+  status        UserStatus @default(ACTIVE)
   tokenVersion  Int       @default(1) @map("token_version")
   createdAt     DateTime  @default(now()) @db.Timestamptz @map("created_at")
 
@@ -31,10 +37,64 @@ model User {
   activities      Activity[]      @relation("HostActivities")
   activityMembers ActivityMember[]
   messages        Message[]
-  passwordResets  PasswordReset[]
+
+  // Admin relations
+  reportsCreated  Report[]        @relation("Reporter")
+  reportsAgainst  Report[]        @relation("TargetUser")
+  adminActions    AdminLog[]      @relation("AdminUser")
   notifications   Notification[]
 
   @@map("users")
+}
+
+enum ViolationType {
+  SPAM
+  HATE_SPEECH
+  SCAM
+  FAKE_INFORMATION
+  INAPPROPRIATE_CONTENT
+  OTHER
+}
+
+enum ReportStatus {
+  PENDING
+  RESOLVED
+  DISMISSED
+}
+
+model Report {
+  id            String        @id @default(uuid()) @db.Uuid
+  reporterId    String?       @map("reporter_id") @db.Uuid // Admin hoặc User báo cáo
+  targetId      String        @map("target_id") @db.Uuid   // User bị báo cáo
+  reason        ViolationType
+  description   String?
+  status        ReportStatus  @default(PENDING)
+  adminNotes    String?       @map("admin_notes")
+  entityType    String?       @map("entity_type")
+  entityId      String?       @map("entity_id") @db.Uuid
+  createdAt     DateTime      @default(now()) @db.Timestamptz @map("created_at")
+  resolvedAt    DateTime?     @db.Timestamptz @map("resolved_at")
+
+  // Relationships
+  reporter      User?         @relation("Reporter", fields: [reporterId], references: [id])
+  targetUser    User          @relation("TargetUser", fields: [targetId], references: [id])
+
+  @@index([status])
+  @@map("reports")
+}
+
+model AdminLog {
+  id          String   @id @default(uuid()) @db.Uuid
+  adminId     String   @map("admin_id") @db.Uuid
+  action      String   // e.g., 'BAN_USER', 'DELETE_PLACE', 'UPDATE_SETTINGS'
+  targetId    String?  @map("target_id") // ID of the object changed
+  details     String?  // JSON or string details
+  createdAt   DateTime @default(now()) @db.Timestamptz @map("created_at")
+
+  // Relationships
+  admin       User     @relation("AdminUser", fields: [adminId], references: [id])
+
+  @@map("admin_logs")
 }
 
 model Place {
@@ -109,20 +169,39 @@ model TripStop {
   @@map("trip_stops")
 }
 
+enum ActivityStatus {
+  OPEN
+  CLOSED
+  CANCELLED
+}
+
+enum MemberStatus {
+  PENDING
+  APPROVED
+  REJECTED
+}
+
+enum NotificationType {
+  ACTIVITY_REQUEST
+  ACTIVITY_APPROVED
+  ACTIVITY_REJECTED
+  NEW_MESSAGE
+}
+
 model Activity {
-  id           String    @id @default(uuid()) @db.Uuid
-  hostId       String    @map("host_id") @db.Uuid
-  placeId      String?   @map("place_id") @db.Uuid
+  id           String         @id @default(uuid()) @db.Uuid
+  hostId       String         @map("host_id") @db.Uuid
+  placeId      String?        @map("place_id") @db.Uuid
   title        String
   description  String?
   address      String?
   lat          Float
   lng          Float
   location     Unsupported("geometry(Point, 4326)")
-  scheduledAt  DateTime  @db.Timestamptz @map("scheduled_at")
-  maxMembers   Int?      @default(10) @map("max_members")
-  status       String?   @default("open")
-  createdAt     DateTime  @default(now()) @db.Timestamptz @map("created_at")
+  scheduledAt  DateTime       @db.Timestamptz @map("scheduled_at")
+  maxMembers   Int?           @default(10) @map("max_members")
+  status       ActivityStatus @default(OPEN)
+  createdAt    DateTime       @default(now()) @db.Timestamptz @map("created_at")
 
   // Relationships
   host            User             @relation("HostActivities", fields: [hostId], references: [id], onDelete: Cascade)
@@ -130,14 +209,15 @@ model Activity {
   activityMembers ActivityMember[]
   messages        Message[]
 
+  @@index([status, scheduledAt])
   @@map("activities")
 }
 
 model ActivityMember {
-  activityId String    @map("activity_id") @db.Uuid
-  userId     String    @map("user_id") @db.Uuid
-  status     String
-  joinedAt   DateTime  @default(now()) @db.Timestamptz @map("joined_at")
+  activityId String       @map("activity_id") @db.Uuid
+  userId     String       @map("user_id") @db.Uuid
+  status     MemberStatus
+  joinedAt   DateTime     @default(now()) @db.Timestamptz @map("joined_at")
 
   // Relationships
   activity Activity @relation(fields: [activityId], references: [id], onDelete: Cascade)
@@ -150,44 +230,33 @@ model ActivityMember {
 model Message {
   id         String    @id @default(uuid()) @db.Uuid
   activityId String    @map("activity_id") @db.Uuid
-  userId     String    @map("user_id") @db.Uuid
+  userId     String?   @map("user_id") @db.Uuid
   content    String
   createdAt  DateTime  @default(now()) @db.Timestamptz @map("created_at")
 
   // Relationships
   activity Activity @relation(fields: [activityId], references: [id], onDelete: Cascade)
-  user     User     @relation(fields: [userId], references: [id])
+  user     User?    @relation(fields: [userId], references: [id], onDelete: SetNull)
 
+  @@index([activityId, createdAt])
   @@map("messages")
 }
 
-model PasswordReset {
-  id        String    @id @default(uuid()) @db.Uuid
-  userId    String    @map("user_id") @db.Uuid
-  token     String    @unique
-  expiresAt DateTime  @db.Timestamptz @map("expires_at")
-  usedAt    DateTime? @db.Timestamptz @map("used_at")
-  createdAt DateTime  @default(now()) @db.Timestamptz @map("created_at")
-
-  // Relationships
-  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
-
-  @@map("password_resets")
-}
-
 model Notification {
-  id         String    @id @default(uuid()) @db.Uuid
-  userId     String    @map("user_id") @db.Uuid
-  type       String
+  id         String           @id @default(uuid()) @db.Uuid
+  userId     String           @map("user_id") @db.Uuid
+  type       NotificationType
   title      String
   body       String?
-  entityType String?   @map("entity_type")
-  entityId   String?   @map("entity_id") @db.Uuid
-  isRead     Boolean   @default(false) @map("is_read")
-  createdAt  DateTime  @default(now()) @db.Timestamptz @map("created_at")
+  entityType String?          @map("entity_type")
+  entityId   String?          @map("entity_id") @db.Uuid
+  isRead     Boolean          @default(false) @map("is_read")
+  createdAt  DateTime         @default(now()) @db.Timestamptz @map("created_at")
 
   // Relationships
   user User @relation(fields: [userId], references: [id], onDelete: Cascade)
 
+  @@index([userId, isRead])
+  @@index([userId, createdAt])
   @@map("notifications")
 }

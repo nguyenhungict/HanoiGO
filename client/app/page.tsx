@@ -12,7 +12,8 @@ export default async function HomePage() {
       {/* Top Navigation Bar */}
       <nav className="fixed top-0 w-full z-50 bg-white/80 backdrop-blur-xl shadow-sm shadow-rose-900/5 transition-all glass-nav border-b border-outline/5">
         <div className="max-w-7xl mx-auto flex justify-between items-center px-8 py-4">
-          <Link href="/" className="text-2xl font-black text-primary tracking-tighter">HanoiGO</Link>
+          <Link href="/" className="text-2xl font-black text-primary tracking-tighter"><span className="text-2xl font-black tracking-tighter text-on-surface">Hanoi<span className="text-primary">GO</span></span></Link>
+
           <div className="hidden md:flex items-center gap-8 font-headline tracking-tight font-medium">
             <Link className="text-on-surface-variant hover:text-primary transition-colors duration-300" href="/discovery">Discovery</Link>
             <Link className="text-on-surface-variant hover:text-primary transition-colors duration-300" href="/trips">Trips</Link>

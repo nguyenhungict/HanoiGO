@@ -22,7 +22,7 @@ export default function Header({ username }: HeaderProps) {
     <header className="h-20 border-b border-outline/5 bg-white/80 backdrop-blur-2xl px-8 flex items-center justify-between sticky top-0 z-50 transition-all">
       {/* Left: Logo & Core Nav */}
       <div className="flex items-center gap-14">
-        <Link href="/" className="text-2xl font-black text-primary tracking-tighter uppercase transition-transform hover:scale-105">HanoiGO</Link>
+        <Link href="/" className="text-2xl font-black text-primary tracking-tighter uppercase transition-transform hover:scale-105"><span className="text-2xl font-black tracking-tighter text-on-surface">Hanoi<span className="text-primary">GO</span></span></Link>
         
         <nav className="hidden lg:flex items-center gap-2">
           {navItems.map((item) => {
