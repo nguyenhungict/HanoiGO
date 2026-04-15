@@ -332,8 +332,8 @@ export function middleware(request: NextRequest) {
 Khách du lịch nước ngoài cần một nơi tra cứu thông tin địa điểm du lịch tại
 Hà Nội một cách trực quan, có bản đồ tích hợp và khả năng lọc theo khu vực
 hoặc loại hình. Module này đóng vai trò \textbf{foundation data} cho toàn bộ
-hệ thống --- bộ dữ liệu 100--150 địa điểm được tái dụng bởi tất cả các module
-còn lại.
+hệ thống --- bộ dữ liệu 65 địa điểm du lịch đã được xác thực, sẵn sàng hỗ trợ
+tìm đường thời gian thực.
 
 \subsubsection{Tính năng}
 
@@ -351,13 +351,53 @@ còn lại.
 
 \subsubsection{Triển khai}
 
-Dữ liệu địa điểm được lưu trong PostgreSQL với PostGIS. Truy vấn địa điểm lân
-cận tái dụng \texttt{ST\_DWithin} --- cùng cơ chế với Geospatial Search nhưng
-phục vụ trang chi tiết thay vì tìm kiếm theo GPS của user.
+Dữ liệu địa điểm được lưu trong PostgreSQL với PostGIS. Thay vì lưu giờ mở cửa
+dưới dạng JSONB thuần (khó truy vấn và không thể lọc trực tiếp bằng SQL), hệ
+thống tách thành các cột riêng biệt giúp thuật toán đọc nhanh và truy vấn hiệu
+quả:
+
+\begin{lstlisting}[language=SQL]
+CREATE TABLE places (
+  id                uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+  name              text NOT NULL,
+  category          text NOT NULL,
+  district          text NOT NULL,
+  location          geometry(Point, 4326),
+  visit_duration_min int DEFAULT 60,
+  -- Lich hoat dong (parsed tu opening hours)
+  always_open       boolean DEFAULT false,
+  open_days         integer[],  -- [0..6] = [CN,T2..T7]
+  open_time_start   time,       -- gio mo cua (VD: 08:00)
+  open_time_end     time,       -- gio dong cua (VD: 17:00)
+  has_break         boolean DEFAULT false,
+  break_start       time,       -- nghi trua bat dau
+  break_end         time        -- nghi trua ket thuc
+);
+\end{lstlisting}
+
+Ví dụ dữ liệu thực tế:
+
+\begin{lstlisting}[language=SQL]
+-- Ho Hoan Kiem (mo 24/7)
+INSERT INTO places (...) VALUES (
+  ..., true, ARRAY[0,1,2,3,4,5,6],
+  '00:00', '23:59', false, null, null
+);
+-- Van Mieu (dong T2, nghi trua)
+INSERT INTO places (...) VALUES (
+  ..., false, ARRAY[0,2,3,4,5,6],
+  '08:00', '17:00', true, '12:00', '13:30'
+);
+\end{lstlisting}
+
+Truy vấn địa điểm lân cận tái dụng \texttt{ST\_DWithin} --- cùng cơ chế với
+Geospatial Search nhưng phục vụ trang chi tiết thay vì tìm kiếm theo GPS
+của user.
 
 \begin{lstlisting}
 SELECT id, name, category, district,
-       opening_hours, visit_duration_min,
+       always_open, open_days, open_time_start, open_time_end,
+       visit_duration_min,
        ST_AsGeoJSON(location) AS geojson
 FROM   places
 WHERE  district = :district        -- filter khu vuc
@@ -383,20 +423,43 @@ Bài toán được mô hình hoá như biến thể của \textbf{Travelling Sa
 với hai phương pháp tính khoảng cách khác nhau tuỳ theo mục đích:
 
 \begin{enumerate}
-  \item \textbf{Bước 1 --- Clustering:} Phân nhóm địa điểm theo khu vực địa lý
+  \item \textbf{Bước 0 --- Filter feasibility (Tiền xử lý):} Trước khi đưa vào mô hình thuật toán, hệ thống loại bỏ các địa điểm đóng cửa vào ngày tương ứng với lịch trình của người dùng (sử dụng thông tin \texttt{open\_days}). Việc này đảm bảo kết quả gom cụm của K-Means không bị sai lệch bởi các điểm không thể tham quan.
+
+  \item \textbf{Bước 1 --- Clustering:} Phân nhóm các địa điểm khả thi (đã qua Bước 0) theo khu vực địa lý
         bằng K-Means. Khoảng cách dùng \textbf{Haversine Formula} --- đủ chính
         xác cho so sánh tương đối, không cần khoảng cách đường thực tế.
         Mỗi ngày được gán một cụm.
 
-  \item \textbf{Bước 2 --- Routing:} Trong mỗi cụm, sắp xếp thứ tự tham quan
-        bằng Greedy Nearest Neighbor. Hệ thống gọi \textbf{OSRM Table API}
-        một lần duy nhất để lấy ma trận khoảng cách đường thực tế giữa tất cả
-        các cặp địa điểm trong cụm --- tránh sai lệch do hồ, ngõ cụt, đường
-        một chiều. Tại mỗi bước chọn địa điểm gần nhất chưa được thăm và kiểm
-        tra ràng buộc giờ mở cửa.
+  \item \textbf{Bước 2 --- Routing (Time-Window Aware):} Trong mỗi cụm, sắp xếp
+        thứ tự tham quan bằng Greedy Nearest Neighbor có tích hợp ràng buộc
+        khung giờ. Hệ thống sử dụng \textbf{Goong Distance Matrix API} (hoặc
+        OSRM) để lấy ma trận thời gian di chuyển thực tế giữa tất cả các cặp
+        địa điểm trong cụm. Tại mỗi bước, thuật toán tính thời gian đến dự kiến:
 
-  \item \textbf{Bước 3 --- Ràng buộc:} Loại bỏ địa điểm không khả thi về thời
-        gian, đề xuất thay thế trong cùng khu vực.
+        \[
+          T_{arrival}(j) = T_{current} + \text{OSRM\_Duration}[i][j]
+        \]
+
+        Nếu điểm $j$ chưa mở cửa, thuật toán tính thời gian chờ
+        $T_{wait} = \max(0,\; \text{open\_time\_start}_j - T_{arrival})$.
+        Hàm chi phí tích hợp thời gian chờ được sử dụng để chọn điểm tiếp
+        theo tối ưu:
+
+        \[
+          Cost(j) = \text{TravelTime}[i][j] + T_{wait}(j)
+        \]
+
+        Điểm $j$ bị bỏ qua nếu $T_{arrival}(j) > \text{open\_time\_end}_j
+        - \text{visit\_duration}_j$ (đến nơi không còn đủ thời gian tham
+        quan). Cách tiếp cận này ưu tiên điểm ``đến là vào được ngay'' thay
+        vì chỉ chọn điểm gần nhất về khoảng cách.
+
+  \item \textbf{Bước 3 --- Time-Window Constraints trong GNN:} Kiểm tra thuật toán với ràng buộc thời gian thật (giờ đóng cửa, giờ nghỉ trưa \texttt{has\_break}). Quá trình xử lý rẽ nhánh theo 3 cấp độ:
+        \begin{itemize}
+            \item \textbf{Cấp 1 (Reorder):} Thử tráo đổi ưu tiên thứ tự tham quan các điểm trong ngày nhằm né giờ nghỉ trưa hoặc kịp giờ đóng cửa.
+            \item \textbf{Cấp 2 (Reassign):} Chuyển địa điểm bị cấn giờ qua lộ trình của ngày hôm sau (nếu có lịch).
+            \item \textbf{Cấp 3 (Remove \& Notify):} Khi không còn cách xếp khả thi, thuật toán loại bỏ và thông báo đề xuất một địa điểm khác thay thế trong cùng khu vực khoảng cách gần.
+        \end{itemize}
 \end{enumerate}
 
 \subsubsection{Tính toán khoảng cách}
@@ -435,6 +498,24 @@ Response:
 
 OSRM chạy dưới dạng service riêng trong \texttt{docker-compose}, dùng dữ liệu
 OSM Việt Nam, không phụ thuộc API ngoài, không phát sinh chi phí runtime.
+
+\medskip
+\textbf{Cấu hình OSRM cho xe máy Hà Nội:}
+
+Thay vì sử dụng profile ô tô hoặc xe đạp mặc định, hệ thống sử dụng profile
+\texttt{motorbike.lua} được tùy chỉnh cho đặc thù giao thông Hà Nội:
+
+\begin{itemize}
+  \item \textbf{Vận tốc:} Đặt mức trần 35~km/h cho đường chính
+        (\texttt{primary}, \texttt{secondary}) và 20--25~km/h cho đường nhánh
+        --- phản ánh thực tế tốc độ xe máy trong nội đô.
+  \item \textbf{Intersection penalty:} Tăng \texttt{traffic\_light\_penalty}
+        lên 18~giây để bù đắp cho chu kỳ đèn đỏ dài (60--100s) tại các nút
+        giao lớn.
+  \item \textbf{Ưu tiên ngõ ngách:} Loại bỏ hình phạt giảm tốc đối với
+        \texttt{service=alley} để engine ưu tiên dẫn đường qua các ngõ nhỏ
+        --- đặc trưng lối đi tắt hiệu quả của xe máy Hà Nội.
+\end{itemize}
 
 \subsubsection{Ví dụ đầu vào / đầu ra}
 
@@ -512,31 +593,30 @@ redis.subscribe(`activity:${activityId}`)
 \end{lstlisting}
 
 % -------------------------------------------------------------------------
-\subsection{AI Mentor (tuỳ tiến độ)}
+\subsection{AI Mentor}
 
 \subsubsection{Bài toán}
 
-Khách du lịch cần gợi ý hotel và nhà hàng phù hợp với lịch trình và khu vực
-đang ở, thay vì phải tìm kiếm trên nhiều nền tảng khác nhau.
+Khách du lịch cần một trợ lý ảo am hiểu địa phương để gợi ý địa điểm, giải đáp
+thắc mắc về văn hóa và hỗ trợ tối ưu lịch trình dựa trên vị trí hiện tại.
 
 \subsubsection{Triển khai}
 
-Module sử dụng \textbf{Claude API (claude-sonnet)} kết hợp \textbf{web search
-tool} để gợi ý dựa trên context lịch trình của user (khu vực, ngày, ngân sách).
-Thông tin hotel và nhà hàng được tìm kiếm realtime --- không cần maintain dataset
-riêng, tránh vấn đề dữ liệu lỗi thời.
+Module sử dụng mô hình \textbf{Gemini 2.5 Flash} nhờ khả năng xử lý context lớn
+và tốc độ phản hồi nhanh. Hệ thống cung cấp context cho AI bao gồm danh sách
+địa điểm lân cận truy vấn từ PostgreSQL/PostGIS và vị trí GPS của người dùng.
 
 \begin{lstlisting}[language={}]
 System:
-  You are a Hanoi travel advisor.
-  Given the user's itinerary and current district,
-  suggest suitable hotels and restaurants nearby.
-  Use web search for current availability and reviews.
-  Keep suggestions concise with name, price range,
-  and one-line reason. Respond in English.
+  You are "HanoiGO AI Assistant". 
+  Respond in a professional, friendly style with Emojis.
+  Prioritize landmarks within 2km if user location is provided.
+  Use bold for place names. Respond in Vietnamese.
 
-User: I'm staying near Hoan Kiem for 2 nights,
-      budget mid-range. Any hotel suggestions?
+Prompt:
+  Context: [List of 50 nearest landmarks with coordinates]
+  User Location: (curLat, curLng)
+  Question: "Recommend some points of interest near me."
 \end{lstlisting}
 
 % =============================================================================
@@ -552,11 +632,11 @@ User: I'm staying near Hoan Kiem for 2 nights,
   \midrule
   Frontend         & Next.js 14, Tailwind CSS, Leaflet.js \\
   Backend API      & NestJS (Node.js), WebSocket Gateway  \\
-  AI Integration   & Claude API (claude-sonnet) + web search tool \\
-  Routing engine   & OSRM (self-hosted, docker-compose)   \\
-  Database chính   & PostgreSQL + PostGIS                 \\
+  AI Integration   & Gemini 2.5 Flash (Google AI SDK)      \\
+  Routing Engine   & Goong API / OSRM (self-hosted)       \\
+  Database Chính   & PostgreSQL + PostGIS                 \\
   Cache / Realtime & Redis Pub/Sub                        \\
-  Maps             & OpenStreetMap + Leaflet (miễn phí)   \\
+  Maps             & CartoDB Voyager + Leaflet            \\
   \bottomrule
 \end{tabular}
 \end{center}
@@ -568,9 +648,12 @@ User: I'm staying near Hoan Kiem for 2 nights,
         PostgreSQL → trả về danh sách + GeoJSON để render Leaflet pins.
 
   \item \textbf{Trip Planner:} Frontend gửi danh sách địa điểm và số ngày →
-        NestJS chạy K-Means (Haversine) → gọi OSRM Table API lấy ma trận
-        khoảng cách thực tế → chạy Greedy Nearest Neighbor → trả về lịch
-        trình JSON + GeoJSON route để render trên map.
+        NestJS tiền lọc địa điểm theo \texttt{open\_days} (Bước~0) → K-Means
+        clustering (Haversine) → gọi OSRM Table API lấy ma trận khoảng cách
+        thực tế → Greedy Nearest Neighbor có tích hợp hàm chi phí
+        $Cost = Duration + T_{wait}$ → kiểm tra time-window constraints
+        (Reorder / Reassign / Remove) → trả về lịch trình JSON + GeoJSON
+        route để render trên map.
 
   \item \textbf{Activity \& Group Chat:} User tạo activity → lưu DB, render
         pin trên map → user khác request tham gia → chủ duyệt → NestJS
@@ -585,9 +668,9 @@ User: I'm staying near Hoan Kiem for 2 nights,
 \section{Dữ liệu \& Nội dung}
 % =============================================================================
 
-Dự án sử dụng \textbf{một bộ dữ liệu duy nhất} (100--150 địa điểm du lịch tại
-Hà Nội) phục vụ cho cả ba module chính, tránh phân tán công sức thu thập và
-bảo trì. Dữ liệu được curate từ các nguồn mở:
+Dự án sử dụng \textbf{một bộ dữ liệu duy nhất} (65 địa điểm du lịch trọng điểm)
+đã được xác thực tọa độ và thông tin, phục vụ cho cả ba module chính, tránh phân
+tán công sức thu thập và bảo trì. Dữ liệu được tổng hợp từ:
 
 \begin{itemize}
   \item \textbf{OpenStreetMap (Overpass API)} --- toạ độ, tên, phân loại

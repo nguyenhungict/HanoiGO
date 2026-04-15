@@ -18,31 +18,31 @@ enum UserStatus {
 }
 
 model User {
-  id            String    @id @default(uuid()) @db.Uuid
-  email         String    @unique
-  passwordHash  String    @map("password_hash")
-  username      String    @unique
-  fullName      String?   @map("full_name")
-  bio           String?
-  avatarUrl     String?   @map("avatar_url")
-  nationality   String?
-  languages     String[]
-  role          Role      @default(USER)
-  status        UserStatus @default(ACTIVE)
-  tokenVersion  Int       @default(1) @map("token_version")
-  createdAt     DateTime  @default(now()) @db.Timestamptz @map("created_at")
+  id           String     @id @default(uuid()) @db.Uuid
+  email        String     @unique
+  passwordHash String     @map("password_hash")
+  username     String     @unique
+  fullName     String?    @map("full_name")
+  bio          String?
+  avatarUrl    String?    @map("avatar_url")
+  nationality  String?
+  languages    String[]
+  role         Role       @default(USER)
+  status       UserStatus @default(ACTIVE)
+  tokenVersion Int        @default(1) @map("token_version")
+  createdAt    DateTime   @default(now()) @map("created_at") @db.Timestamptz
 
   // Relationships
   trips           Trip[]
-  activities      Activity[]      @relation("HostActivities")
+  activities      Activity[]       @relation("HostActivities")
   activityMembers ActivityMember[]
   messages        Message[]
 
   // Admin relations
-  reportsCreated  Report[]        @relation("Reporter")
-  reportsAgainst  Report[]        @relation("TargetUser")
-  adminActions    AdminLog[]      @relation("AdminUser")
-  notifications   Notification[]
+  reportsCreated Report[]       @relation("Reporter")
+  reportsAgainst Report[]       @relation("TargetUser")
+  adminActions   AdminLog[]     @relation("AdminUser")
+  notifications  Notification[]
 
   @@map("users")
 }
@@ -63,90 +63,96 @@ enum ReportStatus {
 }
 
 model Report {
-  id            String        @id @default(uuid()) @db.Uuid
-  reporterId    String?       @map("reporter_id") @db.Uuid // Admin hoặc User báo cáo
-  targetId      String        @map("target_id") @db.Uuid   // User bị báo cáo
-  reason        ViolationType
-  description   String?
-  status        ReportStatus  @default(PENDING)
-  adminNotes    String?       @map("admin_notes")
-  entityType    String?       @map("entity_type")
-  entityId      String?       @map("entity_id") @db.Uuid
-  createdAt     DateTime      @default(now()) @db.Timestamptz @map("created_at")
-  resolvedAt    DateTime?     @db.Timestamptz @map("resolved_at")
+  id          String        @id @default(uuid()) @db.Uuid
+  reporterId  String?       @map("reporter_id") @db.Uuid // Admin hoặc User báo cáo
+  targetId    String        @map("target_id") @db.Uuid // User bị báo cáo
+  reason      ViolationType
+  description String?
+  status      ReportStatus  @default(PENDING)
+  adminNotes  String?       @map("admin_notes")
+  entityType  String?       @map("entity_type")
+  entityId    String?       @map("entity_id") @db.Uuid
+  createdAt   DateTime      @default(now()) @map("created_at") @db.Timestamptz
+  resolvedAt  DateTime?     @map("resolved_at") @db.Timestamptz
 
   // Relationships
-  reporter      User?         @relation("Reporter", fields: [reporterId], references: [id])
-  targetUser    User          @relation("TargetUser", fields: [targetId], references: [id])
+  reporter   User? @relation("Reporter", fields: [reporterId], references: [id])
+  targetUser User  @relation("TargetUser", fields: [targetId], references: [id])
 
   @@index([status])
   @@map("reports")
 }
 
 model AdminLog {
-  id          String   @id @default(uuid()) @db.Uuid
-  adminId     String   @map("admin_id") @db.Uuid
-  action      String   // e.g., 'BAN_USER', 'DELETE_PLACE', 'UPDATE_SETTINGS'
-  targetId    String?  @map("target_id") // ID of the object changed
-  details     String?  // JSON or string details
-  createdAt   DateTime @default(now()) @db.Timestamptz @map("created_at")
+  id        String   @id @default(uuid()) @db.Uuid
+  adminId   String   @map("admin_id") @db.Uuid
+  action    String // e.g., 'BAN_USER', 'DELETE_PLACE', 'UPDATE_SETTINGS'
+  targetId  String?  @map("target_id") // ID of the object changed
+  details   String? // JSON or string details
+  createdAt DateTime @default(now()) @map("created_at") @db.Timestamptz
 
   // Relationships
-  admin       User     @relation("AdminUser", fields: [adminId], references: [id])
+  admin User @relation("AdminUser", fields: [adminId], references: [id])
 
   @@map("admin_logs")
 }
 
 model Place {
-  id                String    @id @default(uuid()) @db.Uuid
-  name              String
-  nameEn            String?   @map("name_en")
-  descriptionEn     String?   @map("description_en")
-  category          String
-  district          String
-  address           String?
-  lat               Float
-  lng               Float
-  location          Unsupported("geometry(Point, 4326)")
-  openingHours      Json?     @map("opening_hours")
-  visitDurationMin  Int?      @map("visit_duration_min")
-  imageUrl          String?   @map("image_url")
-  tags              String[]
-  createdAt         DateTime  @default(now()) @db.Timestamptz @map("created_at")
+  id               String                               @id @default(uuid()) @db.Uuid
+  name             String                               @unique
+  nameEn           String?                              @map("name_en")
+  descriptionEn    String?                              @map("description_en")
+  category         String
+  district         String
+  address          String?
+  lat              Float
+  lng              Float
+  location         Unsupported("geometry(Point, 4326)")
+  alwaysOpen       Boolean                              @default(false) @map("always_open")
+  openDays         Int[]                                @map("open_days") // [0=Sun, 1=Mon, ..., 6=Sat]
+  openTimeStart    DateTime?                            @map("open_time_start") @db.Time
+  openTimeEnd      DateTime?                            @map("open_time_end") @db.Time
+  hasBreak         Boolean                              @default(false) @map("has_break")
+  breakStart       DateTime?                            @map("break_start") @db.Time
+  breakEnd         DateTime?                            @map("break_end") @db.Time
+  visitDurationMin Int?                                 @map("visit_duration_min")
+  imageUrl         String?                              @map("image_url")
+  tags             String[]
+  createdAt        DateTime                             @default(now()) @map("created_at") @db.Timestamptz
 
   // Relationships
-  trips          Trip[]     @relation("StartPlace")
-  tripStops      TripStop[]
-  activities     Activity[]
+  trips      Trip[]     @relation("StartPlace")
+  tripStops  TripStop[]
+  activities Activity[]
 
   @@map("places")
 }
 
 model Trip {
-  id            String    @id @default(uuid()) @db.Uuid
-  userId        String    @map("user_id") @db.Uuid
-  title         String?
-  numDays       Int       @map("num_days")
-  startPlaceId  String?   @map("start_place_id") @db.Uuid
-  createdAt     DateTime  @default(now()) @db.Timestamptz @map("created_at")
+  id           String   @id @default(uuid()) @db.Uuid
+  userId       String   @map("user_id") @db.Uuid
+  title        String?
+  numDays      Int      @map("num_days")
+  startPlaceId String?  @map("start_place_id") @db.Uuid
+  createdAt    DateTime @default(now()) @map("created_at") @db.Timestamptz
 
   // Relationships
-  user        User      @relation(fields: [userId], references: [id], onDelete: Cascade)
-  startPlace  Place?    @relation("StartPlace", fields: [startPlaceId], references: [id])
-  tripDays    TripDay[]
+  user       User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  startPlace Place?    @relation("StartPlace", fields: [startPlaceId], references: [id])
+  tripDays   TripDay[]
 
   @@map("trips")
 }
 
 model TripDay {
-  id         String    @id @default(uuid()) @db.Uuid
-  tripId     String    @map("trip_id") @db.Uuid
-  dayNumber  Int       @map("day_number")
-  district   String?
+  id        String  @id @default(uuid()) @db.Uuid
+  tripId    String  @map("trip_id") @db.Uuid
+  dayNumber Int     @map("day_number")
+  district  String?
 
   // Relationships
-  trip       Trip       @relation(fields: [tripId], references: [id], onDelete: Cascade)
-  tripStops  TripStop[]
+  trip      Trip       @relation(fields: [tripId], references: [id], onDelete: Cascade)
+  tripStops TripStop[]
 
   @@map("trip_days")
 }
@@ -156,15 +162,15 @@ model TripStop {
   tripDayId         String    @map("trip_day_id") @db.Uuid
   placeId           String    @map("place_id") @db.Uuid
   stopOrder         Int       @map("stop_order")
-  arriveAt          DateTime? @db.Time @map("arrive_at")
-  departAt          DateTime? @db.Time @map("depart_at")
+  arriveAt          DateTime? @map("arrive_at") @db.Time
+  departAt          DateTime? @map("depart_at") @db.Time
   distanceFromPrevM Int?      @map("distance_from_prev_m")
   durationFromPrevS Int?      @map("duration_from_prev_s")
   isSkipped         Boolean   @default(false) @map("is_skipped")
 
   // Relationships
-  tripDay  TripDay @relation(fields: [tripDayId], references: [id], onDelete: Cascade)
-  place    Place   @relation(fields: [placeId], references: [id])
+  tripDay TripDay @relation(fields: [tripDayId], references: [id], onDelete: Cascade)
+  place   Place   @relation(fields: [placeId], references: [id])
 
   @@map("trip_stops")
 }
@@ -189,19 +195,19 @@ enum NotificationType {
 }
 
 model Activity {
-  id           String         @id @default(uuid()) @db.Uuid
-  hostId       String         @map("host_id") @db.Uuid
-  placeId      String?        @map("place_id") @db.Uuid
-  title        String
-  description  String?
-  address      String?
-  lat          Float
-  lng          Float
-  location     Unsupported("geometry(Point, 4326)")
-  scheduledAt  DateTime       @db.Timestamptz @map("scheduled_at")
-  maxMembers   Int?           @default(10) @map("max_members")
-  status       ActivityStatus @default(OPEN)
-  createdAt    DateTime       @default(now()) @db.Timestamptz @map("created_at")
+  id          String                               @id @default(uuid()) @db.Uuid
+  hostId      String                               @map("host_id") @db.Uuid
+  placeId     String?                              @map("place_id") @db.Uuid
+  title       String
+  description String?
+  address     String?
+  lat         Float
+  lng         Float
+  location    Unsupported("geometry(Point, 4326)")
+  scheduledAt DateTime                             @map("scheduled_at") @db.Timestamptz
+  maxMembers  Int?                                 @default(10) @map("max_members")
+  status      ActivityStatus                       @default(OPEN)
+  createdAt   DateTime                             @default(now()) @map("created_at") @db.Timestamptz
 
   // Relationships
   host            User             @relation("HostActivities", fields: [hostId], references: [id], onDelete: Cascade)
@@ -217,7 +223,7 @@ model ActivityMember {
   activityId String       @map("activity_id") @db.Uuid
   userId     String       @map("user_id") @db.Uuid
   status     MemberStatus
-  joinedAt   DateTime     @default(now()) @db.Timestamptz @map("joined_at")
+  joinedAt   DateTime     @default(now()) @map("joined_at") @db.Timestamptz
 
   // Relationships
   activity Activity @relation(fields: [activityId], references: [id], onDelete: Cascade)
@@ -228,11 +234,11 @@ model ActivityMember {
 }
 
 model Message {
-  id         String    @id @default(uuid()) @db.Uuid
-  activityId String    @map("activity_id") @db.Uuid
-  userId     String?   @map("user_id") @db.Uuid
+  id         String   @id @default(uuid()) @db.Uuid
+  activityId String   @map("activity_id") @db.Uuid
+  userId     String?  @map("user_id") @db.Uuid
   content    String
-  createdAt  DateTime  @default(now()) @db.Timestamptz @map("created_at")
+  createdAt  DateTime @default(now()) @map("created_at") @db.Timestamptz
 
   // Relationships
   activity Activity @relation(fields: [activityId], references: [id], onDelete: Cascade)
@@ -251,7 +257,7 @@ model Notification {
   entityType String?          @map("entity_type")
   entityId   String?          @map("entity_id") @db.Uuid
   isRead     Boolean          @default(false) @map("is_read")
-  createdAt  DateTime         @default(now()) @db.Timestamptz @map("created_at")
+  createdAt  DateTime         @default(now()) @map("created_at") @db.Timestamptz
 
   // Relationships
   user User @relation(fields: [userId], references: [id], onDelete: Cascade)
