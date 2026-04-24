@@ -3,6 +3,7 @@
 import React, { useState } from 'react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
+import SessionGuard from '@/components/SessionGuard';
 
 export default function AdminLayout({
   children,
@@ -23,6 +24,7 @@ export default function AdminLayout({
 
   return (
     <div className="flex h-screen w-full bg-background overflow-hidden font-body">
+      <SessionGuard redirectTo="/admin/login" />
       {/* Sidebar - Glassmorphism style */}
       <aside 
         className={`bg-white/80 backdrop-blur-2xl border-r border-outline/10 flex flex-col transition-all duration-500 ease-out z-30 shadow-[4px_0_24px_rgba(0,0,0,0.02)]

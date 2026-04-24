@@ -4,7 +4,9 @@ import {
   InternalServerErrorException,
   NotFoundException,
   BadRequestException,
+  ForbiddenException,
 } from '@nestjs/common';
+import { UserStatus } from '@prisma/client';
 import { UsersService } from '../users/users.service';
 import { JwtService } from '@nestjs/jwt';
 import { PrismaService } from '../prisma/prisma.service';
@@ -61,7 +63,12 @@ export class AuthService {
         passwordHash: hashedPassword,
       });
 
-      const tokens = await this.generateTokens(user.id, user.username, user.role);
+      const tokens = await this.generateTokens(
+        user.id,
+        user.username,
+        user.role,
+        user.tokenVersion,
+      );
 
       const { passwordHash, ...result } = user;
       return {
@@ -99,7 +106,16 @@ export class AuthService {
       throw new ConflictException('Tài khoản hoặc mật khẩu không đúng');
     }
 
-    const tokens = await this.generateTokens(user.id, user.username, user.role);
+    if (user.status === UserStatus.BANNED) {
+      throw new ForbiddenException('This account has been banned');
+    }
+
+    const tokens = await this.generateTokens(
+      user.id,
+      user.username,
+      user.role,
+      user.tokenVersion,
+    );
 
     const { passwordHash, ...result } = user;
     return {
@@ -207,8 +223,13 @@ export class AuthService {
   // HELPERS & OTHER STUBS
   // ============================================================
 
-  async generateTokens(userId: string, username: string, role: string) {
-    const payload = { sub: userId, username, role };
+  async generateTokens(
+    userId: string,
+    username: string,
+    role: string,
+    tokenVersion: number,
+  ) {
+    const payload = { sub: userId, username, role, tokenVersion };
 
     const [accessToken, refreshToken] = await Promise.all([
       this.jwtService.signAsync(payload, {

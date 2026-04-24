@@ -1,58 +1,265 @@
-'use client';
+import Link from 'next/link';
+import { getLandmarkById, getPlaceStory, landmarks } from '@/lib/landmarks';
 
-import React from 'react';
+type PlacesPageProps = {
+  searchParams?: {
+    place?: string;
+    category?: string;
+  };
+};
 
-export default function PlacesPage() {
+function buildPlacesHref(placeId: string, category?: string) {
+  const params = new URLSearchParams({ place: placeId });
+
+  if (category && category !== 'All') {
+    params.set('category', category);
+  }
+
+  return `/places?${params.toString()}`;
+}
+
+export default function PlacesPage({ searchParams }: PlacesPageProps) {
+  const selectedCategory = searchParams?.category || 'All';
+  const filteredLandmarks =
+    selectedCategory === 'All'
+      ? landmarks
+      : landmarks.filter((landmark) => landmark.category === selectedCategory);
+
+  const selectedLandmark =
+    getLandmarkById(searchParams?.place) ||
+    filteredLandmarks[0] ||
+    landmarks[0];
+
+  const story = getPlaceStory(selectedLandmark);
+  const categories = [
+    'All',
+    ...Array.from(new Set(landmarks.map((landmark) => landmark.category))).slice(0, 6),
+  ];
+  const archiveLandmarks = filteredLandmarks
+    .filter((landmark) => landmark.id !== selectedLandmark.id)
+    .slice(0, 9);
+
   return (
-    <div className="flex flex-col h-full overflow-hidden animate-in fade-in duration-700">
-      <header className="px-8 py-6 border-b border-outline/5 bg-white flex flex-col md:flex-row justify-between items-start md:items-center gap-6">
-        <div className="space-y-1">
-          <h1 className="text-3xl font-black tracking-tighter text-on-surface">Khám phá Địa điểm</h1>
-          <p className="text-outline text-xs font-bold uppercase tracking-widest">Unveil the hidden archives of Hanoi</p>
-        </div>
-        <div className="flex items-center gap-4 bg-surface-container-low p-2 rounded-2xl border border-outline/5">
-          {['Tất cả', 'Văn hóa', 'Ẩm thực', 'Nghệ thuật'].map((filter, i) => (
-            <button key={filter} className={`px-5 py-2.5 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all ${i === 0 ? 'bg-primary text-white shadow-lg shadow-primary/20' : 'text-outline hover:text-primary hover:bg-primary/5'}`}>
-              {filter}
-            </button>
-          ))}
+    <div className="min-h-full bg-background animate-in fade-in duration-700">
+      <header className="sticky top-0 z-20 border-b border-outline/10 bg-white/80 backdrop-blur-2xl">
+        <div className="mx-auto flex max-w-7xl flex-col gap-6 px-8 py-6">
+          <div className="space-y-2">
+            <p className="text-[10px] font-black uppercase tracking-[0.28em] text-primary">
+              Place Archive
+            </p>
+            <div className="flex flex-col gap-3 md:flex-row md:items-end md:justify-between">
+              <div>
+                <h1 className="text-4xl font-black tracking-tighter text-on-surface">
+                  {selectedLandmark.name}
+                </h1>
+                <p className="mt-1 text-sm font-medium text-on-surface-variant">
+                  Curated from the discovery map into a full editorial view.
+                </p>
+              </div>
+              <Link
+                href="/discovery"
+                className="inline-flex h-12 items-center justify-center rounded-2xl border border-outline/15 px-6 text-[10px] font-black uppercase tracking-[0.22em] text-on-surface transition-all hover:bg-secondary"
+              >
+                Return To Discovery
+              </Link>
+            </div>
+          </div>
+
+          <div className="flex flex-wrap gap-3">
+            {categories.map((category) => {
+              const href =
+                category === 'All'
+                  ? buildPlacesHref(selectedLandmark.id)
+                  : buildPlacesHref(selectedLandmark.id, category);
+
+              return (
+                <Link
+                  key={category}
+                  href={href}
+                  className={`rounded-2xl px-5 py-2.5 text-[10px] font-black uppercase tracking-[0.2em] transition-all ${
+                    selectedCategory === category
+                      ? 'bg-primary text-white shadow-lg shadow-primary/20'
+                      : 'bg-secondary text-on-secondary hover:scale-[1.01]'
+                  }`}
+                >
+                  {category}
+                </Link>
+              );
+            })}
+          </div>
         </div>
       </header>
 
-      <main className="flex-1 overflow-y-auto p-8 bg-surface-container-lowest">
-        <div className="max-w-7xl mx-auto columns-1 md:columns-2 lg:columns-3 gap-8 space-y-8">
-          {[
-            { title: 'The Old Quarter', category: 'Cultural', img: 'https://lh3.googleusercontent.com/aida-public/AB6AXuBS6b92EyHcnxNeXz_VuUVdBhOGbY0U1p20ztvsYraHcQgwBWkOV3MGDMBMiRJjB73lDLFk_mL2aTNyRTbevMFwiBxEbOfyeamd296xaZM5MqDWofZLafllT67TOi2UIoSNFl2rOMjDGM3l3L-4aBBQvSKqpiC0Gi4E3-GJS-nGidgnY1Wb8siJIGHY4wl2oocysO9Pmhb_P8sAJDAdIcsO69CXTa-BkPTmdPekdAIHJrDZpZzvUKIyCJe1ZlQ7MO4gsbzI9wSgovoD', height: 'h-80' },
-            { title: 'Note Coffee', category: 'Lifestyle', img: 'https://lh3.googleusercontent.com/aida-public/AB6AXuCAu-bsocWiyWuntmqkceDix7iu9B_lCjqkd8THoMPAYyySq06xkjoN8ab1KWyc0bQ76lBdutb9EhKJnMFPbUJctc_RfKLXOD1gVPwJFhmp7deSURHzJrDSnTiru3q0YixUdcScUuKkOgaC1PyfI8PsrOvrlURK9aiaNfAMqR-uchBx5F6tQDo66Lt6MweYl8naUC0TwXxnKhD3blcui1INTjX2FmJan50Hw27diuXiATAUNwthyZCDCS2-0MkG9XJsb0DoR635pV7x', height: 'h-64' },
-            { title: 'St. Joseph\'s Cathedral', category: 'Heritage', img: 'https://lh3.googleusercontent.com/aida-public/AB6AXuA3_3Ys6itfzI-qcjC6GGAbPLzJ7GlOiFbBkyfA4InHZ5en20ct237GwITHy0C4SOOdps7VFI7xdoeb9p_Z5_BMnT3ySaCiYB71MraVhFBrC-uUbEmbKfbOalGDYQQ5ykZ3qrTaRNMhfNtTIMtVao-GOB1PN-AMTM2tM8hD3lTIEl9oYZWVyIvGxxYzmtIHaVh_KXThvrJAn9-C83750PhxLWhu8EnknsR1kAxyQcdsFE3xOSjEeyMyo3GtQBjK3b1DG7-pyT2w8cDY', height: 'h-96' },
-            { title: 'Long Bien Bridge', category: 'Photography', img: 'https://lh3.googleusercontent.com/aida-public/AB6AXuBTC1yLpiKQoH9Hd25hCqgyA8TSx-qKS-ojmE-gUvwOm0E-ySF-VHOAxdwaH5Uqf2CuHvwDss2eId6mePXyF_F6XR0rWBcHUX5fLoZgfyk3axrCqNKJiUNu9f0t_ymQt1-eE9kwwtROGqnX-nNcD-EqcPdLIJsohyo8uBF_MD554fU6pNkYO_XVzGtsovhqQ398kOSmSoc0q7rSqnlfZLz5YO3sphe0R76UuD5QfUsoXPoL2ljYif87peq4thBcpS-dIlprYqwDgRKr', height: 'h-72' },
-            { title: 'Phan Dinh Phung St', category: 'Scenic', img: 'https://lh3.googleusercontent.com/aida-public/AB6AXuA4-iPwl61wIu2fTOvlPGHdynooI11BBN20UA0Lh_jjmsGeVSnz84vQb18GYamR1CDOncYAkiZOtfiP_TGbK0OMR39ZsGmTsSKr2KvjOBSmNn8m4JnEeijwB-NrfhFQyccJJWrO60ItlhNRLQgroYS6pjSQkJG2zyGTDgBbVjInVcCYocOHECqFYmZ-I7XU7sqZ6ux_4H9tqis2Qs1N-dygzHhIFkFeZboQ7m3_048PWQVBMAkVpfDQMvojSauf_65O5V2TTO-eSdwq', height: 'h-[28rem]' },
-          ].map((place, i) => (
-            <div key={i} className="break-inside-avoid group cursor-pointer bg-white rounded-[2.5rem] border border-outline/5 overflow-hidden shadow-sm hover:shadow-2xl hover:shadow-primary/10 transition-all duration-500">
-              <div className={`relative ${place.height} overflow-hidden`}>
-                <img src={place.img} alt={place.title} className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-110" />
-                <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity" />
-                <div className="absolute top-6 left-6 flex gap-2">
-                  <span className="px-3 py-1 bg-white/90 backdrop-blur-md rounded-lg text-[9px] font-black uppercase tracking-widest text-primary shadow-lg">{place.category}</span>
+      <main className="mx-auto flex max-w-7xl flex-col gap-8 px-8 py-8">
+        <section className="grid gap-8 xl:grid-cols-[minmax(0,1.45fr)_24rem]">
+          <article className="overflow-hidden rounded-[2rem] border border-outline/10 bg-white shadow-[0_18px_60px_rgba(38,24,23,0.08)]">
+            <div className="relative h-[24rem] overflow-hidden bg-secondary-container">
+              <img
+                src={selectedLandmark.image}
+                alt={selectedLandmark.name}
+                className="h-full w-full object-cover"
+              />
+              <div className="absolute inset-0 bg-gradient-to-t from-on-surface/90 via-on-surface/20 to-transparent" />
+              <div className="absolute inset-x-0 bottom-0 p-8 text-white">
+                <div className="mb-4 flex flex-wrap items-center gap-3">
+                  <span className="rounded-full bg-white/15 px-3 py-1 text-[10px] font-black uppercase tracking-[0.24em] backdrop-blur-xl">
+                    {story.eyebrow}
+                  </span>
+                  <span className="rounded-full bg-white/15 px-3 py-1 text-[10px] font-black uppercase tracking-[0.24em] backdrop-blur-xl">
+                    {selectedLandmark.category}
+                  </span>
                 </div>
+                <h2 className="max-w-3xl text-4xl font-black tracking-tighter">
+                  {story.intro}
+                </h2>
               </div>
-              <div className="p-8 space-y-4">
-                <div className="flex justify-between items-start">
-                  <h3 className="font-black text-xl tracking-tighter text-on-surface leading-none">{place.title}</h3>
-                  <div className="flex items-center gap-1 text-primary">
-                    <span className="material-symbols-outlined text-sm">star</span>
-                    <span className="text-xs font-black">4.9</span>
+            </div>
+
+            <div className="grid gap-8 p-8 lg:grid-cols-[minmax(0,1fr)_18rem]">
+              <div className="space-y-6">
+                {story.sections.map((section) => (
+                  <div key={section.title} className="space-y-2">
+                    <p className="text-[10px] font-black uppercase tracking-[0.24em] text-primary">
+                      {section.title}
+                    </p>
+                    <p className="text-[15px] leading-8 text-on-surface-variant">
+                      {section.body}
+                    </p>
                   </div>
+                ))}
+              </div>
+
+              <div className="space-y-4">
+                <div className="rounded-[1.75rem] bg-secondary-container p-6">
+                  <p className="text-[10px] font-black uppercase tracking-[0.24em] text-primary">
+                    Archive Note
+                  </p>
+                  <p className="mt-3 text-sm leading-7 text-on-secondary">
+                    {story.archiveNote}
+                  </p>
                 </div>
-                <p className="text-outline text-xs font-medium leading-relaxed">Discover the layers of history preserved in this iconic location.</p>
-                <div className="pt-4 border-t border-outline/5 flex justify-between items-center text-[10px] font-black uppercase tracking-widest text-outline transition-colors group-hover:text-primary">
-                  <span>View Archives</span>
-                  <span className="material-symbols-outlined text-sm">arrow_forward</span>
+
+                <div className="rounded-[1.75rem] border border-outline/10 bg-background p-6">
+                  <p className="text-[10px] font-black uppercase tracking-[0.24em] text-outline">
+                    Quick Facts
+                  </p>
+                  <div className="mt-4 space-y-4">
+                    {story.facts.map((fact) => (
+                      <div
+                        key={fact.label}
+                        className="border-b border-outline/10 pb-4 last:border-b-0 last:pb-0"
+                      >
+                        <p className="text-[9px] font-black uppercase tracking-[0.22em] text-outline">
+                          {fact.label}
+                        </p>
+                        <p className="mt-1 text-sm font-bold text-on-surface">
+                          {fact.value}
+                        </p>
+                      </div>
+                    ))}
+                  </div>
                 </div>
               </div>
             </div>
-          ))}
-        </div>
+          </article>
+
+          <aside className="space-y-4">
+            <div className="rounded-[2rem] border border-outline/10 bg-white p-6 shadow-sm">
+              <p className="text-[10px] font-black uppercase tracking-[0.24em] text-outline">
+                Nearby Archive Flow
+              </p>
+              <p className="mt-3 text-sm leading-7 text-on-surface-variant">
+                Move through the collection without losing the editorial framing. Each card opens another destination inside the same archive layout.
+              </p>
+            </div>
+
+            {archiveLandmarks.slice(0, 4).map((landmark) => (
+              <Link
+                key={landmark.id}
+                href={buildPlacesHref(landmark.id, selectedCategory)}
+                className="block overflow-hidden rounded-[1.75rem] border border-outline/10 bg-white transition-all duration-300 hover:scale-[1.01] hover:shadow-xl hover:shadow-primary/10"
+              >
+                <div className="flex gap-4 p-4">
+                  <img
+                    src={landmark.image}
+                    alt={landmark.name}
+                    className="h-24 w-24 rounded-[1.25rem] object-cover"
+                  />
+                  <div className="min-w-0 flex-1">
+                    <p className="text-[9px] font-black uppercase tracking-[0.2em] text-primary">
+                      {landmark.category}
+                    </p>
+                    <h3 className="mt-2 line-clamp-2 text-lg font-black tracking-tight text-on-surface">
+                      {landmark.name}
+                    </h3>
+                    <p className="mt-3 text-[10px] font-black uppercase tracking-[0.2em] text-outline">
+                      Open Article
+                    </p>
+                  </div>
+                </div>
+              </Link>
+            ))}
+          </aside>
+        </section>
+
+        <section className="space-y-5">
+          <div className="flex flex-col gap-2 md:flex-row md:items-end md:justify-between">
+            <div>
+              <p className="text-[10px] font-black uppercase tracking-[0.24em] text-primary">
+                Archive Continuum
+              </p>
+              <h2 className="text-3xl font-black tracking-tighter text-on-surface">
+                Continue Through The Collection
+              </h2>
+            </div>
+            <p className="text-sm font-medium text-on-surface-variant">
+              Select another place to swap the hero article without leaving the places route.
+            </p>
+          </div>
+
+          <div className="grid gap-6 md:grid-cols-2 xl:grid-cols-3">
+            {archiveLandmarks.map((landmark) => (
+              <Link
+                key={landmark.id}
+                href={buildPlacesHref(landmark.id, selectedCategory)}
+                className="group overflow-hidden rounded-[2rem] border border-outline/10 bg-white shadow-sm transition-all duration-300 hover:-translate-y-1 hover:shadow-2xl hover:shadow-primary/10"
+              >
+                <div className="relative h-56 overflow-hidden">
+                  <img
+                    src={landmark.image}
+                    alt={landmark.name}
+                    className="h-full w-full object-cover transition-transform duration-700 group-hover:scale-105"
+                  />
+                  <div className="absolute inset-0 bg-gradient-to-t from-on-surface/75 via-transparent to-transparent" />
+                  <div className="absolute left-5 top-5 rounded-full bg-white/90 px-3 py-1 text-[9px] font-black uppercase tracking-[0.2em] text-primary backdrop-blur-xl">
+                    {landmark.category}
+                  </div>
+                </div>
+
+                <div className="space-y-4 p-6">
+                  <div className="flex items-start justify-between gap-4">
+                    <h3 className="text-xl font-black tracking-tight text-on-surface">
+                      {landmark.name}
+                    </h3>
+                    <div className="flex items-center gap-1 text-primary">
+                      <span className="material-symbols-outlined text-base">star</span>
+                      <span className="text-xs font-black">{landmark.rating.toFixed(1)}</span>
+                    </div>
+                  </div>
+
+                  <p className="line-clamp-3 text-sm leading-7 text-on-surface-variant">
+                    {getPlaceStory(landmark).sections[0].body}
+                  </p>
+
+                  <div className="flex items-center justify-between border-t border-outline/10 pt-4 text-[10px] font-black uppercase tracking-[0.22em] text-outline transition-colors group-hover:text-primary">
+                    <span>Read Introduction</span>
+                    <span className="material-symbols-outlined text-base">arrow_forward</span>
+                  </div>
+                </div>
+              </Link>
+            ))}
+          </div>
+        </section>
       </main>
     </div>
   );

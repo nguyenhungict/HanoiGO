@@ -1,5 +1,6 @@
 import { cookies } from 'next/headers';
 import Header from '@/components/Header';
+import SessionGuard from '@/components/SessionGuard';
 
 export default async function MainLayout({ children }: { children: React.ReactNode }) {
   const cookieStore = await cookies();
@@ -7,6 +8,7 @@ export default async function MainLayout({ children }: { children: React.ReactNo
 
   return (
     <div className="min-h-screen bg-surface font-body text-on-surface flex flex-col h-screen overflow-hidden animate-in fade-in duration-1000">
+      <SessionGuard redirectTo="/login" />
       {/* Top Header Navigation Hub */}
       <Header username={username} />
 

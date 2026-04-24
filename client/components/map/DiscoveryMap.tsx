@@ -1,6 +1,7 @@
 "use client";
 
 import React, { useState, useEffect } from 'react';
+import Link from 'next/link';
 import { MapContainer, TileLayer, Marker, Popup, useMapEvents, useMap, Polyline } from 'react-leaflet';
 import 'leaflet/dist/leaflet.css';
 import L from 'leaflet';
@@ -86,7 +87,8 @@ function LocationMarker({ setUserPos }: { setUserPos: (pos: [number, number] | n
 
 // Helper function to decode Google/Goong encoded polyline
 const decodePolyline = (encoded: string): [number, number][] => {
-  let index = 0, len = encoded.length;
+  let index = 0;
+  const len = encoded.length;
   let lat = 0, lng = 0;
   const coordinates: [number, number][] = [];
 
@@ -97,7 +99,7 @@ const decodePolyline = (encoded: string): [number, number][] => {
       result |= (b & 0x1f) << shift;
       shift += 5;
     } while (b >= 0x20);
-    let dlat = ((result & 1) ? ~(result >> 1) : (result >> 1));
+    const dlat = ((result & 1) ? ~(result >> 1) : (result >> 1));
     lat += dlat;
 
     shift = 0; result = 0;
@@ -106,7 +108,7 @@ const decodePolyline = (encoded: string): [number, number][] => {
       result |= (b & 0x1f) << shift;
       shift += 5;
     } while (b >= 0x20);
-    let dlng = ((result & 1) ? ~(result >> 1) : (result >> 1));
+    const dlng = ((result & 1) ? ~(result >> 1) : (result >> 1));
     lng += dlng;
 
     coordinates.push([lat * 1e-5, lng * 1e-5]);
@@ -257,8 +259,8 @@ export default function DiscoveryMap({ itineraryMarkers = [] }: DiscoveryMapProp
             setActiveRoute(null);
             setRouteDetails(null);
         }
-      } catch (error: any) {
-        if (error.name !== 'AbortError') {
+      } catch (error: unknown) {
+        if (!(error instanceof Error) || error.name !== 'AbortError') {
           console.error("Error fetching Goong route:", error);
         }
       } finally {
@@ -441,7 +443,7 @@ export default function DiscoveryMap({ itineraryMarkers = [] }: DiscoveryMapProp
                                 className="object-cover w-full h-full hover:scale-110 transition-transform duration-700"
                             />
                             <div className="absolute top-4 right-4 bg-white/95 backdrop-blur shadow-xl text-primary px-3 py-1 rounded-full text-xs font-black flex items-center gap-1">
-                               <span class="material-symbols-outlined text-[14px]">star</span>
+                               <span className="material-symbols-outlined text-[14px]">star</span>
                                {landmark.rating}
                             </div>
                         </div>
@@ -454,9 +456,12 @@ export default function DiscoveryMap({ itineraryMarkers = [] }: DiscoveryMapProp
                             {landmark.description || `Khám phá vẻ đẹp lịch sử và văn hóa tại ${landmark.name}, một trong những điểm đến không thể bỏ qua tại Hà Nội.`}
                           </p>
                           <div className="flex gap-2">
-                            <button className="flex-1 py-3 bg-white text-primary border border-primary/20 hover:bg-primary/5 active:scale-95 font-black text-[11px] uppercase tracking-widest rounded-2xl transition-all">
-                              Chi tiết
-                            </button>
+                            <Link
+                              href={`/places?place=${landmark.id}`}
+                              className="flex-1 rounded-2xl border border-primary/20 bg-white py-3 text-center text-[11px] font-black uppercase tracking-widest text-primary transition-all hover:bg-primary/5 active:scale-95"
+                            >
+                              Detail
+                            </Link>
                             <button 
                               onClick={() => setRoutingDestination(landmark)}
                               className="flex-[1.5] py-3 bg-primary text-white font-black text-[11px] uppercase tracking-widest rounded-2xl transition-all shadow-lg shadow-primary/20 hover:scale-[1.02] active:scale-95 flex items-center justify-center gap-1.5"
