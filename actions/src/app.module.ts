@@ -7,7 +7,6 @@ import { PlacesModule } from './places/places.module';
 import { TripsModule } from './trips/trips.module';
 import { ActivitiesModule } from './activities/activities.module';
 import { ChatModule } from './chat/chat.module';
-import { AiMentorModule } from './ai-mentor/ai-mentor.module';
 import { AdminModule } from './admin/admin.module';
 import { APP_GUARD } from '@nestjs/core';
 import { RolesGuard } from './common/guards/roles.guard';
@@ -22,7 +21,6 @@ import { RolesGuard } from './common/guards/roles.guard';
     TripsModule,
     ActivitiesModule,
     ChatModule,
-    AiMentorModule,
     AdminModule,
   ],
   providers: [],

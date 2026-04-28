@@ -1,0 +1,270 @@
+\documentclass[12pt,a4paper]{report}
+
+% --- Packages ---
+\usepackage[utf8]{inputenc}
+\usepackage[T1]{fontenc}
+\usepackage[english,vietnamese]{babel} % Ưu tiên tiếng Việt
+\usepackage{graphicx}
+\usepackage{amsmath}
+\usepackage{hyperref}
+\usepackage{float}
+\usepackage{geometry}
+\usepackage{booktabs}
+\usepackage{enumitem}
+\usepackage{caption}
+
+% --- Setup ---
+\geometry{margin=1in}
+\hypersetup{
+    colorlinks=true,
+    linkcolor=blue,
+    filecolor=magenta,      
+    urlcolor=cyan,
+    pdftitle={HanoiGO - Tài liệu Module 1},
+}
+
+\begin{document}
+
+\title{Báo cáo Kỹ thuật HanoiGO \\ \large Module 1: Lên kế hoạch chuyến đi (Trip Planner)}
+\author{Nguyễn Hùng}
+\date{\today}
+\maketitle
+
+\chapter{Module 1: Lên kế hoạch chuyến đi -- Tạo lịch trình thông minh}
+\label{chap:trip-planner}
+
+\section{Tổng quan}
+
+Module Lên kế hoạch chuyến đi là công cụ điều phối cốt lõi của HanoiGO. Hệ thống nhận danh sách các địa điểm tham quan do người dùng chọn, cùng với các ràng buộc (số ngày, khung giờ hàng ngày, ngày đi, vị trí GPS), để tạo ra một lịch trình tối ưu trong nhiều ngày, giúp giảm thiểu tổng thời gian di chuyển và thời gian chờ đợi trong khi vẫn tuân thủ giờ mở cửa của từng địa điểm.
+
+\subsection{Công nghệ sử dụng}
+
+\begin{table}[H]
+\centering
+\begin{tabular}{|l|l|}
+\hline
+\textbf{Thành phần} & \textbf{Công nghệ} \\
+\hline
+Backend Framework & NestJS (TypeScript) \\
+Database ORM & Prisma (PostgreSQL) \\
+Distance Matrix API & Goong Maps API (Dự phòng bằng Haversine) \\
+Frontend Framework & Next.js 14 (React, TypeScript) \\
+Hiển thị bản đồ & Leaflet + CartoDB Voyager tiles \\
+Hiển thị tuyến đường & Goong Directions API \\
+\hline
+\end{tabular}
+\caption{Công nghệ sử dụng cho Module Trip Planner}
+\end{table}
+
+\subsection{Kiến trúc hệ thống}
+
+\begin{figure}[H]
+\centering
+\begin{verbatim}
++-------------------+       POST /trips/generate-itinerary       +------------------+
+|   Next.js Client  | -------------------------------------->    |  NestJS Backend  |
+|  (DiscoveryPage)  | <--------------------------------------   | (TripPlanner     |
+|                   |           JSON ItineraryResponse           |    Service)      |
++-------------------+                                            +------------------+
+        |                                                               |
+        | Leaflet GPS                                                   | Prisma
+        | (onLocationFound)                                             | $queryRawUnsafe
+        v                                                               v
+  [Browser GPS]                                                   [PostgreSQL]
+                                                                        |
+                                                              Goong DistanceMatrix API
+                                                              (hoặc Haversine fallback)
+\end{verbatim}
+\caption{Kiến trúc cấp cao của Module 1}
+\end{figure}
+
+%% =====================================================================
+\section{Quy trình thuật toán}
+\label{sec:algorithm-pipeline}
+
+Quá trình tạo lịch trình tuân theo quy trình 6 bước được thực thi tại server trong hàm \texttt{TripPlannerService.generateItinerary()}:
+
+\begin{enumerate}
+    \item \textbf{Truy xuất dữ liệu} -- Truy vấn bảng \texttt{places} theo tên địa điểm.
+    \item \textbf{Tiền lọc (Pre-Filter)} -- Loại bỏ các địa điểm đóng cửa vào tất cả các ngày đi.
+    \item \textbf{Gom nhóm K-Means} -- Nhóm các địa điểm theo khu vực địa lý thành $k$ cụm (tương ứng với số ngày).
+    \item \textbf{Thuật toán Tham lam (GNN) với Cửa sổ thời gian} -- Sắp xếp thứ tự tham quan trong từng cụm một cách tối ưu.
+    \item \textbf{Giải quyết xung đột} -- Phân bổ lại các địa điểm bị loại vào các ngày còn trống chỗ.
+    \item \textbf{Định dạng phản hồi} -- Chuyển đổi dữ liệu sang định dạng JSON trả về cho Client.
+\end{enumerate}
+
+%% ── Step 0 ──────────────────────────────────────────────────────────
+\subsection{Bước 0: Truy xuất dữ liệu}
+
+Service nhận một đối tượng \texttt{GenerateItineraryDto} bao gồm:
+
+\begin{table}[H]
+\centering
+\begin{tabular}{|l|l|l|}
+\hline
+\textbf{Trường dữ liệu} & \textbf{Kiểu} & \textbf{Ví dụ} \\
+\hline
+\texttt{placeNames} & \texttt{string[]} & \texttt{["Hỏa Lò", "Nhà Thờ Lớn"]} \\
+\texttt{numDays} & \texttt{number} & \texttt{2} \\
+\texttt{startTime} & \texttt{number} & \texttt{480} (08:00) \\
+\texttt{endTime} & \texttt{number} & \texttt{1080} (18:00) \\
+\texttt{travelDate} & \texttt{string} & \texttt{"2026-05-01"} \\
+\texttt{visitDurationMin} & \texttt{number} & \texttt{30} \\
+\texttt{startLat} & \texttt{number?} & \texttt{21.0242} \\
+\texttt{startLng} & \texttt{number?} & \texttt{105.8576} \\
+\hline
+\end{tabular}
+\caption{Các trường dữ liệu đầu vào (DTO)}
+\end{table}
+
+Sử dụng truy vấn SQL thuần để lấy dữ liệu từ PostgreSQL:
+\begin{verbatim}
+SELECT id, name, category, district, lat, lng, image_url,
+       always_open, open_days, open_time_start, open_time_end,
+       has_break, break_start, break_end, visit_duration_min
+FROM places WHERE name = ANY($1)
+\end{verbatim}
+
+Dữ liệu thô từ DB được ánh xạ sang interface \texttt{Place}. Các trường thời gian (\texttt{open\_time\_start},...) được chuyển từ kiểu \texttt{TIME} sang số phút tính từ nửa đêm để thuận tiện cho việc tính toán.
+
+%% ── Step 1 ──────────────────────────────────────────────────────────
+\subsection{Bước 1: Tiền lọc (Pre-Filter)}
+
+Với mỗi địa điểm, thuật toán kiểm tra xem \texttt{openDays} có giao với bất kỳ ngày nào trong chuyến đi hay không. Các địa điểm \texttt{alwaysOpen = true} sẽ tự động vượt qua. Các địa điểm đóng cửa vào \emph{tất cả} các ngày đi sẽ được chuyển vào mảng \texttt{infeasible[]} kèm theo lý do cụ thể.
+
+\textbf{Độ phức tạp:} $O(n \cdot k)$ với $n$ là số địa điểm, $k$ là số ngày.
+
+%% ── Step 2 ──────────────────────────────────────────────────────────
+\subsection{Bước 2: Gom nhóm K-Means}
+
+Thuật toán phân chia các địa điểm khả thi thành $k$ cụm địa lý (một cụm mỗi ngày) sử dụng thuật toán Lloyd's K-Means với công thức tính khoảng cách Haversine.
+
+\subsubsection{Khoảng cách Haversine}
+\begin{equation}
+d = 2R \cdot \arcsin\left(\sqrt{\sin^2\!\left(\frac{\Delta\phi}{2}\right) + \cos\phi_1 \cdot \cos\phi_2 \cdot \sin^2\!\left(\frac{\Delta\lambda}{2}\right)}\right)
+\end{equation}
+Trong đó $R = 6371$ km (bán kính Trái Đất), $\phi$ là vĩ độ (radian), $\lambda$ là kinh độ (radian).
+
+\subsubsection{Khởi tạo trọng tâm}
+Các trọng tâm ban đầu được chọn bằng cách lấy mẫu đồng đều: $c_i = \text{places}[i \cdot \lfloor n/k \rfloor]$.
+
+\subsubsection{Hội tụ}
+Thuật toán lặp cho đến khi các trọng tâm dịch chuyển ít hơn $0.0001\degree$ hoặc đạt tối đa 50 lần lặp.
+
+\subsubsection{Tái cân bằng (Rebalancing)}
+Sau khi hội tụ, các cụm vượt quá giới hạn \texttt{MAX\_PLACES\_PER\_DAY = 5} sẽ được tái cân bằng. Địa điểm gần nhất với trọng tâm của cụm ít địa điểm nhất sẽ được chuyển đi cho đến khi tất cả các cụm thỏa mãn ràng buộc về số lượng.
+
+%% ── Step 3 ──────────────────────────────────────────────────────────
+\subsection{Bước 3: Ma trận Khoảng cách}
+
+Với mỗi cụm, một ma trận thời gian di chuyển $M[i][j]$ (đơn vị giây) được tính toán.
+
+\begin{itemize}
+    \item \textbf{Ưu tiên:} Goong Maps DistanceMatrix API (\texttt{vehicle=bike}).
+    \item \textbf{Dự phòng:} Nếu thiếu API key hoặc bị giới hạn tốc độ, hệ thống sẽ sử dụng công thức Haversine với tốc độ trung bình giả định là 15~km/h.
+    \item \textbf{Xử lý giới hạn tốc độ:} Khi gặp lỗi \texttt{OVER\_RATE\_LIMIT}, hệ thống sẽ đợi 3 giây và thử lại một lần trước khi chuyển sang phương án dự phòng.
+\end{itemize}
+
+%% ── Step 4 ──────────────────────────────────────────────────────────
+\subsection{Bước 4: Thuật toán Tham lam (GNN) với Cửa sổ thời gian}
+
+Đây là thuật toán sắp xếp thứ tự tham quan chính cho từng ngày.
+
+\subsubsection{Tối ưu điểm xuất phát (GPS)}
+Nếu người dùng cung cấp tọa độ \texttt{startLat}/\texttt{startLng}, thuật toán sẽ tìm địa điểm gần vị trí hiện tại của người dùng nhất và chọn đó làm điểm dừng chân đầu tiên.
+
+\subsubsection{Vòng lặp tham lam}
+Từ điểm dừng hiện tại, thuật toán đánh giá tất cả các điểm chưa tham quan và chọn điểm có \emph{chi phí} thấp nhất:
+\begin{equation}
+\text{cost}(j) = \text{travelTime}_{i \to j} + \text{waitTime}(j) \times 60
+\end{equation}
+
+Một điểm $j$ sẽ bị \textbf{bỏ qua} nếu:
+\begin{itemize}
+    \item Địa điểm đóng cửa vào ngày đó trong tuần.
+    \item Thời gian đến muộn hơn thời gian đóng cửa trừ đi thời gian tham quan.
+    \item Thời gian rời đi vượt quá giờ kết thúc (\texttt{endTime}) của người dùng.
+\end{itemize}
+
+\textbf{Thời gian chờ} được tính cho hai trường hợp:
+\begin{itemize}
+    \item Đến trước khi mở cửa: $\text{wait} = \text{openTimeStart} - \text{arriveMin}$
+    \item Đến trong giờ nghỉ trưa: $\text{wait} = \text{breakEnd} - \text{arriveMin}$
+\end{itemize}
+
+\subsubsection{Cập nhật chuỗi thời gian}
+Sau khi GNN tạo ra tuyến đường, thời gian di chuyển từ vị trí thực tế của người dùng đến điểm đầu tiên sẽ được tính lại, và tất cả các mốc thời gian sau đó sẽ được đẩy lùi tương ứng (cascade shift).
+
+%% ── Step 5 ──────────────────────────────────────────────────────────
+\subsection{Bước 5: Giải quyết xung đột}
+
+Các địa điểm bị loại bỏ bởi GNN (do không khớp khung giờ) sẽ được thử phân bổ lại vào các ngày khác còn dư thời gian:
+
+\begin{equation}
+\text{availableTime} = \text{endTime} - \text{lastStop.departMin}
+\end{equation}
+
+Một địa điểm được phân bổ lại nếu $\text{availableTime} \geq \text{visitDuration} + \text{PARKING\_BUFFER} + 15$.
+
+%% ── Step 6 ──────────────────────────────────────────────────────────
+\subsection{Bước 6: Định dạng phản hồi}
+
+Dữ liệu nội bộ được chuyển đổi thành cấu trúc JSON trả về cho Frontend, bao gồm các mốc thời gian đã được format (HH:mm) và mã màu cho từng ngày.
+
+%% =====================================================================
+\section{Tích hợp Frontend}
+
+\subsection{Luồng người dùng}
+
+\begin{enumerate}
+    \item Người dùng truy cập trang \texttt{/discovery}.
+    \item Bản đồ Leaflet khởi tạo và bắt đầu theo dõi vị trí GPS (chấm xanh).
+    \item Người dùng bấm \textbf{``Lên kế hoạch chuyến đi''} để vào chế độ chọn điểm.
+    \item Người dùng chọn các địa điểm từ danh sách.
+    \item Người dùng bấm \textbf{``Tối ưu lịch trình''} để mở modal cấu hình.
+    \item Sau khi cấu hình, Frontend gửi request kèm tọa độ GPS đã được lưu sẵn từ bản đồ.
+    \item Giao diện hiển thị Timeline và các marker đánh số trên bản đồ.
+\end{enumerate}
+
+%% =====================================================================
+\section{Tóm tắt Đánh giá Logic}
+
+Sau khi kiểm duyệt mã nguồn, các khía cạnh sau đã được xác nhận hoạt động ổn định:
+
+\begin{table}[H]
+\centering
+\begin{tabular}{|l|l|l|}
+\hline
+\textbf{Khía cạnh} & \textbf{Trạng thái} & \textbf{Ghi chú} \\
+\hline
+Logic tiền lọc & \checkmark OK & Kiểm tra chính xác openDays với toàn bộ ngày đi \\
+Hội tụ K-Means & \checkmark OK & Ngưỡng $0.0001\degree$, tối đa 50 vòng lặp \\
+Tái cân bằng cụm & \checkmark OK & Di chuyển điểm sang cụm nhẹ nhất theo điểm số \\
+Dự phòng Goong API & \checkmark OK & Tự động dùng Haversine khi có lỗi API \\
+Tối ưu điểm bắt đầu & \checkmark OK & Dựa trên vị trí thực tế của người dùng \\
+Xử lý giờ nghỉ & \checkmark OK & Tự động cộng thêm thời gian chờ nếu đến lúc nghỉ \\
+Truyền tọa độ GPS & \checkmark OK & Lấy trực tiếp từ Leaflet, tránh gọi lại API GPS \\
+\hline
+\end{tabular}
+\caption{Danh mục đánh giá logic}
+\end{table}
+
+%% =====================================================================
+\section{Các trường hợp kiểm thử (Test Cases)}
+
+Tất cả các test case đều vượt qua (PASS) sử dụng Jest.
+
+\subsection{Dữ liệu kiểm thử}
+
+\begin{itemize}
+    \item \textbf{TC-01: Gom nhóm theo không gian} -- Xác nhận các địa điểm xa nhau (Hoàn Kiếm vs Cầu Giấy) được tách vào các ngày khác nhau.
+    \item \textbf{TC-02: Loại bỏ điểm đóng cửa} -- Đảm bảo Bảo tàng DTH (đóng cửa Thứ 2) không xuất hiện trong lịch trình nếu đi vào Thứ 2.
+    \item \textbf{TC-03: Tối ưu khung giờ} -- Xác nhận các điểm mở muộn (14h) được xếp xuống buổi chiều.
+    \item \textbf{TC-04 \& 05: Tối ưu vị trí GPS} -- Xác nhận thứ tự tham quan thay đổi linh hoạt dựa trên vị trí hiện tại của người dùng (Gần Nhà Thờ Lớn thì đi Nhà Thờ Lớn trước, gần Phố Cổ thì đi Phố Cổ trước).
+\end{itemize}
+
+\section{Kết luận}
+
+Module Lên kế hoạch chuyến đi đã triển khai thành công quy trình kết hợp gom nhóm địa lý và sắp xếp tham lam có tính đến cửa sổ thời gian. Việc tối ưu hóa dựa trên vị trí thực tế mang lại trải nghiệm tự nhiên và hiệu quả nhất cho khách du lịch.
+
+\end{document}

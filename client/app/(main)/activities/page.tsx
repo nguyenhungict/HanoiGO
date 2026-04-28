@@ -46,7 +46,7 @@ export default function ActivitiesPage() {
           <section className="col-span-12 lg:col-span-8 flex flex-col h-full gap-8">
             <div className="bg-white rounded-[2.5rem] p-10 border border-outline/5 shadow-sm flex flex-col grow overflow-hidden relative">
               <div className="absolute top-0 left-0 w-full h-2 bg-primary"></div>
-              
+
               <div className="flex-1 space-y-8 overflow-y-auto hide-scrollbar p-4">
                 <div className="flex gap-4 items-end">
                   <div className="w-10 h-10 rounded-2xl bg-primary/10 flex items-center justify-center text-primary font-black text-xs">M</div>
@@ -64,9 +64,9 @@ export default function ActivitiesPage() {
               </div>
 
               <div className="mt-8 relative group">
-                <input 
-                  className="w-full pl-8 pr-20 py-5 bg-surface-container-low border border-transparent rounded-[2rem] focus:ring-4 focus:ring-primary/5 focus:bg-white focus:border-primary/20 transition-all text-sm outline-none font-medium" 
-                  placeholder="Type your message to the guild..." 
+                <input
+                  className="w-full pl-8 pr-20 py-5 bg-surface-container-low border border-transparent rounded-[2rem] focus:ring-4 focus:ring-primary/5 focus:bg-white focus:border-primary/20 transition-all text-sm outline-none font-medium"
+                  placeholder="Type your message to the guild..."
                   type="text"
                 />
                 <button className="absolute right-4 top-1/2 -translate-y-1/2 w-12 h-12 bg-primary text-white rounded-2xl flex items-center justify-center active:scale-90 transition-transform shadow-lg shadow-primary/20">

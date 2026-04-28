@@ -6,6 +6,8 @@ const EARTH_RADIUS_KM = 6371;
 const MAX_PLACES_PER_DAY = 5;
 const PARKING_BUFFER_MIN = 10;
 const GOONG_API_KEY = process.env.GOONG_API_KEY || '';
+const DEFAULT_LUNCH_START = 660;  // 11:00
+const DEFAULT_LUNCH_END = 780;    // 13:00
 const DAY_NAMES = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
 const DAY_COLORS = ['#3B82F6', '#EF4444', '#10B981', '#F59E0B', '#8B5CF6'];
 
@@ -57,6 +59,8 @@ export interface GenerateItineraryDto {
   visitDurationMin: number; // default visit duration per place
   startLat?: number;
   startLng?: number;
+  lunchBreakStart?: number;  // minutes from midnight, default 660 (11:00)
+  lunchBreakEnd?: number;    // minutes from midnight, default 780 (13:00)
 }
 
 export interface ItineraryStopResponse {
@@ -165,7 +169,12 @@ export class TripPlannerService {
     }
 
     // 3. K-Means Clustering
-    const clusters = this.kMeansClustering(feasible, dto.numDays);
+    let clusters = this.kMeansClustering(feasible, dto.numDays);
+    clusters = this.postClusterOpenDaySwap(clusters, travelDate);
+    clusters = clusters.filter(c => c.length > 0);
+
+    const lunchStart = dto.lunchBreakStart ?? DEFAULT_LUNCH_START;
+    const lunchEnd = dto.lunchBreakEnd ?? DEFAULT_LUNCH_END;
 
     // 4. Schedule each day with Greedy NN
     const itineraries: DayItinerary[] = [];
@@ -179,14 +188,35 @@ export class TripPlannerService {
 
       if (cluster.length === 1) {
         const place = cluster[0];
-        // Calculate travel from start location to this single place
-        const travelToFirstSec = this.getTravelToFirstStop(dto, place);
+        // FIX: Check openDays for single-place day
+        if (!place.alwaysOpen && !place.openDays.includes(dayOfWeek)) {
+          allDropped.push({ place, reason: `Closed on ${DAY_NAMES[dayOfWeek]}` });
+          itineraries.push({ dayNumber: d + 1, dayOfWeek, stops: [], totalTravelSec: 0, totalWaitMin: 0 });
+          continue;
+        }
+        // FIX: await async getTravelToFirstStop
+        const travelToFirstSec = await this.getTravelToFirstStop(dto, place);
         const travelToFirstMin = travelToFirstSec / 60;
         const arriveMin = dto.startTime + travelToFirstMin + PARKING_BUFFER_MIN;
-        const effectiveStart = place.alwaysOpen
+        const effectiveOpen = place.alwaysOpen
           ? arriveMin
           : Math.max(arriveMin, place.openTimeStart);
-        const waitMin = effectiveStart - arriveMin;
+        let waitMin = effectiveOpen - arriveMin;
+        let startVisitMin = effectiveOpen;
+
+        // FIX: Lunch break — push visit to after lunch if overlapping
+        if (startVisitMin < lunchEnd && startVisitMin + place.visitDurationMin > lunchStart) {
+          waitMin += lunchEnd - startVisitMin;
+          startVisitMin = lunchEnd;
+        }
+
+        const departMin = startVisitMin + place.visitDurationMin;
+        // FIX: Validate endTime
+        if (departMin > dto.endTime) {
+          allDropped.push({ place, reason: `Depart ${minToTime(departMin)} exceeds endTime ${minToTime(dto.endTime)}` });
+          itineraries.push({ dayNumber: d + 1, dayOfWeek, stops: [], totalTravelSec: 0, totalWaitMin: 0 });
+          continue;
+        }
 
         itineraries.push({
           dayNumber: d + 1,
@@ -195,8 +225,8 @@ export class TripPlannerService {
             place,
             arriveMin: Math.round(arriveMin),
             waitMin: Math.round(waitMin),
-            startVisitMin: Math.round(effectiveStart),
-            departMin: Math.round(effectiveStart + place.visitDurationMin),
+            startVisitMin: Math.round(startVisitMin),
+            departMin: Math.round(departMin),
             travelFromPrevSec: Math.round(travelToFirstSec),
             parkingBufferMin: PARKING_BUFFER_MIN,
             status: waitMin > 10 ? 'WAIT' : 'OK',
@@ -211,36 +241,54 @@ export class TripPlannerService {
       const matrix = await this.getDurationMatrix(cluster);
 
       const { route, droppedInGNN } = this.greedyNearestNeighborWithTimeWindow(
-        cluster, matrix, dayOfWeek, dto.startTime, dto.endTime,
+        cluster, matrix, dayOfWeek, dto.startTime, dto.endTime, lunchStart, lunchEnd, dto.startLat, dto.startLng
       );
 
       allDropped.push(...droppedInGNN);
 
       // Calculate travel from user's start location to the first stop
       if (route.length > 0) {
-        const travelToFirstSec = this.getTravelToFirstStop(dto, route[0].place);
+        const travelToFirstSec = await this.getTravelToFirstStop(dto, route[0].place);
         route[0].travelFromPrevSec = Math.round(travelToFirstSec);
         // Shift arrival times for the first stop
         const travelToFirstMin = travelToFirstSec / 60;
         const newArriveMin = dto.startTime + travelToFirstMin + PARKING_BUFFER_MIN;
         const firstPlace = route[0].place;
         const effectiveOpen = firstPlace.alwaysOpen ? newArriveMin : Math.max(newArriveMin, firstPlace.openTimeStart);
-        route[0].arriveMin = Math.round(newArriveMin);
-        route[0].waitMin = Math.round(Math.max(0, effectiveOpen - newArriveMin));
-        route[0].startVisitMin = Math.round(effectiveOpen);
-        route[0].departMin = Math.round(effectiveOpen + firstPlace.visitDurationMin);
+        let firstWaitMin = Math.max(0, effectiveOpen - newArriveMin);
+        let firstStartVisit = effectiveOpen;
 
-        // Cascade: shift subsequent stops
+        // Lunch break for first stop in cascade
+        if (firstStartVisit < lunchEnd && firstStartVisit + firstPlace.visitDurationMin > lunchStart) {
+          firstWaitMin += lunchEnd - firstStartVisit;
+          firstStartVisit = lunchEnd;
+        }
+
+        route[0].arriveMin = Math.round(newArriveMin);
+        route[0].waitMin = Math.round(firstWaitMin);
+        route[0].startVisitMin = Math.round(firstStartVisit);
+        route[0].departMin = Math.round(firstStartVisit + firstPlace.visitDurationMin);
+
+        // Cascade: shift subsequent stops (with lunch break)
         let currentTimeMin = route[0].departMin;
         for (let i = 1; i < route.length; i++) {
           const travelMin = route[i].travelFromPrevSec / 60;
           const arriveMin = currentTimeMin + travelMin + PARKING_BUFFER_MIN;
           const p = route[i].place;
           const effOpen = p.alwaysOpen ? arriveMin : Math.max(arriveMin, p.openTimeStart);
+          let waitMin = Math.max(0, effOpen - arriveMin);
+          let startVisit = effOpen;
+
+          // Lunch break for cascaded stop
+          if (startVisit < lunchEnd && startVisit + p.visitDurationMin > lunchStart) {
+            waitMin += lunchEnd - startVisit;
+            startVisit = lunchEnd;
+          }
+
           route[i].arriveMin = Math.round(arriveMin);
-          route[i].waitMin = Math.round(Math.max(0, effOpen - arriveMin));
-          route[i].startVisitMin = Math.round(effOpen);
-          route[i].departMin = Math.round(effOpen + p.visitDurationMin);
+          route[i].waitMin = Math.round(waitMin);
+          route[i].startVisitMin = Math.round(startVisit);
+          route[i].departMin = Math.round(startVisit + p.visitDurationMin);
           currentTimeMin = route[i].departMin;
         }
       }
@@ -263,7 +311,7 @@ export class TripPlannerService {
 
     // 5. Conflict resolution
     const { resolved, unscheduled } = this.resolveConflicts(
-      allDropped, itineraries, feasible, dto.endTime,
+      allDropped, itineraries, feasible, dto.endTime, dto.startTime, lunchStart, lunchEnd,
     );
 
     // 6. Format response
@@ -354,10 +402,39 @@ export class TripPlannerService {
   private kMeansClustering(places: Place[], k: number, maxIter = 50): Place[][] {
     if (places.length <= k) return places.map(p => [p]);
 
+    // Deterministic random to ensure stable clustering results across identical requests
+    let seed = places.reduce((sum, p) => sum + p.lat + p.lng, 0) * 10000;
+    const random = () => {
+      seed = (seed * 9301 + 49297) % 233280;
+      return seed / 233280;
+    };
+
+    // K-Means++ initialization — better geographic spread
     const centroids: { lat: number; lng: number }[] = [];
-    const step = Math.floor(places.length / k);
-    for (let i = 0; i < k; i++) {
-      centroids.push({ lat: places[i * step].lat, lng: places[i * step].lng });
+    const firstIdx = Math.floor(random() * places.length);
+    centroids.push({ lat: places[firstIdx].lat, lng: places[firstIdx].lng });
+
+    for (let c = 1; c < k; c++) {
+      const distances = places.map(p => {
+        let minDist = Infinity;
+        for (const centroid of centroids) {
+          const d = this.haversine(p.lat, p.lng, centroid.lat, centroid.lng);
+          if (d < minDist) minDist = d;
+        }
+        return minDist * minDist; // squared for probability weighting
+      });
+      const totalDist = distances.reduce((s, d) => s + d, 0);
+      if (totalDist === 0) {
+        centroids.push({ lat: places[c].lat, lng: places[c].lng });
+        continue;
+      }
+      let r = random() * totalDist;
+      let selectedIdx = 0;
+      for (let i = 0; i < distances.length; i++) {
+        r -= distances[i];
+        if (r <= 0) { selectedIdx = i; break; }
+      }
+      centroids.push({ lat: places[selectedIdx].lat, lng: places[selectedIdx].lng });
     }
 
     let clusters: Place[][] = [];
@@ -442,14 +519,20 @@ export class TripPlannerService {
       const data = await res.json();
 
       if (data.error?.code === 'OVER_RATE_LIMIT') {
-        this.logger.warn('Goong rate limited. Retrying in 3s...');
-        await sleep(3000);
-        const retryRes = await fetch(url);
-        const retryData = await retryRes.json();
-        if (retryData.rows?.length > 0) {
-          return this.parseGoongMatrix(retryData);
+        // Exponential backoff: 3 retries (1s → 2s → 4s)
+        for (let attempt = 1; attempt <= 3; attempt++) {
+          const delayMs = 1000 * Math.pow(2, attempt - 1);
+          this.logger.warn(`Goong rate limited. Retry ${attempt}/3 in ${delayMs}ms...`);
+          await sleep(delayMs);
+          try {
+            const retryRes = await fetch(url);
+            const retryData = await retryRes.json();
+            if (retryData.rows?.length > 0) {
+              return this.parseGoongMatrix(retryData);
+            }
+          } catch { /* continue to next retry */ }
         }
-        this.logger.warn('Goong retry failed. Using Haversine fallback.');
+        this.logger.warn('Goong retries exhausted. Using Haversine fallback.');
         return this.haversineFallbackMatrix(places);
       }
 
@@ -493,36 +576,101 @@ export class TripPlannerService {
     dayOfWeek: number,
     startTimeMin: number,
     endTimeMin: number,
+    lunchStart: number,
+    lunchEnd: number,
+    startLat?: number,
+    startLng?: number,
   ) {
     const n = places.length;
     const visited = new Array(n).fill(false);
     const route: ScheduledStop[] = [];
 
-    const effectiveStart = places[0].alwaysOpen
-      ? startTimeMin
-      : Math.max(startTimeMin, places[0].openTimeStart);
-    let currentTimeMin = effectiveStart;
-    let currentIdx = 0;
-    visited[0] = true;
+    // FIX Bug 1: Find first place — must check openDays
+    let firstIdx = -1;
+    if (startLat && startLng) {
+      let minDistanceToStart = Infinity;
+      for (let i = 0; i < n; i++) {
+        const p = places[i];
+        if (!p.alwaysOpen && !p.openDays.includes(dayOfWeek)) continue;
+        const dist = this.haversine(startLat, startLng, p.lat, p.lng);
+        if (dist < minDistanceToStart) {
+          minDistanceToStart = dist;
+          firstIdx = i;
+        }
+      }
+    } else {
+      for (let i = 0; i < n; i++) {
+        if (places[i].alwaysOpen || places[i].openDays.includes(dayOfWeek)) {
+          firstIdx = i;
+          break;
+        }
+      }
+    }
 
-    const firstPlace = places[0];
-    const firstWait = firstPlace.alwaysOpen
+    // No valid first stop found (all closed today)
+    if (firstIdx === -1) {
+      return {
+        route: [],
+        droppedInGNN: places.map(p => ({
+          place: p,
+          reason: `Closed on ${DAY_NAMES[dayOfWeek]}`,
+        })),
+      };
+    }
+
+    const firstPlace = places[firstIdx];
+    const effectiveStart = firstPlace.alwaysOpen
+      ? startTimeMin
+      : Math.max(startTimeMin, firstPlace.openTimeStart);
+
+    let firstWait = firstPlace.alwaysOpen
       ? 0
-      : Math.max(0, firstPlace.openTimeStart - currentTimeMin);
-    const firstStartVisit = currentTimeMin + firstWait;
+      : Math.max(0, firstPlace.openTimeStart - startTimeMin);
+
+    let firstStartVisit = effectiveStart;
+
+    // FIX: Check breakTime for first stop
+    if (firstPlace.hasBreak && effectiveStart >= firstPlace.breakStart && effectiveStart < firstPlace.breakEnd) {
+      firstWait += firstPlace.breakEnd - effectiveStart;
+      firstStartVisit = firstPlace.breakEnd;
+    }
+
+    // Lunch break for first stop
+    if (firstStartVisit < lunchEnd && firstStartVisit + firstPlace.visitDurationMin > lunchStart) {
+      firstWait += lunchEnd - firstStartVisit;
+      firstStartVisit = lunchEnd;
+    }
+
+    const firstDepartMin = firstStartVisit + firstPlace.visitDurationMin;
+
+    // FIX Bug 4: Validate endTime for first stop
+    if (firstDepartMin > endTimeMin) {
+      return {
+        route: [],
+        droppedInGNN: places.map(p => ({
+          place: p,
+          reason: `Could not fit in day (time window ${minToTime(startTimeMin)}-${minToTime(endTimeMin)})`,
+        })),
+      };
+    }
+
+    let currentTimeMin = effectiveStart;
+    let currentIdx = firstIdx;
+    visited[firstIdx] = true;
 
     route.push({
       place: firstPlace,
       arriveMin: currentTimeMin,
       waitMin: firstWait,
       startVisitMin: firstStartVisit,
-      departMin: firstStartVisit + firstPlace.visitDurationMin,
+      departMin: firstDepartMin,
       travelFromPrevSec: 0,
       parkingBufferMin: 0,
       status: firstWait > 0 ? 'WAIT' : 'OK',
     });
 
-    currentTimeMin = firstStartVisit + firstPlace.visitDurationMin;
+    currentTimeMin = firstDepartMin;
+
 
     while (true) {
       let bestIdx = -1;
@@ -550,10 +698,20 @@ export class TripPlannerService {
           waitMin = place.breakEnd - arriveMin;
         }
 
-        const departMin = arriveMin + waitMin + place.visitDurationMin;
+        // Lunch break: push visit to after lunch if overlapping
+        let startVisit = arriveMin + waitMin;
+        if (startVisit < lunchEnd && startVisit + place.visitDurationMin > lunchStart) {
+          waitMin += lunchEnd - startVisit;
+          startVisit = lunchEnd;
+        }
+
+        const departMin = startVisit + place.visitDurationMin;
         if (departMin > endTimeMin) continue;
 
-        const cost = travelSec + waitMin * 60;
+        // Multiply travelSec by 2 to penalize active travel time over free wait time.
+        // This also breaks the tie when multiple places get pushed to the end of a lunch break
+        // (where travel + wait = constant).
+        const cost = (travelSec * 2) + (waitMin * 60);
         if (cost < bestCost) {
           bestCost = cost;
           bestIdx = j;
@@ -598,13 +756,22 @@ export class TripPlannerService {
   }
 
   // ══════════════════════════════════════════════════════════════════════════
-  //  STEP 3: Conflict Resolution
+  //  STEP 3: Conflict Resolution (improved — real travel time + gap insertion)
   // ══════════════════════════════════════════════════════════════════════════
+  private estimateTravelSec(from: Place, to: Place): number {
+    const AVG_SPEED_KMH = 15;
+    const distKm = this.haversine(from.lat, from.lng, to.lat, to.lng);
+    return (distKm / AVG_SPEED_KMH) * 3600;
+  }
+
   private resolveConflicts(
     droppedPlaces: { place: Place; reason: string }[],
     itineraries: DayItinerary[],
     allFeasiblePlaces: Place[],
     endTimeMin: number,
+    startTimeMin: number,
+    lunchStart: number,
+    lunchEnd: number,
   ) {
     const scheduledIds = new Set<string>();
     for (const day of itineraries) {
@@ -617,35 +784,86 @@ export class TripPlannerService {
       if (scheduledIds.has(place.id)) continue;
 
       let reassigned = false;
+
       for (const day of itineraries) {
         if (!place.alwaysOpen && !place.openDays.includes(day.dayOfWeek)) continue;
+        if (reassigned) break;
 
-        const lastStop = day.stops[day.stops.length - 1];
-        const availableTime = lastStop ? endTimeMin - lastStop.departMin : endTimeMin;
+        // Strategy 1: Try inserting into GAPS between existing stops
+        for (let i = 0; i <= day.stops.length; i++) {
+          const prevStop = i > 0 ? day.stops[i - 1] : null;
+          const nextStop = i < day.stops.length ? day.stops[i] : null;
 
-        if (availableTime >= place.visitDurationMin + PARKING_BUFFER_MIN + 15) {
-          const arriveMin = lastStop ? lastStop.departMin + PARKING_BUFFER_MIN + 10 : 480;
-          const waitMin = (!place.alwaysOpen && arriveMin < place.openTimeStart)
-            ? place.openTimeStart - arriveMin : 0;
-          const startVisit = arriveMin + waitMin;
+          // Calculate arrival time at the dropped place
+          let arriveMin: number;
+          let travelFromPrevSec: number;
+          if (prevStop) {
+            travelFromPrevSec = this.estimateTravelSec(prevStop.place, place);
+            arriveMin = prevStop.departMin + (travelFromPrevSec / 60) + PARKING_BUFFER_MIN;
+          } else {
+            travelFromPrevSec = 0;
+            arriveMin = startTimeMin; // FIX Bug 2: was hardcoded 480
+          }
+
+          // Check open time window
+          let waitMin = 0;
+          if (!place.alwaysOpen && arriveMin < place.openTimeStart) {
+            waitMin = place.openTimeStart - arriveMin;
+          }
+          if (place.hasBreak && arriveMin >= place.breakStart && arriveMin < place.breakEnd) {
+            waitMin = place.breakEnd - arriveMin;
+          }
+
+          let startVisit = arriveMin + waitMin;
+
+          // Lunch break: push visit to after lunch if overlapping
+          if (startVisit < lunchEnd && startVisit + place.visitDurationMin > lunchStart) {
+            waitMin += lunchEnd - startVisit;
+            startVisit = lunchEnd;
+          }
+
           const departMin = startVisit + place.visitDurationMin;
 
-          if (departMin <= endTimeMin) {
-            day.stops.push({
-              place,
-              arriveMin: Math.round(arriveMin),
-              waitMin: Math.round(waitMin),
-              startVisitMin: Math.round(startVisit),
-              departMin: Math.round(departMin),
-              travelFromPrevSec: 600,
-              parkingBufferMin: PARKING_BUFFER_MIN,
-              status: waitMin > 10 ? 'WAIT' : 'OK',
-            });
-            scheduledIds.add(place.id);
-            reassigned = true;
-            this.logger.debug(`Reassigned "${place.name}" → Day ${day.dayNumber}`);
-            break;
+          // Must finish before endTime
+          if (departMin > endTimeMin) continue;
+
+          // Must finish before place closes
+          if (!place.alwaysOpen && departMin > place.openTimeEnd) continue;
+
+          // If there's a next stop, must finish before next stop's arrival
+          // (with travel time to next stop)
+          if (nextStop) {
+            const travelToNextSec = this.estimateTravelSec(place, nextStop.place);
+            const travelToNextMin = travelToNextSec / 60;
+            if (departMin + travelToNextMin + PARKING_BUFFER_MIN > nextStop.arriveMin) continue;
           }
+
+          // Valid insertion point found — insert
+          const newStop: ScheduledStop = {
+            place,
+            arriveMin: Math.round(arriveMin),
+            waitMin: Math.round(waitMin),
+            startVisitMin: Math.round(startVisit),
+            departMin: Math.round(departMin),
+            travelFromPrevSec: Math.round(travelFromPrevSec),
+            parkingBufferMin: PARKING_BUFFER_MIN,
+            status: waitMin > 10 ? 'WAIT' : 'OK',
+          };
+          day.stops.splice(i, 0, newStop);
+
+          // Update totalTravelSec: add inserted stop's travel + adjust next stop's travel
+          day.totalTravelSec += Math.round(travelFromPrevSec);
+          if (i + 1 < day.stops.length) {
+            const nextAfterInsert = day.stops[i + 1];
+            const newTravelToNext = this.estimateTravelSec(place, nextAfterInsert.place);
+            const oldTravelToNext = nextAfterInsert.travelFromPrevSec;
+            nextAfterInsert.travelFromPrevSec = Math.round(newTravelToNext);
+            day.totalTravelSec += Math.round(newTravelToNext) - Math.round(oldTravelToNext);
+          }
+          scheduledIds.add(place.id);
+          reassigned = true;
+          this.logger.debug(`Reassigned "${place.name}" → Day ${day.dayNumber}, position ${i + 1}`);
+          break;
         }
       }
 
@@ -660,12 +878,57 @@ export class TripPlannerService {
     return { resolved: itineraries, unscheduled };
   }
 
-  private getTravelToFirstStop(dto: GenerateItineraryDto, firstPlace: Place): number {
-    if (dto.startLat && dto.startLng) {
-      const distKm = this.haversine(dto.startLat, dto.startLng, firstPlace.lat, firstPlace.lng);
-      const AVG_SPEED_KMH = 15; // Giả sử tốc độ xe máy/xe đạp trung bình trong phố
-      return (distKm / AVG_SPEED_KMH) * 3600;
+  // FIX Bug 6: Use Goong API for accurate travel time, fallback to Haversine
+  private async getTravelToFirstStop(dto: GenerateItineraryDto, firstPlace: Place): Promise<number> {
+    if (!dto.startLat || !dto.startLng) return 0;
+
+    if (GOONG_API_KEY) {
+      try {
+        const origin = `${dto.startLat},${dto.startLng}`;
+        const dest = `${firstPlace.lat},${firstPlace.lng}`;
+        const url = `https://rsapi.goong.io/DistanceMatrix?origins=${origin}&destinations=${dest}&vehicle=bike&api_key=${GOONG_API_KEY}`;
+        const res = await fetch(url);
+        const data = await res.json();
+        if (data.rows?.[0]?.elements?.[0]?.duration?.value) {
+          return data.rows[0].elements[0].duration.value;
+        }
+      } catch {
+        this.logger.warn('Goong API failed for first stop travel. Using Haversine fallback.');
+      }
     }
-    return 0;
+
+    // Haversine fallback
+    const AVG_SPEED_KMH = 15;
+    const distKm = this.haversine(dto.startLat, dto.startLng, firstPlace.lat, firstPlace.lng);
+    return (distKm / AVG_SPEED_KMH) * 3600;
+  }
+
+  // FIX Bug 5: Post-cluster swap — move places to days when they're actually open
+  private postClusterOpenDaySwap(clusters: Place[][], travelDate: Date): Place[][] {
+    for (let c = 0; c < clusters.length; c++) {
+      const dayDate = new Date(travelDate);
+      dayDate.setDate(dayDate.getDate() + c);
+      const dayOfWeek = dayDate.getDay();
+
+      for (let i = clusters[c].length - 1; i >= 0; i--) {
+        const place = clusters[c][i];
+        if (place.alwaysOpen) continue;
+        if (place.openDays.includes(dayOfWeek)) continue;
+
+        // Place is closed on this cluster's day → find a better cluster
+        for (let target = 0; target < clusters.length; target++) {
+          if (target === c) continue;
+          const targetDate = new Date(travelDate);
+          targetDate.setDate(targetDate.getDate() + target);
+          if (place.openDays.includes(targetDate.getDay())) {
+            clusters[c].splice(i, 1);
+            clusters[target].push(place);
+            this.logger.debug(`OpenDay swap: "${place.name}" cluster ${c + 1} → ${target + 1}`);
+            break;
+          }
+        }
+      }
+    }
+    return clusters;
   }
 }

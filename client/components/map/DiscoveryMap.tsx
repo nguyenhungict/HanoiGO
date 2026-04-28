@@ -163,6 +163,8 @@ interface ItineraryMarkerData {
 
 interface DiscoveryMapProps {
   itineraryMarkers?: ItineraryMarkerData[];
+  onLocationFound?: (pos: [number, number]) => void;
+  showLandmarks?: boolean;
 }
 
 // Create numbered itinerary marker icon
@@ -183,10 +185,17 @@ const createItineraryIcon = (order: number, color: string) => {
   });
 };
 
-export default function DiscoveryMap({ itineraryMarkers = [] }: DiscoveryMapProps) {
+export default function DiscoveryMap({ itineraryMarkers = [], onLocationFound, showLandmarks = true }: DiscoveryMapProps) {
   const [landmarks, setLandmarks] = useState<Landmark[]>([]);
   const [zoomLevel, setZoomLevel] = useState(13);
   const [userLocation, setUserLocation] = useState<[number, number] | null>(null);
+
+  // Update parent when location is found
+  useEffect(() => {
+    if (userLocation && onLocationFound) {
+      onLocationFound(userLocation);
+    }
+  }, [userLocation, onLocationFound]);
   const [mapInstance, setMapInstance] = useState<L.Map | null>(null);
 
   // === Routing States ===
@@ -428,7 +437,7 @@ export default function DiscoveryMap({ itineraryMarkers = [] }: DiscoveryMapProp
         ))}
 
         {/* Normal landmark markers (hidden when itinerary is active) */}
-        {!hasItinerary && landmarks.map(landmark => (
+        {showLandmarks && !hasItinerary && landmarks.map(landmark => (
             <Marker 
                 key={landmark.id} 
                 position={[landmark.lat, landmark.lng]}
