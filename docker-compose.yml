@@ -2,10 +2,10 @@ services:
   postgres:
     image: postgis/postgis:15-3.4
     environment:
-      POSTGRES_USER: postgres
-      POSTGRES_PASSWORD: postgres
-      POSTGRES_DB: hanoigo
-    ports: ["5432:5432"]
+      POSTGRES_USER: hungnguyen
+      POSTGRES_PASSWORD: hung2004
+      POSTGRES_DB: HanoiGO_db
+    ports: ["5433:5432"]
     volumes: [postgres_data:/var/lib/postgresql/data]
 
   redis:

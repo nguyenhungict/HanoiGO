@@ -139,7 +139,7 @@ export default function RegisterPage() {
                 type="submit"
                 disabled={loading}
               >
-                {loading ? "Creating..." : "Establish Account"}
+                {loading ? "Creating..." : "Create Account"}
               </button>
             </form>
           </div>

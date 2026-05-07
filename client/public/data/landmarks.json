@@ -260,16 +260,6 @@
     "lng": 105.8398246
   },
   {
-    "id": "44",
-    "name": "Ancient House",
-    "image": "https://dynamic-media-cdn.tripadvisor.com/media/photo-o/17/35/a5/c0/ancient-house.jpg?w=500&h=400&s=1",
-    "rating": 4.1,
-    "category": "Speciality Museums",
-    "description": "This house in the Old Quarter was restored in 1999, as an example of an ancient Hanoian home. It represents the architecture of the Old Quarter, and is decorated to reflect ancient houses of Hanoi…",
-    "lat": 20.7423183,
-    "lng": 107.0288077
-  },
-  {
     "id": "32",
     "name": "Duong Lam Ancient Village",
     "image": "https://dynamic-media-cdn.tripadvisor.com/media/photo-o/03/9c/4d/cb/duong-lam.jpg?w=500&h=400&s=1",
@@ -478,16 +468,6 @@
     "description": "Located in Ba Vi Mountain Range, about 60 kilometers to the west of Hanoi, Ba Vi National Park, originally a French hill station, is considered as a fascinating destination for a weekend getaway. …",
     "lat": 21.0184475,
     "lng": 105.3930256
-  },
-  {
-    "id": "269",
-    "name": "Cafe Mai",
-    "image": "https://dynamic-media-cdn.tripadvisor.com/media/photo-o/1b/4c/27/a2/coffee-paris-mai.jpg?w=500&h=400&s=1",
-    "rating": 4.0,
-    "category": "Coffeehouses",
-    "description": "",
-    "lat": 21.0592214,
-    "lng": 105.9070395
   },
   {
     "id": "166",

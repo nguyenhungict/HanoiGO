@@ -28,12 +28,8 @@ export default function LoginPage() {
       setError(result.error);
       setLoading(false);
     } else {
-      // Chuyển hướng dựa trên Role
-      if (result.user?.role === 'ADMIN') {
-        router.push('/admin/dashboard');
-      } else {
-        router.push('/discovery');
-      }
+      // Luôn chuyển hướng về /discovery khi login từ trang này (dành cho cả admin khi muốn dùng như user)
+      router.push('/discovery');
       router.refresh();
     }
   }

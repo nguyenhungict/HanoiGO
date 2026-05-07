@@ -33,10 +33,18 @@ export function middleware(request: NextRequest) {
     return NextResponse.redirect(new URL('/login', request.url));
   }
 
-  // CASE 2: Logged in but visiting auth pages → redirect based on role
+  // CASE 2: Logged in but visiting auth pages → always redirect to /discovery
   if (token && authRoutes.some(route => pathname.startsWith(route))) {
-    const target = role === 'ADMIN' ? '/admin/dashboard' : '/discovery';
-    return NextResponse.redirect(new URL(target, request.url));
+    return NextResponse.redirect(new URL('/discovery', request.url));
+  }
+
+  // CASE 2.5: Logged in and visiting /admin/login
+  if (token && pathname === '/admin/login') {
+    if (role === 'ADMIN') {
+      return NextResponse.redirect(new URL('/admin/dashboard', request.url));
+    } else {
+      return NextResponse.redirect(new URL('/discovery', request.url));
+    }
   }
 
   // CASE 3: Protect admin routes
