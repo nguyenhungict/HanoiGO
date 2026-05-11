@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { registerAction } from "@/lib/actions";
 
 export default function RegisterPage() {
@@ -13,6 +14,7 @@ export default function RegisterPage() {
   });
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
+  const router = useRouter();
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     setFormData({ ...formData, [e.target.name]: e.target.value });
@@ -39,6 +41,8 @@ export default function RegisterPage() {
       if (result?.error) {
         setError(result.error);
         setLoading(false);
+      } else if (result?.success) {
+        router.push(`/verify-email?email=${formData.email}`);
       }
     } catch (err: any) {
       setError("Có lỗi hệ thống xảy ra");
@@ -67,16 +71,16 @@ export default function RegisterPage() {
 
       <main className="flex-grow pt-16 flex flex-col lg:flex-row overflow-hidden">
         {/* Left Side: Form Section */}
-        <section className="w-full lg:w-1/2 bg-surface flex items-center justify-center p-8 lg:p-24 overflow-y-auto">
-          <div className="max-w-sm w-full">
-            <header className="mb-14 text-left">
+        <section className="w-full lg:w-1/2 bg-surface flex items-center justify-center p-8 lg:p-12 overflow-y-auto">
+          <div className="max-w-xs w-full">
+            <header className="mb-10 text-left">
               <span className="text-primary font-black tracking-[0.4em] uppercase text-[10px] mb-4 block">New Chapter</span>
-              <h1 className="text-5xl font-black text-on-surface tracking-tighter mb-4 leading-tight">Join the guild.</h1>
-              <p className="text-outline font-medium text-sm leading-relaxed">Already have an account? <Link className="text-primary font-black uppercase tracking-widest text-[10px] ml-2 hover:underline" href="/login">Auth Access</Link></p>
+              <h1 className="text-3xl font-black text-on-surface tracking-tighter mb-3 leading-tight">Join the guild.</h1>
+              <p className="text-outline font-medium text-xs leading-relaxed">Already have an account? <Link className="text-primary font-black uppercase tracking-widest text-[9px] ml-2 hover:underline" href="/login">Auth Access</Link></p>
             </header>
 
             {error && (
-              <div className="mb-8 p-6 bg-primary/5 text-primary rounded-[2rem] text-[11px] font-black uppercase tracking-widest border border-primary/10 animate-in shake duration-500">
+              <div className="mb-8 p-6 bg-primary/5 text-primary rounded-2xl text-[11px] font-black uppercase tracking-widest border border-primary/10 animate-in shake duration-500">
                 {error}
               </div>
             )}
@@ -85,7 +89,7 @@ export default function RegisterPage() {
               <div className="space-y-3">
                 <label className="block text-[10px] font-black uppercase tracking-[0.2em] text-outline ml-1" htmlFor="username">Username</label>
                 <input 
-                  className="w-full bg-surface-container-low px-8 py-5 rounded-2xl text-on-surface placeholder:text-outline/40 border border-outline/10 focus:border-primary/50 focus:ring-4 focus:ring-primary/5 outline-none transition-all font-bold" 
+                  className="w-full bg-surface-container-low px-6 py-4 rounded-xl text-on-surface placeholder:text-outline/40 border border-outline/10 focus:border-primary/50 focus:ring-4 focus:ring-primary/5 outline-none transition-all font-bold text-sm" 
                   id="username" 
                   name="username" 
                   value={formData.username}
@@ -98,7 +102,7 @@ export default function RegisterPage() {
               <div className="space-y-3">
                 <label className="block text-[10px] font-black uppercase tracking-[0.2em] text-outline ml-1" htmlFor="email">Email Address</label>
                 <input 
-                  className="w-full bg-surface-container-low px-8 py-5 rounded-2xl text-on-surface placeholder:text-outline/40 border border-outline/10 focus:border-primary/50 focus:ring-4 focus:ring-primary/5 outline-none transition-all font-bold" 
+                  className="w-full bg-surface-container-low px-6 py-4 rounded-xl text-on-surface placeholder:text-outline/40 border border-outline/10 focus:border-primary/50 focus:ring-4 focus:ring-primary/5 outline-none transition-all font-bold text-sm" 
                   id="email" 
                   name="email" 
                   value={formData.email}
@@ -111,7 +115,7 @@ export default function RegisterPage() {
               <div className="space-y-3">
                 <label className="block text-[10px] font-black uppercase tracking-[0.2em] text-outline ml-1" htmlFor="password">Password</label>
                 <input 
-                  className="w-full bg-surface-container-low px-8 py-5 rounded-2xl text-on-surface placeholder:text-outline/40 border border-outline/10 focus:border-primary/50 focus:ring-4 focus:ring-primary/5 outline-none transition-all font-bold" 
+                  className="w-full bg-surface-container-low px-6 py-4 rounded-xl text-on-surface placeholder:text-outline/40 border border-outline/10 focus:border-primary/50 focus:ring-4 focus:ring-primary/5 outline-none transition-all font-bold text-sm" 
                   id="password" 
                   name="password" 
                   value={formData.password}
@@ -124,7 +128,7 @@ export default function RegisterPage() {
               <div className="space-y-3">
                 <label className="block text-[10px] font-black uppercase tracking-[0.2em] text-outline ml-1" htmlFor="confirm_password">Confirm Password</label>
                 <input 
-                  className="w-full bg-surface-container-low px-8 py-5 rounded-2xl text-on-surface placeholder:text-outline/40 border border-outline/10 focus:border-primary/50 focus:ring-4 focus:ring-primary/5 outline-none transition-all font-bold" 
+                  className="w-full bg-surface-container-low px-6 py-4 rounded-xl text-on-surface placeholder:text-outline/40 border border-outline/10 focus:border-primary/50 focus:ring-4 focus:ring-primary/5 outline-none transition-all font-bold text-sm" 
                   id="confirm_password" 
                   name="confirm_password" 
                   value={formData.confirm_password}
@@ -135,7 +139,7 @@ export default function RegisterPage() {
                 />
               </div>
               <button 
-                className="w-full bg-primary text-white py-6 rounded-[2rem] font-black text-[11px] uppercase tracking-[0.3em] shadow-2xl shadow-primary/20 hover:opacity-95 hover:scale-[1.02] active:scale-[0.98] transition-all disabled:opacity-50 disabled:active:scale-100 mt-4" 
+                className="w-full bg-primary text-white py-4 rounded-2xl font-black text-[10px] uppercase tracking-[0.2em] shadow-2xl shadow-primary/20 hover:opacity-95 hover:scale-[1.02] active:scale-[0.98] transition-all disabled:opacity-50 disabled:active:scale-100 mt-2" 
                 type="submit"
                 disabled={loading}
               >
@@ -157,11 +161,11 @@ export default function RegisterPage() {
           </div>
           <div className="relative z-10 px-12 lg:px-20 text-center text-white max-w-2xl">
             <span className="text-secondary text-[10px] font-black tracking-[0.4em] uppercase mb-6 block drop-shadow-md">Legacy & Culture</span>
-            <blockquote className="text-5xl lg:text-6xl font-black tracking-tighter mb-10 leading-tight drop-shadow-2xl">
+            <blockquote className="text-3xl lg:text-4xl font-black tracking-tighter mb-8 leading-tight drop-shadow-2xl">
               "Hanoi is a city of layers—ancient stone, colonial ochre, and vibrant energy."
             </blockquote>
-            <div className="h-1.5 w-24 bg-primary mx-auto rounded-full shadow-lg"></div>
-            <p className="mt-10 text-lg font-medium italic text-white/90 drop-shadow-md tracking-tight">The heart of Vietnam's eternal soul.</p>
+            <div className="h-1.5 w-20 bg-primary mx-auto rounded-full shadow-lg"></div>
+            <p className="mt-8 text-base font-medium italic text-white/90 drop-shadow-md tracking-tight">The heart of Vietnam's eternal soul.</p>
           </div>
         </section>
       </main>
@@ -181,6 +185,5 @@ export default function RegisterPage() {
         </div>
       </footer>
     </div>
-
   );
 }

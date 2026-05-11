@@ -7,7 +7,7 @@ export default async function MainLayout({ children }: { children: React.ReactNo
   const username = cookieStore.get('username')?.value || 'Explorer';
 
   return (
-    <div className="min-h-screen bg-surface font-body text-on-surface flex flex-col h-screen overflow-hidden animate-in fade-in duration-1000">
+    <div className="min-h-screen bg-surface font-body text-on-surface flex flex-col h-screen overflow-hidden">
       <SessionGuard redirectTo="/login" />
       {/* Top Header Navigation Hub */}
       <Header username={username} />

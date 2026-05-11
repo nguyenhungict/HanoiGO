@@ -12,6 +12,8 @@ const DiscoveryMap = dynamic(() => import('@/components/map/DiscoveryMap'), {
 const ChatAssistant = dynamic(() => import('@/components/chat/ChatAssistant'), { ssr: false });
 const TravelBasket = dynamic(() => import('@/components/TravelBasket'), { ssr: false });
 
+import { fetchLandmarks } from '@/lib/landmarks';
+
 export default function DiscoveryPage() {
   const [landmarks, setLandmarks] = useState<Landmark[]>([]);
   const [searchQuery, setSearchQuery] = useState('');
@@ -23,10 +25,11 @@ export default function DiscoveryPage() {
   const removePlace = useTripStore((s) => s.removePlace);
 
   useEffect(() => {
-    fetch('/data/landmarks.json')
-      .then(res => res.json())
-      .then(data => setLandmarks(data))
-      .catch(err => console.error("Could not load landmarks data", err));
+    async function loadData() {
+      const data = await fetchLandmarks();
+      setLandmarks(data);
+    }
+    loadData();
   }, []);
 
   // Memoize filtered list — only recalculates when landmarks or searchQuery change
@@ -48,13 +51,13 @@ export default function DiscoveryPage() {
   }, [selectedPlaces, addPlace, removePlace]);
 
   return (
-    <div className="flex h-screen w-full overflow-hidden animate-in fade-in duration-500">
+    <div className="flex h-[calc(100vh-80px)] w-full overflow-hidden animate-in fade-in duration-500">
       {/* Sidebar */}
-      <aside className="w-[30%] min-w-[420px] bg-white z-20 flex flex-col border-r border-outline/10 shadow-2xl shadow-black/5">
-        <div className="p-8 space-y-6 flex-1 overflow-y-auto hide-scrollbar">
+      <aside className="w-[28%] min-w-[380px] bg-white z-20 flex flex-col border-r border-outline/10 shadow-2xl shadow-black/5">
+        <div className="p-6 space-y-5 flex-1 overflow-y-auto hide-scrollbar">
           {/* Header */}
-          <div className="space-y-2">
-            <h1 className="text-4xl font-black tracking-tighter text-on-surface">
+          <div className="space-y-1">
+            <h1 className="text-2xl font-black tracking-tight text-on-surface">
               Discovery Archive
             </h1>
             <p className="text-outline text-[10px] font-black uppercase tracking-widest">
@@ -66,7 +69,7 @@ export default function DiscoveryPage() {
           <div className="relative group">
             <span className="material-symbols-outlined absolute left-4 top-1/2 -translate-y-1/2 text-outline/30 group-focus-within:text-primary transition-colors">search</span>
             <input
-              className="w-full pl-12 pr-4 py-4 bg-surface-container-low border border-transparent rounded-2xl focus:ring-4 focus:ring-primary/5 focus:bg-white focus:border-primary/20 transition-all text-sm outline-none font-bold"
+              className="w-full pl-11 pr-4 py-3.5 bg-surface-container-low border border-transparent rounded-xl focus:ring-4 focus:ring-primary/5 focus:bg-white focus:border-primary/20 transition-all text-sm outline-none font-bold"
               placeholder="Tìm địa điểm..."
               type="text"
               value={searchQuery}
@@ -84,10 +87,17 @@ export default function DiscoveryPage() {
               return (
                 <div
                   key={l.id}
-                  className="group cursor-pointer bg-surface-container-lowest border p-3.5 rounded-[1.5rem] shadow-sm transition-all duration-300 flex gap-3.5 items-center border-outline/5 hover:border-primary/20 hover:shadow-xl hover:shadow-primary/5 relative"
+                  className="group cursor-pointer bg-surface-container-lowest border p-3 rounded-2xl shadow-sm transition-all duration-300 flex gap-3.5 items-center border-outline/5 hover:border-primary/20 hover:shadow-xl hover:shadow-primary/5 relative"
                 >
-                  <div className="w-16 h-16 rounded-xl overflow-hidden flex-shrink-0 relative">
-                    <img className="w-full h-full object-cover" src={l.image} alt={l.name} />
+                  <div className="w-14 h-14 rounded-xl overflow-hidden flex-shrink-0 relative">
+                    <img 
+                      className="w-full h-full object-cover" 
+                      src={l.image} 
+                      alt={l.name} 
+                      onError={(e) => {
+                        (e.target as HTMLImageElement).src = 'https://images.unsplash.com/photo-1509030450996-93f25ef2030f?w=800&q=80';
+                      }}
+                    />
                   </div>
                   <div className="flex-1 min-w-0">
                     <h3 className="font-black text-on-surface text-sm leading-tight tracking-tight truncate">{l.name}</h3>

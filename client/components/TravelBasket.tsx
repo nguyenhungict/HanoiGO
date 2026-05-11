@@ -29,7 +29,13 @@ export default function TravelBasket() {
               <img
                 src={place.image}
                 alt={place.name}
+                referrerPolicy="no-referrer"
                 className="w-full h-full object-cover"
+                onError={(e) => {
+                  const target = e.target as HTMLImageElement;
+                  if (target.src.includes('unsplash.com')) return;
+                  target.src = 'https://images.unsplash.com/photo-1509030450996-93f25ef2030f?w=800&q=80';
+                }}
               />
             </div>
           ))}

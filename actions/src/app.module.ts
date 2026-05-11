@@ -8,6 +8,7 @@ import { TripsModule } from './trips/trips.module';
 import { ActivitiesModule } from './activities/activities.module';
 import { ChatModule } from './chat/chat.module';
 import { AdminModule } from './admin/admin.module';
+import { MediaModule } from './media/media.module';
 import { APP_GUARD } from '@nestjs/core';
 import { RolesGuard } from './common/guards/roles.guard';
 
@@ -22,6 +23,7 @@ import { RolesGuard } from './common/guards/roles.guard';
     ActivitiesModule,
     ChatModule,
     AdminModule,
+    MediaModule,
   ],
   providers: [],
 })

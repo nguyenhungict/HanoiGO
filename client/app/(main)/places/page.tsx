@@ -1,5 +1,5 @@
 import Link from 'next/link';
-import { getLandmarkById, getPlaceStory, landmarks } from '@/lib/landmarks';
+import { getPlaceStory, fetchLandmarks } from '@/lib/landmarks';
 
 type PlacesPageProps = {
   searchParams?: {
@@ -18,7 +18,8 @@ function buildPlacesHref(placeId: string, category?: string) {
   return `/places?${params.toString()}`;
 }
 
-export default function PlacesPage({ searchParams }: PlacesPageProps) {
+export default async function PlacesPage({ searchParams }: PlacesPageProps) {
+  const landmarks = await fetchLandmarks();
   const selectedCategory = searchParams?.category || 'All';
   const filteredLandmarks =
     selectedCategory === 'All'
@@ -26,7 +27,7 @@ export default function PlacesPage({ searchParams }: PlacesPageProps) {
       : landmarks.filter((landmark) => landmark.category === selectedCategory);
 
   const selectedLandmark =
-    getLandmarkById(searchParams?.place) ||
+    landmarks.find(l => l.id === searchParams?.place) ||
     filteredLandmarks[0] ||
     landmarks[0];
 
@@ -97,7 +98,13 @@ export default function PlacesPage({ searchParams }: PlacesPageProps) {
               <img
                 src={selectedLandmark.image}
                 alt={selectedLandmark.name}
+                referrerPolicy="no-referrer"
                 className="h-full w-full object-cover"
+                onError={(e) => {
+                  const target = e.target as HTMLImageElement;
+                  if (target.src.includes('unsplash.com')) return;
+                  target.src = 'https://images.unsplash.com/photo-1509030450996-93f25ef2030f?w=800&q=80';
+                }}
               />
               <div className="absolute inset-0 bg-gradient-to-t from-on-surface/90 via-on-surface/20 to-transparent" />
               <div className="absolute inset-x-0 bottom-0 p-8 text-white">
@@ -116,7 +123,32 @@ export default function PlacesPage({ searchParams }: PlacesPageProps) {
             </div>
 
             <div className="grid gap-8 p-8 lg:grid-cols-[minmax(0,1fr)_18rem]">
-              <div className="space-y-6">
+              <div className="space-y-8">
+                {selectedLandmark.gallery && selectedLandmark.gallery.length > 0 && (
+                  <div className="space-y-4">
+                    <p className="text-[10px] font-black uppercase tracking-[0.24em] text-primary">
+                      Visual Archive
+                    </p>
+                    <div className="grid grid-cols-3 gap-3">
+                      {selectedLandmark.gallery.slice(1, 4).map((img, idx) => (
+                        <div key={idx} className="aspect-[4/3] overflow-hidden rounded-2xl border border-outline/10">
+                          <img 
+                            src={img} 
+                            alt={`${selectedLandmark.name} gallery ${idx + 1}`} 
+                            referrerPolicy="no-referrer"
+                            className="h-full w-full object-cover transition-transform hover:scale-110 duration-500"
+                            onError={(e) => {
+                              const target = e.target as HTMLImageElement;
+                              if (target.src.includes('unsplash.com')) return;
+                              target.src = 'https://images.unsplash.com/photo-1509030450996-93f25ef2030f?w=800&q=80';
+                            }}
+                          />
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
+
                 {story.sections.map((section) => (
                   <div key={section.title} className="space-y-2">
                     <p className="text-[10px] font-black uppercase tracking-[0.24em] text-primary">
@@ -183,7 +215,13 @@ export default function PlacesPage({ searchParams }: PlacesPageProps) {
                   <img
                     src={landmark.image}
                     alt={landmark.name}
+                    referrerPolicy="no-referrer"
                     className="h-24 w-24 rounded-[1.25rem] object-cover"
+                    onError={(e) => {
+                      const target = e.target as HTMLImageElement;
+                      if (target.src.includes('unsplash.com')) return;
+                      target.src = 'https://images.unsplash.com/photo-1509030450996-93f25ef2030f?w=800&q=80';
+                    }}
                   />
                   <div className="min-w-0 flex-1">
                     <p className="text-[9px] font-black uppercase tracking-[0.2em] text-primary">
@@ -228,7 +266,13 @@ export default function PlacesPage({ searchParams }: PlacesPageProps) {
                   <img
                     src={landmark.image}
                     alt={landmark.name}
+                    referrerPolicy="no-referrer"
                     className="h-full w-full object-cover transition-transform duration-700 group-hover:scale-105"
+                    onError={(e) => {
+                      const target = e.target as HTMLImageElement;
+                      if (target.src.includes('unsplash.com')) return;
+                      target.src = 'https://images.unsplash.com/photo-1509030450996-93f25ef2030f?w=800&q=80';
+                    }}
                   />
                   <div className="absolute inset-0 bg-gradient-to-t from-on-surface/75 via-transparent to-transparent" />
                   <div className="absolute left-5 top-5 rounded-full bg-white/90 px-3 py-1 text-[9px] font-black uppercase tracking-[0.2em] text-primary backdrop-blur-xl">

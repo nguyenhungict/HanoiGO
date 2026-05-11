@@ -20,14 +20,71 @@ interface Landmark {
 // Map icon categories to material icons
 const getCategoryIcon = (category: string) => {
   const cat = category.toLowerCase();
-  if (cat.includes('religious')) return 'temple_buddhist';
-  if (cat.includes('museum')) return 'museum';
-  if (cat.includes('market') || cat.includes('shopping')) return 'shopping_bag';
-  if (cat.includes('theater')) return 'theater_comedy';
-  if (cat.includes('park') || cat.includes('water')) return 'park';
-  if (cat.includes('historic')) return 'account_balance';
+  
+  if (cat.includes('nature')) return 'park';
+  if (cat.includes('art')) return 'museum';
+  if (cat.includes('heritage') || cat.includes('historic')) return 'account_balance';
+  if (cat.includes('spiritual') || cat.includes('temple')) return 'temple_buddhist';
+  if (cat.includes('eat') || cat.includes('shop')) return 'restaurant';
+  if (cat.includes('sightseeing')) return 'location_on';
+  
   return 'location_on';
 };
+
+// Map categories to distinct colors for better UI distinction
+const getCategoryColor = (category: string) => {
+  const cat = category.toLowerCase();
+  
+  if (cat.includes('nature')) return '#43A047'; // Green
+  if (cat.includes('art')) return '#3F51B5'; // Indigo
+  if (cat.includes('heritage')) return '#607D8B'; // Blue Grey
+  if (cat.includes('spiritual')) return '#FF9800'; // Orange
+  if (cat.includes('eat') || cat.includes('shop')) return '#F44336'; // Red
+  if (cat.includes('sightseeing')) return '#0288D1'; // Light Blue
+    
+  return '#607D8B'; // Default
+};
+
+// Tạo icon tùy chỉnh sử dụng HTML và Tailwind
+const createCustomIcon = (landmark: Landmark, showLabel: boolean) => {
+  const iconName = getCategoryIcon(landmark.category);
+  const color = getCategoryColor(landmark.category);
+  
+  return L.divIcon({
+    className: 'custom-landmark-marker',
+    html: `
+      <div class="flex items-center group">
+        <div class="relative flex items-center justify-center">
+          <div class="w-7 h-7 rounded-full shadow-lg border-2 border-white flex items-center justify-center z-10 overflow-hidden transform group-hover:scale-125 transition-all duration-300" style="background-color: ${color}">
+             <span class="material-symbols-outlined text-white text-[14px]">${iconName}</span>
+          </div>
+          <div class="absolute -inset-1 border-2 rounded-full scale-0 group-hover:scale-100 transition-transform duration-300 z-0" style="border-color: ${color}66"></div>
+        </div>
+        
+        <div class="ml-2 flex flex-col pointer-events-none transition-all duration-500 ${showLabel ? 'opacity-100 translate-x-0' : 'opacity-0 -translate-x-4 group-hover:opacity-100 group-hover:translate-x-0'}">
+          <div class="bg-white/95 backdrop-blur-md px-3 py-1.5 rounded-xl shadow-[0_4px_15px_rgba(0,0,0,0.15)] border border-outline/10">
+            <div class="text-[10px] font-black text-on-surface leading-tight whitespace-nowrap">${landmark.name}</div>
+            <div class="text-[8px] font-bold uppercase tracking-widest whitespace-nowrap" style="color: ${color}">${landmark.category}</div>
+          </div>
+        </div>
+      </div>
+    `,
+    iconSize: [160, 40],
+    iconAnchor: [14, 14],
+    popupAnchor: [0, -20],
+  });
+};
+
+// Component to track map instance
+function MapInstanceTracker({ setMap }: { setMap: (map: L.Map) => void }) {
+  const map = useMap();
+  useEffect(() => {
+    if (map) {
+      setMap(map);
+    }
+  }, [map, setMap]);
+  return null;
+}
 
 // Component to track zoom level
 function ZoomTracker({ setZoom }: { setZoom: (z: number) => void }) {
@@ -116,38 +173,6 @@ const decodePolyline = (encoded: string): [number, number][] => {
   return coordinates;
 };
 
-// Tạo icon tùy chỉnh sử dụng HTML và Tailwind
-const createCustomIcon = (landmark: Landmark, showLabel: boolean) => {
-  const iconName = getCategoryIcon(landmark.category);
-  
-  const isFood = landmark.category.toLowerCase().includes('food') || landmark.category.toLowerCase().includes('cafe');
-  const bgColor = isFood ? 'bg-[#004D40]' : 'bg-[#1A1A1A]';
-  
-  return L.divIcon({
-    className: 'custom-landmark-marker',
-    html: `
-      <div class="flex items-center group">
-        <div class="relative flex items-center justify-center">
-          <div class="w-8 h-8 rounded-full ${bgColor} shadow-lg border border-white/20 flex items-center justify-center z-10 overflow-hidden transform group-hover:scale-110 transition-all duration-300">
-             <span class="material-symbols-outlined text-white text-[16px]">${iconName}</span>
-          </div>
-          <div class="absolute -inset-1 border-2 border-primary/40 rounded-full scale-0 group-hover:scale-100 transition-transform duration-300 z-0"></div>
-        </div>
-        
-        <div class="ml-2 flex flex-col pointer-events-none transition-all duration-300 ${showLabel ? 'opacity-100 translate-x-0' : 'opacity-0 -translate-x-2 group-hover:opacity-100 group-hover:translate-x-0'}">
-          <div class="bg-white/95 backdrop-blur-sm px-2.5 py-1 rounded-md shadow-[0_2px_10px_rgba(0,0,0,0.1)] border border-outline/5">
-            <div class="text-[11px] font-black text-on-surface leading-tight whitespace-nowrap">${landmark.name}</div>
-            <div class="text-[9px] font-bold text-outline uppercase tracking-wider whitespace-nowrap">${landmark.category}</div>
-          </div>
-        </div>
-      </div>
-    `,
-    iconSize: [160, 40],
-    iconAnchor: [16, 16],
-    popupAnchor: [0, -20],
-  });
-};
-
 // Itinerary marker interface (passed from parent)
 interface ItineraryMarkerData {
   placeId: string;
@@ -185,6 +210,8 @@ const createItineraryIcon = (order: number, color: string) => {
   });
 };
 
+import { fetchLandmarks } from '@/lib/landmarks';
+
 export default function DiscoveryMap({ itineraryMarkers = [], onLocationFound, showLandmarks = true }: DiscoveryMapProps) {
   const [landmarks, setLandmarks] = useState<Landmark[]>([]);
   const [zoomLevel, setZoomLevel] = useState(13);
@@ -209,10 +236,11 @@ export default function DiscoveryMap({ itineraryMarkers = [], onLocationFound, s
   const hasItinerary = itineraryMarkers.length > 0;
 
   useEffect(() => {
-    fetch('/data/landmarks.json')
-      .then(res => res.json())
-      .then(data => setLandmarks(data))
-      .catch(err => console.error("Could not load landmarks data", err));
+    async function loadData() {
+      const data = await fetchLandmarks();
+      setLandmarks(data);
+    }
+    loadData();
   }, []);
 
   // === Routing Effect (Goong API) ===
@@ -294,7 +322,7 @@ export default function DiscoveryMap({ itineraryMarkers = [], onLocationFound, s
     }
   };
 
-  const showLabels = zoomLevel >= 15;
+  const showLabels = zoomLevel >= 16;
 
   // Fit map to itinerary markers when they appear
   React.useEffect(() => {
@@ -306,12 +334,17 @@ export default function DiscoveryMap({ itineraryMarkers = [], onLocationFound, s
   }, [mapInstance, itineraryMarkers]);
 
   return (
-    <div className="w-full h-full relative z-0">
+    <div className="w-full h-full relative z-0 font-['Inter',_sans-serif]">
       <style>{`
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;700;900&display=swap');
+        
+        .leaflet-container {
+          font-family: 'Inter', sans-serif !important;
+        }
         .leaflet-popup-content-wrapper { padding: 0; border-radius: 1.5rem; overflow: hidden; background: transparent; box-shadow: none; }
-        .leaflet-popup-content { margin: 0; width: auto !important; }
+        .leaflet-popup-content { margin: 0; width: auto !important; font-family: 'Inter', sans-serif !important; }
         .leaflet-popup-tip-container { display: none; }
-        .custom-landmark-marker { background: none !important; border: none !important; }
+        .custom-landmark-marker { background: none !important; border: none !important; font-family: 'Inter', sans-serif !important; }
         .user-location-marker { background: none !important; border: none !important; }
         .itinerary-marker { background: none !important; border: none !important; }
       `}</style>
@@ -388,13 +421,14 @@ export default function DiscoveryMap({ itineraryMarkers = [], onLocationFound, s
       </button>
 
       <MapContainer 
+        key="hanoigo-discovery-map"
         center={[21.0285, 105.8521]} 
         zoom={13} 
         scrollWheelZoom={true}
         style={{ height: '100%', width: '100%' }}
         className="grayscale-[0.2] transition-all"
-        ref={setMapInstance}
       >
+        <MapInstanceTracker setMap={setMapInstance} />
         <ZoomTracker setZoom={setZoomLevel} />
         <LocationMarker setUserPos={setUserLocation} />
         
@@ -449,7 +483,13 @@ export default function DiscoveryMap({ itineraryMarkers = [], onLocationFound, s
                             <img 
                                 src={landmark.image} 
                                 alt={landmark.name}
+                                referrerPolicy="no-referrer"
                                 className="object-cover w-full h-full hover:scale-110 transition-transform duration-700"
+                                onError={(e) => {
+                                  const target = e.target as HTMLImageElement;
+                                  if (target.src.includes('unsplash.com')) return;
+                                  target.src = 'https://images.unsplash.com/photo-1509030450996-93f25ef2030f?w=800&q=80';
+                                }}
                             />
                             <div className="absolute top-4 right-4 bg-white/95 backdrop-blur shadow-xl text-primary px-3 py-1 rounded-full text-xs font-black flex items-center gap-1">
                                <span className="material-symbols-outlined text-[14px]">star</span>

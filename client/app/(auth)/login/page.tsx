@@ -8,9 +8,7 @@ import { loginAction } from "@/lib/actions";
 export default function LoginPage() {
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
-
   const [showPassword, setShowPassword] = useState(false);
-
   const router = useRouter();
 
   async function handleSubmit(e: React.FormEvent<HTMLFormElement>) {
@@ -28,7 +26,6 @@ export default function LoginPage() {
       setError(result.error);
       setLoading(false);
     } else {
-      // Luôn chuyển hướng về /discovery khi login từ trang này (dành cho cả admin khi muốn dùng như user)
       router.push('/discovery');
       router.refresh();
     }
@@ -64,9 +61,9 @@ export default function LoginPage() {
           />
           <div className="absolute inset-0 bg-black/20"></div>
           {/* Glassmorphic Overlay */}
-          <div className="bg-white/10 backdrop-blur-2xl p-16 rounded-[3rem] relative z-10 max-w-md border border-white/20 shadow-2xl">
+          <div className="bg-white/10 backdrop-blur-2xl p-12 rounded-3xl relative z-10 max-w-sm border border-white/20 shadow-2xl">
             <div className="text-white">
-              <h2 className="text-6xl font-black tracking-tighter mb-6 leading-none lowercase">Access your <br/>journey.</h2>
+              <h2 className="text-4xl font-black tracking-tighter mb-4 leading-none lowercase">Access your <br/>journey.</h2>
               <p className="text-lg font-medium leading-relaxed opacity-90 mb-10">
                 Experience the soul of Vietnam through curated journeys that blend timeless heritage with modern luxury.
               </p>
@@ -85,16 +82,16 @@ export default function LoginPage() {
         </section>
 
         {/* Right Half: Clean Login Container */}
-        <section className="w-full lg:w-1/2 bg-surface flex items-center justify-center p-8 lg:p-24 overflow-y-auto">
-          <div className="w-full max-w-sm">
-            <header className="mb-14">
+        <section className="w-full lg:w-1/2 bg-surface flex items-center justify-center p-8 lg:p-12 overflow-y-auto">
+          <div className="w-full max-w-xs">
+            <header className="mb-10">
               <span className="text-primary font-black tracking-[0.4em] uppercase text-[10px] mb-4 block">Welcome Back</span>
-              <h1 className="text-5xl font-black text-on-surface tracking-tighter mb-4 leading-tight">Authentic Login.</h1>
-              <p className="text-outline font-medium text-sm leading-relaxed">Don't have an account? <Link className="text-primary font-black uppercase tracking-widest text-[10px] ml-2 hover:underline" href="/register">Join the guild</Link></p>
+              <h1 className="text-3xl font-black text-on-surface tracking-tighter mb-3 leading-tight">Authentic Login.</h1>
+              <p className="text-outline font-medium text-xs leading-relaxed">Don't have an account? <Link className="text-primary font-black uppercase tracking-widest text-[9px] ml-2 hover:underline" href="/register">Join the guild</Link></p>
             </header>
             
             {error && (
-              <div className="mb-8 p-6 bg-primary/5 text-primary rounded-[2rem] text-[11px] font-black uppercase tracking-widest border border-primary/10 animate-in shake duration-500">
+              <div className="mb-8 p-6 bg-primary/5 text-primary rounded-2xl text-[11px] font-black uppercase tracking-widest border border-primary/10 animate-in shake duration-500">
                 {error}
               </div>
             )}
@@ -103,7 +100,7 @@ export default function LoginPage() {
               <div className="space-y-3">
                 <label className="block text-[10px] font-black uppercase tracking-[0.2em] text-outline ml-1" htmlFor="email">Email Address</label>
                 <input 
-                  className="w-full bg-surface-container-low px-8 py-5 rounded-2xl text-on-surface placeholder:text-outline/40 border border-outline/10 focus:border-primary/50 focus:ring-4 focus:ring-primary/5 outline-none transition-all font-bold" 
+                  className="w-full bg-surface-container-low px-6 py-4 rounded-xl text-on-surface placeholder:text-outline/40 border border-outline/10 focus:border-primary/50 focus:ring-4 focus:ring-primary/5 outline-none transition-all font-bold text-sm" 
                   id="email" 
                   name="email"
                   placeholder="name@hanoigo.com" 
@@ -115,7 +112,7 @@ export default function LoginPage() {
                 <label className="block text-[10px] font-black uppercase tracking-[0.2em] text-outline ml-1" htmlFor="password">Password</label>
                 <div className="relative">
                   <input 
-                    className="w-full bg-surface-container-low px-8 py-5 rounded-2xl text-on-surface placeholder:text-outline/40 border border-outline/10 focus:border-primary/50 focus:ring-4 focus:ring-primary/5 outline-none transition-all font-bold" 
+                    className="w-full bg-surface-container-low px-6 py-4 rounded-xl text-on-surface placeholder:text-outline/40 border border-outline/10 focus:border-primary/50 focus:ring-4 focus:ring-primary/5 outline-none transition-all font-bold text-sm" 
                     id="password" 
                     name="password"
                     placeholder="••••••••" 
@@ -142,7 +139,7 @@ export default function LoginPage() {
               </div>
               <button 
                 disabled={loading}
-                className="w-full bg-primary text-white py-6 rounded-[2rem] font-black text-[11px] uppercase tracking-[0.3em] shadow-2xl shadow-primary/20 hover:opacity-95 hover:scale-[1.02] active:scale-[0.98] transition-all disabled:opacity-50 disabled:active:scale-100 mt-4" 
+                className="w-full bg-primary text-white py-4 rounded-2xl font-black text-[10px] uppercase tracking-[0.2em] shadow-2xl shadow-primary/20 hover:opacity-95 hover:scale-[1.02] active:scale-[0.98] transition-all disabled:opacity-50 disabled:active:scale-100 mt-2" 
                 type="submit"
               >
                 {loading ? "Verifying..." : "Sign In"}
@@ -172,6 +169,5 @@ export default function LoginPage() {
         </div>
       </footer>
     </div>
-
   );
 }

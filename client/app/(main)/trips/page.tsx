@@ -134,10 +134,10 @@ export default function TripsPage() {
   const freeM = activeDay ? activeDay.freeTimeMin % 60 : 0;
 
   return (
-    <div className="flex h-screen w-full overflow-hidden animate-in fade-in duration-500">
+    <div className="flex h-[calc(100vh-80px)] w-full overflow-hidden animate-in fade-in duration-500">
       {/* Left Panel: Timeline / Selection */}
-      <aside className="w-[38%] min-w-[440px] bg-white z-20 flex flex-col border-r border-outline/10 shadow-2xl shadow-black/5">
-        <div className="p-8 space-y-6 flex-1 overflow-y-auto hide-scrollbar">
+      <aside className="w-[32%] min-w-[360px] bg-white z-20 flex flex-col border-r border-outline/10 shadow-2xl shadow-black/5">
+        <div className="p-6 space-y-5 flex-1 overflow-y-auto hide-scrollbar">
 
           {/* ═══ ITINERARY VIEW ═══ */}
           {itinerary ? (
@@ -145,7 +145,7 @@ export default function TripsPage() {
               {/* Header */}
               <div className="space-y-2">
                 <div className="flex items-center justify-between">
-                  <h1 className="text-3xl font-black tracking-tighter text-on-surface">
+                  <h1 className="text-xl font-black tracking-tight text-on-surface">
                     Your Itinerary
                   </h1>
                   <button
@@ -192,24 +192,24 @@ export default function TripsPage() {
               {/* Day Summary */}
               {activeDay && (
                 <div className="flex gap-3">
-                  <div className="flex-1 bg-surface-container-lowest border border-outline/5 p-4 rounded-2xl text-center">
-                    <div className="text-2xl font-black tracking-tighter text-on-surface">
+                  <div className="flex-1 bg-surface-container-lowest border border-outline/5 p-3 rounded-2xl text-center">
+                    <div className="text-xl font-black tracking-tight text-on-surface">
                       {activeDay.stops.length}
                     </div>
                     <div className="text-[9px] font-black text-outline uppercase tracking-widest">
                       Stops
                     </div>
                   </div>
-                  <div className="flex-1 bg-surface-container-lowest border border-outline/5 p-4 rounded-2xl text-center">
-                    <div className="text-2xl font-black tracking-tighter text-on-surface">
+                  <div className="flex-1 bg-surface-container-lowest border border-outline/5 p-3 rounded-2xl text-center">
+                    <div className="text-xl font-black tracking-tight text-on-surface">
                       {activeDay.totalTravelMin}p
                     </div>
                     <div className="text-[9px] font-black text-outline uppercase tracking-widest">
                       Travel
                     </div>
                   </div>
-                  <div className="flex-1 bg-surface-container-lowest border border-outline/5 p-4 rounded-2xl text-center">
-                    <div className="text-2xl font-black tracking-tighter text-on-surface">
+                  <div className="flex-1 bg-surface-container-lowest border border-outline/5 p-3 rounded-2xl text-center">
+                    <div className="text-xl font-black tracking-tight text-on-surface">
                       {freeH}h{freeM > 0 ? `${freeM}m` : ''}
                     </div>
                     <div className="text-[9px] font-black text-outline uppercase tracking-widest">
@@ -377,7 +377,7 @@ export default function TripsPage() {
             /* ═══ SELECTION VIEW ═══ */
             <>
               <div className="space-y-2">
-                <h1 className="text-3xl font-black tracking-tighter text-on-surface">
+                <h1 className="text-xl font-black tracking-tight text-on-surface">
                   Trip Planner
                 </h1>
                 <p className="text-outline text-[10px] font-black uppercase tracking-widest">
@@ -428,9 +428,9 @@ export default function TripsPage() {
                     {places.map((place) => (
                       <div
                         key={place.id}
-                        className="bg-surface-container-lowest border border-outline/5 p-3.5 rounded-[1.5rem] shadow-sm flex gap-3.5 items-center group hover:border-primary/20 hover:shadow-lg transition-all"
+                        className="bg-surface-container-lowest border border-outline/5 p-3 rounded-2xl shadow-sm flex gap-3.5 items-center group hover:border-primary/20 hover:shadow-lg transition-all"
                       >
-                        <div className="w-14 h-14 rounded-xl overflow-hidden flex-shrink-0">
+                        <div className="w-12 h-12 rounded-xl overflow-hidden flex-shrink-0">
                           <img
                             className="w-full h-full object-cover"
                             src={place.image}
@@ -499,7 +499,7 @@ export default function TripsPage() {
         {/* Map overlay when no itinerary — shows selected place pins info */}
         {!itinerary && count === 0 && (
           <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
-            <div className="bg-white/90 backdrop-blur-xl px-8 py-6 rounded-[2rem] shadow-2xl text-center space-y-2 max-w-sm">
+            <div className="bg-white/90 backdrop-blur-xl px-6 py-5 rounded-3xl shadow-2xl text-center space-y-2 max-w-[280px]">
               <span className="material-symbols-outlined text-4xl text-primary/30">map</span>
               <p className="text-sm font-black text-on-surface tracking-tight">
                 Bản đồ lịch trình
@@ -515,9 +515,9 @@ export default function TripsPage() {
       {/* ═══ CONFIG MODAL ═══ */}
       {showConfigModal && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-sm animate-in fade-in duration-200">
-          <div className="bg-white rounded-[2rem] w-full max-w-md p-8 shadow-2xl space-y-6 animate-in zoom-in-95 duration-300">
-            <div className="space-y-1">
-              <h2 className="text-2xl font-black tracking-tighter text-on-surface">
+          <div className="bg-white rounded-3xl w-full max-w-md p-6 shadow-2xl space-y-5 animate-in zoom-in-95 duration-300">
+            <div className="space-y-0.5">
+              <h2 className="text-xl font-black tracking-tight text-on-surface">
                 Cấu hình chuyến đi
               </h2>
               <p className="text-[10px] font-black text-outline uppercase tracking-widest">
@@ -666,7 +666,7 @@ export default function TripsPage() {
       {/* Loading overlay */}
       {isGenerating && (
         <div className="fixed inset-0 z-40 flex items-center justify-center bg-black/30 backdrop-blur-sm">
-          <div className="bg-white p-8 rounded-[2rem] shadow-2xl flex flex-col items-center gap-4 animate-in zoom-in-95">
+          <div className="bg-white p-6 rounded-3xl shadow-2xl flex flex-col items-center gap-3 animate-in zoom-in-95">
             <div className="w-10 h-10 border-3 border-primary/20 border-t-primary rounded-full animate-spin"></div>
             <p className="text-sm font-black text-on-surface">
               Đang tối ưu lịch trình...

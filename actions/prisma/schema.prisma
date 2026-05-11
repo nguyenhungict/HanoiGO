@@ -14,6 +14,7 @@ enum Role {
 
 enum UserStatus {
   ACTIVE
+  PENDING
   BANNED
 }
 
@@ -28,8 +29,10 @@ model User {
   nationality  String?
   languages    String[]
   role         Role       @default(USER)
-  status       UserStatus @default(ACTIVE)
+  status       UserStatus @default(PENDING)
   tokenVersion Int        @default(1) @map("token_version")
+  otpCode      String?    @map("otp_code")
+  otpExpiresAt DateTime?  @map("otp_expires_at") @db.Timestamptz
   createdAt    DateTime   @default(now()) @map("created_at") @db.Timestamptz
 
   // Relationships
@@ -37,6 +40,7 @@ model User {
   activities      Activity[]       @relation("HostActivities")
   activityMembers ActivityMember[]
   messages        Message[]
+  messageReactions MessageReaction[]
 
   // Admin relations
   reportsCreated Report[]       @relation("Reporter")
@@ -121,11 +125,24 @@ model Place {
   createdAt        DateTime                             @default(now()) @map("created_at") @db.Timestamptz
 
   // Relationships
-  trips      Trip[]     @relation("StartPlace")
+  trips      Trip[]         @relation("StartPlace")
   tripStops  TripStop[]
   activities Activity[]
+  gallery    PlaceGallery[]
 
   @@map("places")
+}
+
+model PlaceGallery {
+  id        String   @id @default(uuid()) @db.Uuid
+  placeId   String   @map("place_id") @db.Uuid
+  url       String
+  createdAt DateTime @default(now()) @map("created_at") @db.Timestamptz
+
+  // Relationships
+  place Place @relation(fields: [placeId], references: [id], onDelete: Cascade)
+
+  @@map("place_gallery")
 }
 
 model Trip {
@@ -207,6 +224,8 @@ model Activity {
   scheduledAt DateTime                             @map("scheduled_at") @db.Timestamptz
   maxMembers  Int?                                 @default(10) @map("max_members")
   status      ActivityStatus                       @default(OPEN)
+  category    String                               @default("culture")
+  imageUrl    String?                              @map("image_url")
   createdAt   DateTime                             @default(now()) @map("created_at") @db.Timestamptz
 
   // Relationships
@@ -233,19 +252,40 @@ model ActivityMember {
   @@map("activity_members")
 }
 
+enum MessageType {
+  TEXT
+  SYSTEM
+}
+
 model Message {
-  id         String   @id @default(uuid()) @db.Uuid
-  activityId String   @map("activity_id") @db.Uuid
-  userId     String?  @map("user_id") @db.Uuid
+  id         String      @id @default(uuid()) @db.Uuid
+  activityId String      @map("activity_id") @db.Uuid
+  userId     String?     @map("user_id") @db.Uuid
   content    String
-  createdAt  DateTime @default(now()) @map("created_at") @db.Timestamptz
+  type       MessageType @default(TEXT)
+  createdAt  DateTime    @default(now()) @map("created_at") @db.Timestamptz
 
   // Relationships
-  activity Activity @relation(fields: [activityId], references: [id], onDelete: Cascade)
-  user     User?    @relation(fields: [userId], references: [id], onDelete: SetNull)
+  activity  Activity          @relation(fields: [activityId], references: [id], onDelete: Cascade)
+  user      User?             @relation(fields: [userId], references: [id], onDelete: SetNull)
+  reactions MessageReaction[]
 
   @@index([activityId, createdAt])
   @@map("messages")
+}
+
+model MessageReaction {
+  id        String   @id @default(uuid()) @db.Uuid
+  messageId String   @map("message_id") @db.Uuid
+  userId    String   @map("user_id") @db.Uuid
+  emoji     String
+  createdAt DateTime @default(now()) @map("created_at") @db.Timestamptz
+
+  message Message @relation(fields: [messageId], references: [id], onDelete: Cascade)
+  user    User    @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([messageId, userId, emoji])
+  @@map("message_reactions")
 }
 
 model Notification {
