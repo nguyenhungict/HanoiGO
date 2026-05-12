@@ -441,6 +441,38 @@ export class AdminService {
       }
     });
   }
+  async deleteUser(userId: string) {
+    const user = await this.prisma.user.findUnique({ where: { id: userId } });
+    if (!user) throw new NotFoundException('User not found');
+    
+    if (user.role === Role.ADMIN)
+      throw new BadRequestException('Cannot delete an administrative account');
+
+    try {
+      await this.prisma.$transaction(async (tx) => {
+        // Delete reports against this user or by this user
+        await tx.report.deleteMany({
+          where: {
+            OR: [
+              { targetId: userId },
+              { reporterId: userId }
+            ]
+          }
+        });
+
+        // Delete admin logs targeting this user (targetId is a string, not uuid relation)
+        await tx.adminLog.deleteMany({
+          where: { targetId: userId }
+        });
+
+        // Finally delete the user
+        await tx.user.delete({ where: { id: userId } });
+      });
+
+      return { success: true, message: 'User permanently deleted' };
+    } catch (error) {
+      console.error('[AdminService] Delete Operation Failed:', error);
+      throw new BadRequestException(`Deletion failed: ${error.message}`);
+    }
+  }
 }
-
-

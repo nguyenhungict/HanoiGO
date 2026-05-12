@@ -53,7 +53,7 @@ export const MemberManager: React.FC<MemberManagerProps> = ({ activityId }) => {
     return (
       <div className="space-y-4">
         {[1, 2, 3].map(i => (
-          <div key={i} className="h-16 bg-secondary/30 rounded-2xl animate-pulse" />
+          <div key={i} className="h-20 bg-secondary/30 rounded-[2rem] animate-pulse" />
         ))}
       </div>
     );
@@ -66,34 +66,46 @@ export const MemberManager: React.FC<MemberManagerProps> = ({ activityId }) => {
     <div className="space-y-8 animate-in fade-in duration-500">
       {/* Pending Requests */}
       <div>
-        <h4 className="text-[10px] font-bold uppercase tracking-[0.2em] text-outline/60 mb-4">Pending Requests ({requests.length})</h4>
+        <div className="flex items-center justify-between mb-6">
+           <h4 className="text-[11px] font-black uppercase tracking-[0.2em] text-on-surface-variant">Join Requests</h4>
+           <span className="px-2.5 py-1 bg-primary/10 text-primary text-[9px] font-bold rounded-full">{requests.length} Pending</span>
+        </div>
+
         {requests.length === 0 ? (
-          <p className="text-xs text-outline/40 font-medium bg-secondary/20 p-4 rounded-2xl border border-dashed border-outline/10 text-center">No pending requests</p>
+          <div className="p-10 rounded-[2.5rem] bg-secondary/20 border border-dashed border-outline/20 text-center">
+             <span className="material-symbols-outlined text-outline/30 text-4xl mb-2">inbox</span>
+             <p className="text-xs text-on-surface-variant font-bold uppercase tracking-widest">No new requests</p>
+          </div>
         ) : (
           <div className="space-y-3">
             {requests.map(member => (
-              <div key={member.userId} className="flex items-center justify-between p-4 bg-white border border-outline/10 rounded-2xl shadow-sm">
-                <div className="flex items-center gap-3">
-                  <div className="w-10 h-10 rounded-xl bg-primary/10 flex items-center justify-center font-bold text-primary">
-                    {member.user.username.charAt(0)}
+              <div key={member.userId} className="flex items-center justify-between p-5 bg-white border border-outline/10 rounded-[2rem] shadow-sm hover:shadow-md transition-shadow group">
+                <div className="flex items-center gap-4">
+                  <div className="w-12 h-12 rounded-2xl bg-primary text-white flex items-center justify-center font-black text-lg shadow-xl shadow-primary/10 transition-transform group-hover:scale-110">
+                    {member.user.username.charAt(0).toUpperCase()}
                   </div>
                   <div>
-                    <p className="text-sm font-bold text-on-surface">{member.user.username}</p>
-                    <p className="text-[10px] font-semibold text-outline/60 uppercase">{member.user.nationality || 'Traveler'}</p>
+                    <p className="text-sm font-black text-on-surface">{member.user.username}</p>
+                    <div className="flex items-center gap-1.5 mt-0.5">
+                       <span className="material-symbols-outlined text-[12px] text-on-surface-variant">public</span>
+                       <p className="text-[10px] font-bold text-on-surface-variant uppercase tracking-widest">{member.user.nationality || 'Traveler'}</p>
+                    </div>
                   </div>
                 </div>
                 <div className="flex gap-2">
                   <button 
                     onClick={() => handleApprove(member.userId)}
-                    className="w-10 h-10 rounded-xl bg-green-500 text-white flex items-center justify-center hover:bg-green-600 transition-all active:scale-90"
+                    className="w-12 h-12 rounded-2xl bg-tertiary text-white flex items-center justify-center hover:opacity-90 transition-all active:scale-90 shadow-lg shadow-tertiary/20"
+                    title="Approve"
                   >
-                    <span className="material-symbols-outlined text-xl">check</span>
+                    <span className="material-symbols-outlined font-black">done_all</span>
                   </button>
                   <button 
                     onClick={() => handleReject(member.userId)}
-                    className="w-10 h-10 rounded-xl bg-red-500 text-white flex items-center justify-center hover:bg-red-600 transition-all active:scale-90"
+                    className="w-12 h-12 rounded-2xl bg-secondary/40 text-on-surface-variant flex items-center justify-center hover:bg-primary/10 hover:text-primary transition-all active:scale-90"
+                    title="Reject"
                   >
-                    <span className="material-symbols-outlined text-xl">close</span>
+                    <span className="material-symbols-outlined">close</span>
                   </button>
                 </div>
               </div>
@@ -104,16 +116,20 @@ export const MemberManager: React.FC<MemberManagerProps> = ({ activityId }) => {
 
       {/* Approved Members */}
       <div>
-        <h4 className="text-[10px] font-bold uppercase tracking-[0.2em] text-outline/60 mb-4">Approved Members ({approved.length})</h4>
-        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+        <div className="flex items-center justify-between mb-6">
+           <h4 className="text-[11px] font-black uppercase tracking-[0.2em] text-on-surface-variant">Squad Members</h4>
+           <span className="px-2.5 py-1 bg-tertiary/10 text-tertiary text-[9px] font-bold rounded-full">{approved.length} Active</span>
+        </div>
+        
+        <div className="grid grid-cols-2 gap-4">
           {approved.map(member => (
-            <div key={member.userId} className="flex items-center gap-3 p-3 bg-secondary/20 rounded-2xl border border-outline/5">
-              <div className="w-8 h-8 rounded-lg bg-white flex items-center justify-center font-bold text-[10px] text-primary">
-                {member.user.username.charAt(0)}
+            <div key={member.userId} className="flex items-center gap-4 p-4 bg-secondary/30 rounded-[2rem] border border-outline/10 group transition-all hover:bg-white hover:shadow-lg">
+              <div className="w-10 h-10 rounded-2xl bg-white flex items-center justify-center font-black text-xs text-primary shadow-sm border border-outline/10 group-hover:scale-110 transition-transform">
+                {member.user.username.charAt(0).toUpperCase()}
               </div>
               <div className="overflow-hidden">
-                <p className="text-xs font-bold text-on-surface truncate">{member.user.username}</p>
-                <p className="text-[9px] font-semibold text-outline/60 uppercase truncate">{member.user.nationality || 'Traveler'}</p>
+                <p className="text-[13px] font-black text-on-surface truncate">{member.user.username}</p>
+                <p className="text-[9px] font-bold text-on-surface-variant uppercase tracking-widest truncate">{member.user.nationality || 'Traveler'}</p>
               </div>
             </div>
           ))}

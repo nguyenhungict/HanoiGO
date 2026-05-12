@@ -8,33 +8,10 @@ import {
   deleteAdminPlaceAction,
   uploadImageAction
 } from '@/lib/actions';
+import { useNotification } from '@/hooks/use-notification';
+import { useConfirm } from '@/hooks/use-confirm';
 
-interface Place {
-  id: string;
-  name: string;
-  category: string;
-  district: string;
-  address: string | null;
-  lat: number;
-  lng: number;
-  imageUrl: string | null;
-  tags: string[];
-  alwaysOpen: boolean;
-  openTimeStart?: string | Date;
-  openTimeEnd?: string | Date;
-  _count?: {
-    tripStops: number;
-  };
-}
-
-const CATEGORIES = [
-  'Nature & Outdoors',
-  'Arts & Culture',
-  'Heritage & History',
-  'Spiritual',
-  'Eat & Shop',
-  'Sightseeing'
-];
+import { Place, PLACE_CATEGORIES as CATEGORIES } from '@/types';
 
 const DISTRICTS = [
   'Hoàn Kiếm', 'Ba Đình', 'Tây Hồ', 'Đống Đa', 'Hai Bà Trưng', 'Cầu Giấy', 'Thanh Xuân', 'Long Biên', 'Nam Từ Liêm', 'Bắc Từ Liêm'
@@ -58,6 +35,8 @@ export default function PlaceManagement() {
   const [categoryFilter, setCategoryFilter] = useState<string | undefined>(undefined);
   const [loading, setLoading] = useState(true);
   const [uploading, setUploading] = useState(false);
+  const { show } = useNotification();
+  const { confirm: openConfirm } = useConfirm();
 
   // Form State
   const [isModalOpen, setIsModalOpen] = useState(false);
@@ -135,8 +114,9 @@ export default function PlaceManagement() {
       // Base URL should be the actions URL
       const actionsUrl = process.env.NEXT_PUBLIC_ACTIONS_URL || 'http://localhost:8888';
       setFormData({ ...formData, imageUrl: `${actionsUrl}${res.url}` });
+      show({ type: 'success', title: 'Asset Captured', message: 'The visual representation has been archived.' });
     } else {
-      alert(res.error || 'Upload failed');
+      show({ type: 'error', title: 'Transmission Error', message: res.error || 'Failed to capture visual asset.' });
     }
     setUploading(false);
   };
@@ -155,20 +135,32 @@ export default function PlaceManagement() {
     if (res.success) {
       handleCloseModal();
       fetchPlaces();
+      show({ 
+        type: 'success', 
+        title: editingPlace ? 'Registry Updated' : 'Landmark Registered', 
+        message: editingPlace ? 'Heritage record has been successfully modified.' : 'New cultural asset has been added to the database.' 
+      });
     } else {
-      alert(res.error || 'Operation failed');
+      show({ type: 'error', title: 'Archive Error', message: res.error || 'Could not commit data to registry.' });
       setLoading(false);
     }
   };
 
   const handleDelete = async (id: string) => {
-    if (!confirm('Are you sure you want to delete this place? This cannot be undone.')) return;
+    const isConfirmed = await openConfirm({
+      title: 'Erase Landmark',
+      message: 'Are you sure you want to delete this heritage site? This will remove it from the global map permanently.',
+      confirmText: 'Delete Site',
+      type: 'danger'
+    });
+    if (!isConfirmed) return;
     setLoading(true);
     const res = await deleteAdminPlaceAction(id);
     if (res.success) {
       fetchPlaces();
+      show({ type: 'success', title: 'Asset Purged', message: 'The landmark record has been erased from history.' });
     } else {
-      alert(res.error || 'Delete failed');
+      show({ type: 'error', title: 'Purge Failed', message: res.error || 'The system could not erase the record.' });
       setLoading(false);
     }
   };

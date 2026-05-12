@@ -1,4 +1,4 @@
-import { Controller, Get, Post, Patch, Body, Param, Query, UseGuards, Request } from '@nestjs/common';
+import { Controller, Get, Post, Patch, Delete, Body, Param, Query, UseGuards, Request } from '@nestjs/common';
 import { ActivitiesService } from './activities.service';
 import { CreateActivityDto } from './dto/create-activity.dto';
 import { AuthGuard } from '@nestjs/passport';
@@ -57,6 +57,14 @@ export class ActivitiesController {
   async requestToJoin(@Request() req: any, @Param('id') id: string) {
     return this.activitiesService.requestToJoin(req.user.id, id);
   }
+  
+  @Delete(':id/join')
+  @UseGuards(AuthGuard('jwt'))
+  @ApiBearerAuth()
+  @ApiOperation({ summary: 'Cancel a join request' })
+  async cancelJoinRequest(@Request() req: any, @Param('id') id: string) {
+    return this.activitiesService.cancelJoinRequest(req.user.id, id);
+  }
 
   @Patch(':id/approve/:userId')
   @UseGuards(AuthGuard('jwt'))
@@ -88,5 +96,13 @@ export class ActivitiesController {
   @ApiOperation({ summary: 'Get activity members' })
   async getMembers(@Param('id') id: string) {
     return this.activitiesService.getMembers(id);
+  }
+  
+  @Delete(':id')
+  @UseGuards(AuthGuard('jwt'))
+  @ApiBearerAuth()
+  @ApiOperation({ summary: 'Delete an activity (Host only)' })
+  async delete(@Request() req: any, @Param('id') id: string) {
+    return this.activitiesService.delete(req.user.id, id);
   }
 }

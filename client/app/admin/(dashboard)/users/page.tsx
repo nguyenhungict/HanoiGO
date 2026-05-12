@@ -6,33 +6,13 @@ import {
   banUserAction, 
   unbanUserAction, 
   getAdminUserDetailsAction,
-  createAdminUserAction
+  createAdminUserAction,
+  deleteAdminUserAction
 } from '@/lib/actions';
+import { useNotification } from '@/hooks/use-notification';
+import { useConfirm } from '@/hooks/use-confirm';
 
-interface User {
-  id: string;
-  username: string;
-  email: string;
-  fullName: string | null;
-  avatarUrl: string | null;
-  role: string;
-  status: string;
-  createdAt: string;
-  _count: {
-    trips: number;
-  };
-}
-
-interface UserDetail extends User {
-  bio: string | null;
-  nationality: string | null;
-  languages: string[];
-  _count: {
-    trips: number;
-    reportsCreated: number;
-    reportsAgainst: number;
-  };
-}
+import { User, UserDetail } from '@/types';
 
 export default function UserManagement() {
   const [users, setUsers] = useState<User[]>([]);
@@ -42,6 +22,8 @@ export default function UserManagement() {
   const [search, setSearch] = useState('');
   const [statusFilter, setStatusFilter] = useState<string | undefined>(undefined);
   const [loading, setLoading] = useState(true);
+  const { show } = useNotification();
+  const { confirm: openConfirm } = useConfirm();
   
   // User selection for details
   const [selectedUser, setSelectedUser] = useState<UserDetail | null>(null);
@@ -80,24 +62,32 @@ export default function UserManagement() {
     setBanTargetId(null);
     if (res.success) {
       fetchUsers();
+      show({ type: 'success', title: 'User Banned', message: 'The operative access has been suspended.' });
       if (selectedUser && selectedUser.id === banTargetId) {
         setSelectedUser({ ...selectedUser, status: 'BANNED' });
       }
     } else {
-      alert(res.error || 'Failed to ban user');
+      show({ type: 'error', title: 'Ban Failed', message: res.error || 'Could not suspend user access.' });
     }
   };
 
   const handleUnban = async (userId: string) => {
-    if (!confirm('Are you sure you want to unban this user?')) return;
+    const isConfirmed = await openConfirm({
+      title: 'Reinstate Operative',
+      message: 'Are you sure you want to restore access for this user?',
+      confirmText: 'Restore Access',
+      type: 'success'
+    });
+    if (!isConfirmed) return;
     const res = await unbanUserAction(userId);
     if (res.success) {
       fetchUsers();
+      show({ type: 'success', title: 'Access Restored', message: 'The operative has been reinstated.' });
       if (selectedUser && selectedUser.id === userId) {
         setSelectedUser({ ...selectedUser, status: 'ACTIVE' });
       }
     } else {
-      alert(res.error || 'Failed to unban user');
+      show({ type: 'error', title: 'Restoration Failed', message: res.error || 'Could not restore user access.' });
     }
   };
 
@@ -129,8 +119,29 @@ export default function UserManagement() {
       setIsCreateModalOpen(false);
       setCreateFormData({ username: '', email: '', password: '', fullName: '', role: 'USER' });
       fetchUsers();
+      show({ type: 'success', title: 'Operative Created', message: 'New identity has been registered in the system.' });
     } else {
-      alert(res.error || 'Failed to create user');
+      show({ type: 'error', title: 'Creation Failed', message: res.error || 'Could not register new operative.' });
+      setLoading(false);
+    }
+  };
+
+  const handleDeleteUser = async (userId: string) => {
+    const isConfirmed = await openConfirm({
+      title: 'Purge Identity',
+      message: 'CRITICAL: This will permanently erase the operative and all associated records. This action is irreversible.',
+      confirmText: 'Purge Record',
+      type: 'danger'
+    });
+    if (!isConfirmed) return;
+    setLoading(true);
+    const res = await deleteAdminUserAction(userId);
+    if (res.success) {
+      setIsModalOpen(false);
+      fetchUsers();
+      show({ type: 'success', title: 'User Purged', message: 'All record of the operative has been erased.' });
+    } else {
+      show({ type: 'error', title: 'Purge Failed', message: res.error || 'The system could not erase the record.' });
       setLoading(false);
     }
   };
@@ -250,6 +261,13 @@ export default function UserManagement() {
                             }`}
                           >
                             {user.status === 'ACTIVE' ? 'Ban' : 'Restore'}
+                          </button>
+                          <button 
+                            onClick={() => handleDeleteUser(user.id)}
+                            className="h-10 w-10 flex items-center justify-center rounded-xl bg-red-50 text-red-400 hover:text-white hover:bg-red-600 transition-all"
+                            title="Delete User"
+                          >
+                            <span className="material-symbols-outlined text-base">delete</span>
                           </button>
                         </div>
                       </td>
@@ -411,24 +429,33 @@ export default function UserManagement() {
                 {/* Footer Actions */}
                 <div className="p-8 bg-background/20 mt-auto border-t border-outline/5 flex items-center justify-between gap-4">
                    <p className="text-[9px] font-black text-outline uppercase tracking-widest px-4">Identification Matrix: {selectedUser.id}</p>
-                   <button 
-                     onClick={() => {
-                        if (selectedUser.status === 'ACTIVE') {
-                          setIsModalOpen(false);
-                          handleBanClick(selectedUser.id);
-                        } else {
-                          setIsModalOpen(false);
-                          handleUnban(selectedUser.id);
-                        }
-                     }}
-                     className={`h-12 px-8 rounded-2xl text-[10px] font-black uppercase tracking-[0.2em] transition-all shadow-xl ${
-                       selectedUser.status === 'ACTIVE'
-                       ? 'bg-red-600 text-white hover:bg-red-700'
-                       : 'bg-green-600 text-white hover:bg-green-700'
-                     }`}
-                   >
-                     {selectedUser.status === 'ACTIVE' ? 'Ban Access' : 'Restore Access'}
-                   </button>
+                   <div className="flex items-center gap-3">
+                     <button 
+                       onClick={() => handleDeleteUser(selectedUser.id)}
+                       className="h-12 w-12 flex items-center justify-center rounded-2xl bg-red-50 text-red-600 hover:bg-red-600 hover:text-white transition-all shadow-xl"
+                       title="Permanently Delete User"
+                     >
+                       <span className="material-symbols-outlined">delete_forever</span>
+                     </button>
+                     <button 
+                       onClick={() => {
+                          if (selectedUser.status === 'ACTIVE') {
+                            setIsModalOpen(false);
+                            handleBanClick(selectedUser.id);
+                          } else {
+                            setIsModalOpen(false);
+                            handleUnban(selectedUser.id);
+                          }
+                       }}
+                       className={`h-12 px-8 rounded-2xl text-[10px] font-black uppercase tracking-[0.2em] transition-all shadow-xl ${
+                         selectedUser.status === 'ACTIVE'
+                         ? 'bg-red-600 text-white hover:bg-red-700'
+                         : 'bg-green-600 text-white hover:bg-green-700'
+                       }`}
+                     >
+                       {selectedUser.status === 'ACTIVE' ? 'Ban Access' : 'Restore Access'}
+                     </button>
+                   </div>
                 </div>
               </>
             ) : null}

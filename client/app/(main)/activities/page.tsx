@@ -10,20 +10,22 @@ import { getActivitiesAction, getMyActivitiesAction, getSessionAction } from '@/
 import { useAuthStore } from '@/store/useAuthStore';
 
 const CATEGORIES = [
-  { id: 'all',      name: 'All',      icon: 'apps' },
-  { id: 'culture',  name: 'Culture',  icon: 'theater_comedy' },
-  { id: 'food',     name: 'Food',     icon: 'restaurant' },
-  { id: 'history',  name: 'History',  icon: 'history_edu' },
-  { id: 'nature',   name: 'Nature',   icon: 'forest' },
-  { id: 'sport',    name: 'Sport',    icon: 'sports_soccer' },
-  { id: 'shopping', name: 'Shopping', icon: 'shopping_bag' },
+  { id: 'all',                name: 'All',                icon: 'apps' },
+  { id: 'Nature & Outdoors',   name: 'Nature',             icon: 'forest' },
+  { id: 'Arts & Culture',      name: 'Culture',            icon: 'theater_comedy' },
+  { id: 'Heritage & History',  name: 'History',            icon: 'history_edu' },
+  { id: 'Spiritual',           name: 'Spiritual',          icon: 'temple_buddhist' },
+  { id: 'Eat & Shop',          name: 'Food & Shop',        icon: 'restaurant' },
+  { id: 'Sightseeing',         name: 'Sightseeing',        icon: 'photo_camera' },
 ];
 
+import { Activity } from '@/types';
+
 export default function ActivitiesPage() {
-  const [activities, setActivities] = useState<any[]>([]);
-  const [myActivities, setMyActivities] = useState<any[]>([]);
+  const [activities, setActivities] = useState<Activity[]>([]);
+  const [myActivities, setMyActivities] = useState<Activity[]>([]);
   const [loading, setLoading] = useState(true);
-  const [selectedActivity, setSelectedActivity] = useState<any | null>(null);
+  const [selectedActivity, setSelectedActivity] = useState<Activity | null>(null);
   const [showCreate, setShowCreate] = useState(false);
   const [userLocation, setUserLocation] = useState<[number, number] | null>(null);
   const [activeTab, setActiveTab] = useState<'all' | 'my'>('all');
@@ -91,7 +93,10 @@ export default function ActivitiesPage() {
   }
 
   return (
-    <div className="flex flex-col h-[calc(100vh-80px)] w-full overflow-hidden bg-background">
+    <div className="flex flex-col h-[calc(100vh-80px)] w-full overflow-hidden bg-slate-50 relative">
+      {/* Background Orbs for Glassmorphism */}
+      <div className="absolute top-[-10%] left-[-10%] w-[40%] h-[40%] bg-primary/10 rounded-full blur-[120px] pointer-events-none" />
+      <div className="absolute bottom-[-10%] right-[-10%] w-[40%] h-[40%] bg-secondary/20 rounded-full blur-[120px] pointer-events-none" />
 
       {/* ── Header ──────────────────────────────────────────────── */}
       <header className="px-5 py-4 bg-white/80 backdrop-blur-2xl border-b border-outline/5 flex flex-row gap-4 justify-between items-center z-20 shrink-0">
@@ -285,6 +290,7 @@ export default function ActivitiesPage() {
         <ActivityDetailsModal
           activity={selectedActivity}
           onClose={() => setSelectedActivity(null)}
+          onChat={setChatActivity}
           onJoined={async () => {
             await refreshAll();
             setSelectedActivity(null);

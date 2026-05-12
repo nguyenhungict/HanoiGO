@@ -4,11 +4,13 @@ import React, { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { getProfileAction, updateProfileAction } from '@/lib/actions';
 import { useRouter } from 'next/navigation';
+import { useNotification } from '@/hooks/use-notification';
 
 export default function EditProfilePage() {
   const router = useRouter();
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
+  const { show } = useNotification();
   const [profile, setProfile] = useState({
     name: '',
     username: '',
@@ -61,10 +63,10 @@ export default function EditProfilePage() {
     setSaving(false);
     
     if (res.success) {
-      alert('Hồ sơ đã được cập nhật thành công!');
+      show({ type: 'success', title: 'Hồ sơ đã cập nhật', message: 'Thông tin cá nhân của bạn đã được lưu an toàn.' });
       router.push('/profile');
     } else {
-      alert(res.error || 'Có lỗi xảy ra khi lưu hồ sơ');
+      show({ type: 'error', title: 'Lỗi cập nhật', message: res.error || 'Có lỗi xảy ra khi lưu hồ sơ của bạn.' });
     }
   };
 

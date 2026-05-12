@@ -43,10 +43,10 @@ export const ActivityCard: React.FC<ActivityCardProps> = ({ activity, onClick, o
   return (
     <div 
       onClick={() => onClick(activity)}
-      className={`group relative overflow-hidden p-5 rounded-3xl cursor-pointer transition-all duration-500 border-2 h-full flex flex-col ${
+      className={`group relative overflow-hidden p-6 rounded-[2rem] cursor-pointer transition-all duration-500 border h-full flex flex-col ${
         isActive 
-          ? 'bg-white border-primary shadow-xl shadow-primary/5 scale-[1.01]' 
-          : 'bg-white border-outline/5 hover:border-primary/30 hover:shadow-xl hover:shadow-primary/5 hover:scale-[1.01]'
+          ? 'bg-white/90 backdrop-blur-2xl border-primary shadow-[0_20px_50px_rgba(0,0,0,0.1)] scale-[1.02]' 
+          : 'bg-white/60 backdrop-blur-xl border-white/40 hover:border-primary/40 hover:shadow-xl hover:scale-[1.01]'
       }`}
     >
       {/* Background Accent */}
@@ -126,10 +126,10 @@ export const ActivityCard: React.FC<ActivityCardProps> = ({ activity, onClick, o
                   e.stopPropagation();
                   onChat?.(activity);
                 }}
-                className="w-8 h-8 flex items-center justify-center bg-primary/10 text-primary rounded-xl hover:bg-primary hover:text-white transition-all active:scale-95"
+                className="w-10 h-10 flex items-center justify-center bg-primary/8 text-primary rounded-xl hover:bg-primary hover:text-white transition-all active:scale-95 border border-primary/10"
                 title="Open Chat"
               >
-                <span className="material-symbols-outlined text-[16px]">forum</span>
+                <span className="material-symbols-outlined text-[18px]">forum</span>
               </button>
             )}
 
@@ -139,7 +139,7 @@ export const ActivityCard: React.FC<ActivityCardProps> = ({ activity, onClick, o
                   e.stopPropagation();
                   onClick(activity); 
                 }}
-                className="px-3 py-1.5 bg-on-surface/5 text-on-surface border border-outline/10 rounded-xl hover:bg-on-surface/10 transition-all active:scale-95 font-bold text-[9px] uppercase tracking-widest"
+                className="px-4 py-2 bg-on-surface text-white rounded-xl hover:bg-on-surface/90 transition-all active:scale-95 font-bold text-[10px] uppercase tracking-widest shadow-sm"
               >
                 Manage
               </button>
@@ -149,13 +149,14 @@ export const ActivityCard: React.FC<ActivityCardProps> = ({ activity, onClick, o
                   e.stopPropagation();
                   onClick(activity); 
                 }}
-                className="px-3 py-1.5 bg-secondary text-on-secondary rounded-xl hover:opacity-90 transition-all active:scale-95 font-bold text-[9px] uppercase tracking-widest border border-outline/10"
+                className="px-4 py-2 bg-emerald-600 text-white rounded-xl hover:bg-emerald-700 transition-all active:scale-95 font-bold text-[10px] uppercase tracking-widest shadow-sm flex items-center gap-1.5"
               >
+                <span className="material-symbols-outlined text-[14px]">check_circle</span>
                 Joined
               </button>
             ) : hasRequested ? (
-                <div className="px-3 py-1.5 bg-secondary/30 text-on-secondary/50 rounded-xl flex items-center gap-1 border border-outline/5">
-                   <span className="text-[9px] font-bold uppercase tracking-widest">Pending</span>
+                <div className="px-4 py-2 bg-secondary/40 text-on-surface-variant/50 rounded-xl flex items-center gap-1 border border-outline/5">
+                   <span className="text-[10px] font-bold uppercase tracking-widest">Pending</span>
                 </div>
             ) : (
                <button 
@@ -163,9 +164,9 @@ export const ActivityCard: React.FC<ActivityCardProps> = ({ activity, onClick, o
                   e.stopPropagation();
                   onClick(activity); 
                 }}
-                className="px-4 py-1.5 bg-primary text-white rounded-xl hover:opacity-90 transition-all active:scale-95 font-bold text-[9px] uppercase tracking-widest"
+                className="px-4 py-2 bg-primary text-white rounded-xl hover:opacity-90 transition-all active:scale-95 font-bold text-[10px] uppercase tracking-widest shadow-lg shadow-primary/20"
               >
-                Join
+                Interested
               </button>
             )}
           </div>

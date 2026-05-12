@@ -53,15 +53,13 @@ const createCustomIcon = (landmark: Landmark, showLabel: boolean) => {
   return L.divIcon({
     className: 'custom-landmark-marker',
     html: `
-      <div class="flex items-center group">
-        <div class="relative flex items-center justify-center">
-          <div class="w-7 h-7 rounded-full shadow-lg border-2 border-white flex items-center justify-center z-10 overflow-hidden transform group-hover:scale-125 transition-all duration-300" style="background-color: ${color}">
-             <span class="material-symbols-outlined text-white text-[14px]">${iconName}</span>
-          </div>
-          <div class="absolute -inset-1 border-2 rounded-full scale-0 group-hover:scale-100 transition-transform duration-300 z-0" style="border-color: ${color}66"></div>
+      <div class="relative group w-7 h-7">
+        <div class="w-7 h-7 rounded-full shadow-lg border-2 border-white flex items-center justify-center z-10 overflow-hidden transform group-hover:scale-125 transition-all duration-300" style="background-color: ${color}">
+           <span class="material-symbols-outlined text-white text-[14px]">${iconName}</span>
         </div>
+        <div class="absolute -inset-1 border-2 rounded-full scale-0 group-hover:scale-100 transition-transform duration-300 z-0" style="border-color: ${color}66"></div>
         
-        <div class="ml-2 flex flex-col pointer-events-none transition-all duration-500 ${showLabel ? 'opacity-100 translate-x-0' : 'opacity-0 -translate-x-4 group-hover:opacity-100 group-hover:translate-x-0'}">
+        <div class="absolute left-full ml-2 top-1/2 -translate-y-1/2 flex flex-col pointer-events-none transition-all duration-500 ${showLabel ? 'opacity-100 translate-x-0' : 'opacity-0 -translate-x-4 group-hover:opacity-100 group-hover:translate-x-0'}">
           <div class="bg-white/95 backdrop-blur-md px-3 py-1.5 rounded-xl shadow-[0_4px_15px_rgba(0,0,0,0.15)] border border-outline/10">
             <div class="text-[10px] font-black text-on-surface leading-tight whitespace-nowrap">${landmark.name}</div>
             <div class="text-[8px] font-bold uppercase tracking-widest whitespace-nowrap" style="color: ${color}">${landmark.category}</div>
@@ -69,7 +67,7 @@ const createCustomIcon = (landmark: Landmark, showLabel: boolean) => {
         </div>
       </div>
     `,
-    iconSize: [160, 40],
+    iconSize: [28, 28],
     iconAnchor: [14, 14],
     popupAnchor: [0, -20],
   });

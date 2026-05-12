@@ -3,19 +3,21 @@
 import React, { useState } from 'react';
 import { useAuthStore } from '@/store/useAuthStore';
 
+import { Activity } from '@/types';
+
 interface ActivityReelCardProps {
-  activity: any;
-  onClick: (activity: any) => void;
-  onChat?: (activity: any) => void;
+  activity: Activity;
+  onClick: (activity: Activity) => void;
+  onChat?: (activity: Activity) => void;
 }
 
 const CATEGORY_CONFIG: Record<string, { icon: string; label: string; color: string }> = {
-  food:     { icon: 'restaurant',    label: 'Food',     color: 'bg-orange-500' },
-  history:  { icon: 'history_edu',   label: 'History',  color: 'bg-amber-700' },
-  nature:   { icon: 'forest',        label: 'Nature',   color: 'bg-emerald-600' },
-  sport:    { icon: 'sports_soccer', label: 'Sport',    color: 'bg-blue-600' },
-  shopping: { icon: 'shopping_bag',  label: 'Shopping', color: 'bg-pink-500' },
-  culture:  { icon: 'theater_comedy',label: 'Culture',  color: 'bg-purple-600' },
+  'Nature & Outdoors':   { icon: 'forest',           label: 'Nature & Outdoors',   color: 'bg-emerald-600' },
+  'Arts & Culture':      { icon: 'theater_comedy',   label: 'Arts & Culture',      color: 'bg-purple-600' },
+  'Heritage & History':  { icon: 'history_edu',      label: 'Heritage & History',  color: 'bg-amber-700' },
+  'Spiritual':           { icon: 'temple_buddhist',  label: 'Spiritual',           color: 'bg-amber-600' },
+  'Eat & Shop':          { icon: 'restaurant',       label: 'Eat & Shop',          color: 'bg-orange-500' },
+  'Sightseeing':         { icon: 'photo_camera',     label: 'Sightseeing',         color: 'bg-blue-500' },
 };
 
 const BACKEND_URL = process.env.NEXT_PUBLIC_ACTIONS_URL || 'http://localhost:8888';
@@ -37,7 +39,7 @@ export const ActivityReelCard: React.FC<ActivityReelCardProps> = ({ activity, on
   const isMember = activity.myStatus === 'APPROVED' && !isHost;
   const hasRequested = activity.myStatus === 'PENDING';
 
-  const cat = CATEGORY_CONFIG[activity.category] ?? CATEGORY_CONFIG['culture'];
+  const cat = CATEGORY_CONFIG[activity.category] ?? CATEGORY_CONFIG['Arts & Culture'];
   const memberCount = activity.memberCount || 1;
   const imageUrl = resolveImageUrl(activity.imageUrl);
   const hasImage = !!activity.imageUrl && !imgError;
@@ -67,14 +69,14 @@ export const ActivityReelCard: React.FC<ActivityReelCardProps> = ({ activity, on
   };
 
   return (
-    <article className="w-full bg-white border border-outline/8 rounded-none md:rounded-3xl overflow-hidden mb-0 md:mb-6 transition-all duration-300">
+    <article className="w-full bg-white/70 backdrop-blur-xl border border-white/40 rounded-none md:rounded-[2.5rem] overflow-hidden mb-0 md:mb-6 transition-all duration-500 hover:shadow-[0_20px_50px_rgba(0,0,0,0.1)] hover:scale-[1.005]">
       {/* ── Post Header ──────────────────────────────────── */}
       <div className="flex items-center gap-3 px-4 pt-4 pb-3">
         {/* Avatar */}
         <div className="relative shrink-0">
           <div className="w-10 h-10 rounded-full bg-secondary border-2 border-primary/20 overflow-hidden flex items-center justify-center text-white font-bold text-sm shadow">
             {activity.hostAvatar
-              ? <img src={resolveImageUrl(activity.hostAvatar) ?? ''} alt={activity.hostName} className="w-full h-full object-cover" />
+              ? <img src={resolveImageUrl(activity.hostAvatar) ?? ''} alt={activity.hostName || ''} className="w-full h-full object-cover" />
               : <span className="text-on-surface font-bold">{(activity.hostName || 'H').charAt(0).toUpperCase()}</span>
             }
           </div>
@@ -196,51 +198,53 @@ export const ActivityReelCard: React.FC<ActivityReelCardProps> = ({ activity, on
       </div>
 
       {/* ── Action Bar ────────────────────────────────────── */}
-      <div className="flex items-center border-t border-outline/5 px-2 py-1">
-        {/* Like / interested */}
-        <button
-          className="flex-1 flex items-center justify-center gap-1.5 py-2.5 rounded-xl text-on-surface/50 hover:text-primary hover:bg-primary/5 transition-all text-xs font-bold uppercase tracking-widest"
-          onClick={() => onClick(activity)}
-        >
-          <span className="material-symbols-outlined text-lg">thumb_up</span>
-          <span className="hidden sm:inline">Interested</span>
-        </button>
-
-        {/* Chat — only for members/host */}
-        {(isHost || isMember) && onChat && (
+      <div className="flex items-center justify-between border-t border-outline/5 px-4 py-2 bg-slate-50/30">
+        <div className="flex items-center gap-1">
+          {/* Interested / Like button */}
           <button
-            onClick={(e) => { e.stopPropagation(); onChat(activity); }}
-            className="flex-1 flex items-center justify-center gap-1.5 py-2.5 rounded-xl text-on-surface/50 hover:text-primary hover:bg-primary/5 transition-all text-xs font-bold uppercase tracking-widest"
+            className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-on-surface/50 hover:text-primary hover:bg-primary/5 transition-all text-[11px] font-bold uppercase tracking-widest"
+            onClick={(e) => { e.stopPropagation(); /* Future: Like logic */ }}
           >
-            <span className="material-symbols-outlined text-lg">forum</span>
-            <span className="hidden sm:inline">Chat</span>
+            <span className="material-symbols-outlined text-lg">thumb_up</span>
+            <span className="hidden sm:inline">Interested</span>
           </button>
-        )}
 
-        {/* Primary CTA */}
-        <div className="flex-1 flex items-center justify-center px-2 py-1.5">
+          {/* Chat — only for members/host */}
+          {(isHost || isMember) && onChat && (
+            <button
+              onClick={(e) => { e.stopPropagation(); onChat(activity); }}
+              className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-primary bg-primary/8 hover:bg-primary/12 transition-all text-[11px] font-bold uppercase tracking-widest border border-primary/10"
+            >
+              <span className="material-symbols-outlined text-lg">forum</span>
+              <span>Chat</span>
+            </button>
+          )}
+        </div>
+
+        <div className="flex items-center gap-2">
           {isHost ? (
             <button
               onClick={(e) => { e.stopPropagation(); onClick(activity); }}
-              className="w-full py-2 bg-on-surface/8 text-on-surface border border-outline/10 rounded-xl hover:bg-on-surface/12 transition-all font-bold text-[10px] uppercase tracking-widest"
+              className="px-5 py-2 bg-on-surface text-white rounded-xl hover:bg-on-surface/90 transition-all font-bold text-[10px] uppercase tracking-widest shadow-md"
             >
               Manage
             </button>
           ) : isMember ? (
             <button
               onClick={(e) => { e.stopPropagation(); onClick(activity); }}
-              className="w-full py-2 bg-emerald-50 text-emerald-700 border border-emerald-200 rounded-xl font-bold text-[10px] uppercase tracking-widest hover:bg-emerald-100 transition-all"
+              className="px-5 py-2 bg-emerald-600 text-white rounded-xl hover:bg-emerald-700 transition-all font-bold text-[10px] uppercase tracking-widest shadow-md flex items-center gap-2"
             >
-              ✓ Joined
+              <span className="material-symbols-outlined text-sm">check_circle</span>
+              Joined
             </button>
           ) : hasRequested ? (
-            <div className="w-full py-2 bg-secondary/50 text-on-surface-variant text-center rounded-xl text-[10px] font-bold uppercase tracking-widest border border-outline/5">
+            <div className="px-5 py-2 bg-secondary/50 text-on-surface-variant text-center rounded-xl text-[10px] font-bold uppercase tracking-widest border border-outline/5">
               Pending…
             </div>
           ) : (
             <button
               onClick={(e) => { e.stopPropagation(); onClick(activity); }}
-              className="w-full py-2 bg-primary text-white rounded-xl hover:opacity-90 transition-all font-bold text-[10px] uppercase tracking-widest shadow-md shadow-primary/20"
+              className="px-5 py-2 bg-primary text-white rounded-xl hover:opacity-90 transition-all font-bold text-[10px] uppercase tracking-widest shadow-lg shadow-primary/20"
             >
               Join Group
             </button>

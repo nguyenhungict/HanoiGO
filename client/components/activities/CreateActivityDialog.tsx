@@ -19,7 +19,7 @@ export const CreateActivityDialog: React.FC<CreateActivityDialogProps> = ({ onCl
     lng: 105.8542,
     scheduledAt: '',
     maxMembers: 10,
-    category: 'culture',
+    category: 'Arts & Culture',
     imageUrl: '',
   });
   const [loading, setLoading] = useState(false);
@@ -72,10 +72,10 @@ export const CreateActivityDialog: React.FC<CreateActivityDialogProps> = ({ onCl
   };
 
   return (
-    <div className="fixed inset-0 z-[120] flex items-center justify-center p-4 bg-black/60 backdrop-blur-md animate-in fade-in duration-500">
-      <div className="bg-white w-full max-w-xl rounded-3xl overflow-hidden shadow-[0_25px_70px_rgba(0,0,0,0.2)] border border-outline/5 flex flex-col animate-in zoom-in-95 slide-in-from-bottom-10 duration-500 max-h-[90vh]">
+    <div className="fixed inset-0 z-[120] flex items-center justify-center p-4 bg-on-surface/5 backdrop-blur-sm animate-in fade-in duration-500">
+      <div className="bg-background/95 backdrop-blur-2xl w-full max-w-xl rounded-[2.5rem] overflow-hidden shadow-[0_32px_128px_rgba(65,48,16,0.1)] border border-outline/10 flex flex-col animate-in zoom-in-95 slide-in-from-bottom-10 duration-500 max-h-[90vh]">
         {/* Header */}
-        <div className="px-6 pt-6 pb-4 shrink-0 bg-white border-b border-outline/5">
+        <div className="px-8 pt-8 pb-4 shrink-0 bg-secondary/30 border-b border-outline/10">
           <div className="flex justify-between items-center">
             <div>
               <h2 className="text-lg font-bold tracking-tight text-on-surface">Start a Group</h2>
@@ -140,7 +140,7 @@ export const CreateActivityDialog: React.FC<CreateActivityDialogProps> = ({ onCl
                 <button
                   type="button"
                   onClick={() => fileInputRef.current?.click()}
-                  className="w-full h-36 flex flex-col items-center justify-center gap-3 bg-secondary/30 border-2 border-dashed border-outline/20 rounded-2xl hover:bg-secondary/50 hover:border-primary/30 transition-all group cursor-pointer"
+                  className="w-full h-36 flex flex-col items-center justify-center gap-3 bg-white border-2 border-dashed border-outline/20 rounded-2xl hover:bg-secondary/50 hover:border-primary/50 transition-all group cursor-pointer"
                 >
                   <div className="w-12 h-12 rounded-2xl bg-white shadow flex items-center justify-center group-hover:scale-110 transition-transform">
                     <span className="material-symbols-outlined text-2xl text-primary">add_photo_alternate</span>
@@ -168,7 +168,7 @@ export const CreateActivityDialog: React.FC<CreateActivityDialogProps> = ({ onCl
                 required
                 type="text"
                 placeholder="e.g., Street Food Crawl in Old Quarter"
-                className="w-full px-4 py-3 bg-slate-50 border border-transparent rounded-xl focus:ring-4 focus:ring-primary/5 focus:bg-white focus:border-primary/20 transition-all outline-none font-bold placeholder:text-slate-300 text-sm"
+                className="w-full px-5 py-3.5 bg-white border border-outline/10 rounded-2xl focus:ring-8 focus:ring-primary/5 focus:bg-white focus:border-primary/40 transition-all outline-none font-bold placeholder:text-on-surface-variant/40 text-sm shadow-inner"
                 value={formData.title}
                 onChange={e => setFormData({ ...formData, title: e.target.value })}
               />
@@ -181,7 +181,7 @@ export const CreateActivityDialog: React.FC<CreateActivityDialogProps> = ({ onCl
                 <input
                   required
                   type="datetime-local"
-                  className="w-full px-4 py-3 bg-secondary/30 border border-transparent rounded-xl focus:ring-4 focus:ring-primary/5 focus:bg-white focus:border-primary/20 transition-all outline-none font-semibold text-on-surface text-sm"
+                  className="w-full px-5 py-3.5 bg-white border border-outline/10 rounded-2xl focus:ring-8 focus:ring-primary/5 focus:bg-white focus:border-primary/40 transition-all outline-none font-semibold text-on-surface text-sm shadow-inner"
                   value={formData.scheduledAt}
                   onChange={e => setFormData({ ...formData, scheduledAt: e.target.value })}
                 />
@@ -193,7 +193,7 @@ export const CreateActivityDialog: React.FC<CreateActivityDialogProps> = ({ onCl
                   type="number"
                   min="2"
                   max="50"
-                  className="w-full px-4 py-3 bg-slate-50 border border-transparent rounded-xl focus:ring-4 focus:ring-primary/5 focus:bg-white focus:border-primary/20 transition-all outline-none font-bold text-sm"
+                  className="w-full px-5 py-3.5 bg-white border border-outline/10 rounded-2xl focus:ring-8 focus:ring-primary/5 focus:bg-white focus:border-primary/40 transition-all outline-none font-bold text-sm shadow-inner text-on-surface"
                   value={formData.maxMembers}
                   onChange={e => setFormData({ ...formData, maxMembers: parseInt(e.target.value) })}
                 />
@@ -207,7 +207,7 @@ export const CreateActivityDialog: React.FC<CreateActivityDialogProps> = ({ onCl
                 required
                 type="text"
                 placeholder="Where should everyone meet?"
-                className="w-full px-4 py-3 bg-slate-50 border border-transparent rounded-xl focus:ring-4 focus:ring-primary/5 focus:bg-white focus:border-primary/20 transition-all outline-none font-bold placeholder:text-slate-300 text-sm"
+                className="w-full px-5 py-3.5 bg-white border border-outline/10 rounded-2xl focus:ring-8 focus:ring-primary/5 focus:bg-white focus:border-primary/40 transition-all outline-none font-bold placeholder:text-on-surface-variant/40 text-sm shadow-inner"
                 value={formData.address}
                 onChange={e => setFormData({ ...formData, address: e.target.value })}
               />
@@ -218,12 +218,12 @@ export const CreateActivityDialog: React.FC<CreateActivityDialogProps> = ({ onCl
               <label className="text-[10px] font-bold uppercase tracking-widest text-outline/60">Category</label>
               <div className="grid grid-cols-3 gap-2">
                 {[
-                  { id: 'culture',  name: 'Culture',  icon: 'theater_comedy' },
-                  { id: 'food',     name: 'Food',     icon: 'restaurant' },
-                  { id: 'history',  name: 'History',  icon: 'history_edu' },
-                  { id: 'nature',   name: 'Nature',   icon: 'forest' },
-                  { id: 'sport',    name: 'Sport',    icon: 'sports_soccer' },
-                  { id: 'shopping', name: 'Shopping', icon: 'shopping_bag' },
+                  { id: 'Nature & Outdoors',   name: 'Nature',     icon: 'forest' },
+                  { id: 'Arts & Culture',      name: 'Culture',    icon: 'theater_comedy' },
+                  { id: 'Heritage & History',  name: 'History',    icon: 'history_edu' },
+                  { id: 'Spiritual',           name: 'Spiritual',  icon: 'temple_buddhist' },
+                  { id: 'Eat & Shop',          name: 'Eat & Shop', icon: 'restaurant' },
+                  { id: 'Sightseeing',         name: 'Sightseeing',icon: 'photo_camera' },
                 ].map(cat => (
                   <button
                     key={cat.id}
@@ -231,8 +231,8 @@ export const CreateActivityDialog: React.FC<CreateActivityDialogProps> = ({ onCl
                     onClick={() => setFormData({ ...formData, category: cat.id })}
                     className={`flex items-center gap-2 px-3 py-2.5 rounded-xl transition-all border-2 ${
                       formData.category === cat.id
-                        ? 'bg-primary/5 border-primary text-primary'
-                        : 'bg-secondary/30 border-transparent text-outline/60 hover:bg-secondary/50'
+                        ? 'bg-primary/10 border-primary text-primary shadow-lg shadow-primary/5 scale-[1.02]'
+                        : 'bg-white/30 border-white/20 text-on-surface/60 hover:bg-white/50'
                     }`}
                   >
                     <span className="material-symbols-outlined text-base">{cat.icon}</span>
@@ -249,7 +249,7 @@ export const CreateActivityDialog: React.FC<CreateActivityDialogProps> = ({ onCl
                 required
                 placeholder="What's the plan? Give some details to attract members..."
                 rows={3}
-                className="w-full px-4 py-3 bg-secondary/30 border border-transparent rounded-xl focus:ring-4 focus:ring-primary/5 focus:bg-white focus:border-primary/20 transition-all outline-none font-semibold placeholder:text-outline/30 resize-none text-sm text-on-surface"
+                className="w-full px-5 py-3.5 bg-white border border-outline/10 rounded-2xl focus:ring-8 focus:ring-primary/5 focus:bg-white focus:border-primary/40 transition-all outline-none font-semibold placeholder:text-on-surface-variant/40 resize-none text-sm text-on-surface shadow-inner"
                 value={formData.description}
                 onChange={e => setFormData({ ...formData, description: e.target.value })}
               />

@@ -224,7 +224,7 @@ model Activity {
   scheduledAt DateTime                             @map("scheduled_at") @db.Timestamptz
   maxMembers  Int?                                 @default(10) @map("max_members")
   status      ActivityStatus                       @default(OPEN)
-  category    String                               @default("culture")
+  category    String                               @default("Arts & Culture")
   imageUrl    String?                              @map("image_url")
   createdAt   DateTime                             @default(now()) @map("created_at") @db.Timestamptz
 

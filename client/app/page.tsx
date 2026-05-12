@@ -14,11 +14,11 @@ export default async function HomePage() {
         <div className="max-w-7xl mx-auto flex justify-between items-center px-8 py-4">
           <Link href="/" className="text-2xl font-black text-primary tracking-tighter"><span className="text-2xl font-black tracking-tighter text-on-surface">Hanoi<span className="text-primary">GO</span></span></Link>
 
-          <div className="hidden md:flex items-center gap-8 font-headline tracking-tight font-medium">
+          {/* <div className="hidden md:flex items-center gap-8 font-headline tracking-tight font-medium">
             <Link className="text-on-surface-variant hover:text-primary transition-colors duration-300" href="/discovery">Discovery</Link>
             <Link className="text-on-surface-variant hover:text-primary transition-colors duration-300" href="/trips">Trips</Link>
             <Link className="text-on-surface-variant hover:text-primary transition-colors duration-300" href="/activities">Activities</Link>
-          </div>
+          </div> */}
 
           <div className="flex items-center gap-4">
             {token ? (

@@ -1,4 +1,6 @@
 import './globals.css';
+import { NotificationProvider } from '@/components/ui/NotificationProvider';
+import { ConfirmDialog } from '@/components/ui/ConfirmDialog';
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
@@ -13,7 +15,11 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
           rel="stylesheet"
         />
       </head>
-      <body>{children}</body>
+      <body>
+        <NotificationProvider />
+        <ConfirmDialog />
+        {children}
+      </body>
     </html>
   );
 }

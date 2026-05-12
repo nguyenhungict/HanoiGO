@@ -15,7 +15,7 @@ export class ActivitiesService {
       const id = uuidv4();
       const activityResult = await this.prisma.$queryRaw<any[]>`
         INSERT INTO "activities" (id, host_id, title, description, address, lat, lng, location, scheduled_at, max_members, status, category, image_url, created_at)
-        VALUES (${id}::uuid, ${userId}::uuid, ${dto.title}, ${dto.description}, ${dto.address}, ${dto.lat}, ${dto.lng}, ST_SetSRID(ST_MakePoint(${dto.lng}, ${dto.lat}), 4326), ${new Date(dto.scheduledAt)}, ${dto.maxMembers || 10}, 'OPEN', ${dto.category || 'culture'}, ${dto.imageUrl || null}, now())
+        VALUES (${id}::uuid, ${userId}::uuid, ${dto.title}, ${dto.description}, ${dto.address}, ${dto.lat}, ${dto.lng}, ST_SetSRID(ST_MakePoint(${dto.lng}, ${dto.lat}), 4326), ${new Date(dto.scheduledAt)}, ${dto.maxMembers || 10}, 'OPEN', ${dto.category || 'Arts & Culture'}, ${dto.imageUrl || null}, now())
         RETURNING id, title, description, address, lat, lng, scheduled_at as "scheduledAt", max_members as "maxMembers", status, category, image_url as "imageUrl", created_at as "createdAt";
       `;
 
@@ -166,6 +166,24 @@ export class ActivitiesService {
     });
   }
 
+  async cancelJoinRequest(userId: string, activityId: string) {
+    const existing = await this.prisma.activityMember.findUnique({
+      where: { activityId_userId: { activityId, userId } },
+    });
+
+    if (!existing) {
+      throw new NotFoundException('Join request not found.');
+    }
+
+    if (existing.status === MemberStatus.APPROVED) {
+      throw new BadRequestException('You are already an approved member. Use leave activity instead (if implemented).');
+    }
+
+    return this.prisma.activityMember.delete({
+      where: { activityId_userId: { activityId, userId } },
+    });
+  }
+
   async approveMember(hostId: string, activityId: string, userId: string) {
     const activities = await this.prisma.$queryRaw<any[]>`
       SELECT host_id as "hostId" FROM activities WHERE id = ${activityId}::uuid
@@ -191,6 +209,21 @@ export class ActivitiesService {
     return this.prisma.activityMember.update({
       where: { activityId_userId: { activityId, userId } },
       data: { status: MemberStatus.REJECTED },
+    });
+  }
+
+  async delete(userId: string, activityId: string) {
+    const activityResult = await this.prisma.$queryRaw<any[]>`
+      SELECT host_id as "hostId" FROM activities WHERE id = ${activityId}::uuid
+    `;
+
+    if (activityResult.length === 0) throw new NotFoundException('Activity not found');
+    if (activityResult[0].hostId !== userId) {
+      throw new ForbiddenException('Only the host can delete this activity');
+    }
+
+    return this.prisma.activity.delete({
+      where: { id: activityId },
     });
   }
 

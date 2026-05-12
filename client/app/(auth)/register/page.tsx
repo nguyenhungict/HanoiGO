@@ -56,11 +56,11 @@ export default function RegisterPage() {
       <nav className="fixed top-0 w-full z-50 bg-white/80 backdrop-blur-xl shadow-sm shadow-rose-900/5 transition-all glass-nav border-b border-outline/5">
         <div className="max-w-7xl mx-auto flex justify-between items-center px-8 py-4">
           <Link href="/" className="text-2xl font-black text-primary tracking-tighter uppercase">HanoiGO</Link>
-          <div className="hidden md:flex items-center gap-8 font-headline tracking-tight font-black text-[10px] uppercase">
+          {/* <div className="hidden md:flex items-center gap-8 font-headline tracking-tight font-black text-[10px] uppercase">
             <Link className="text-outline hover:text-primary transition-colors duration-300 tracking-widest" href="/discovery">Discovery</Link>
             <Link className="text-outline hover:text-primary transition-colors duration-300 tracking-widest" href="/trips">Trips</Link>
             <Link className="text-outline hover:text-primary transition-colors duration-300 tracking-widest" href="/activities">Activities</Link>
-          </div>
+          </div> */}
           <div className="flex items-center gap-4">
             <Link href="/login">
               <button className="text-on-surface-variant font-bold px-4 py-2 hover:text-primary transition-all">Log In</button>

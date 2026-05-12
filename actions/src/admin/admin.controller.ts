@@ -121,4 +121,9 @@ export class AdminController {
   deletePlace(@Param('id') id: string) {
     return this.adminService.deletePlace(id);
   }
+
+  @Delete('users/:id')
+  deleteUser(@Param('id') userId: string) {
+    return this.adminService.deleteUser(userId);
+  }
 }

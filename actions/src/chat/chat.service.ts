@@ -3,6 +3,17 @@ import { PrismaService } from '../prisma/prisma.service';
 import { GoogleGenerativeAI } from '@google/generative-ai';
 import { ConfigService } from '@nestjs/config';
 
+function haversineKm(lat1: number, lng1: number, lat2: number, lng2: number): number {
+  const R = 6371;
+  const toRad = (d: number) => (d * Math.PI) / 180;
+  const dLat = toRad(lat2 - lat1);
+  const dLng = toRad(lng2 - lng1);
+  const a =
+    Math.sin(dLat / 2) ** 2 +
+    Math.cos(toRad(lat1)) * Math.cos(toRad(lat2)) * Math.sin(dLng / 2) ** 2;
+  return R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+}
+
 @Injectable()
 export class ChatService {
   private readonly logger = new Logger(ChatService.name);
@@ -24,8 +35,8 @@ export class ChatService {
       if (!genAI) {
         return "Xin lỗi, hiện tại tôi chưa được cấu hình API Key để trò chuyện. Vui lòng kiểm tra lại cấu hình hệ thống.";
       }
-      // 1. Fetch relevant landmarks for context (Corrected fields based on schema)
-      const landmarks = await this.prisma.place.findMany({
+      // 1. Fetch ALL landmarks from DB
+      const allPlaces = await this.prisma.place.findMany({
         select: {
           name: true,
           category: true,
@@ -35,19 +46,38 @@ export class ChatService {
           address: true,
           descriptionEn: true,
         },
-        take: 30, // Tăng nhẹ hiệu năng bằng cách lấy ít hơn một chút
       });
 
-      // 2. Format context
-      const context = landmarks.map(l =>
-        `- ${l.name} (${l.category} tại ${l.district}, Đ/c: ${l.address || 'Hà Nội'}): ${l.descriptionEn || 'Một địa điểm thú vị để khám phá.'}`
-      ).join('\n');
+      // 2. Filter by proximity (Haversine) or fall back to first 20
+      const NEARBY_RADIUS_KM = 3;
+      let landmarks = allPlaces;
+      let userLocationInfo: string;
 
-      const userLocationInfo = lat && lng
-        ? `Người dùng hiện đang ở tọa độ (${lat}, ${lng}). Hãy ưu tiên gợi ý các điểm gần tọa độ này nếu họ hỏi về địa điểm gần đây.`
-        : "Không rõ vị trí hiện tại của người dùng.";
+      if (lat && lng) {
+        const nearby = allPlaces
+          .filter(l => l.lat != null && l.lng != null)
+          .map(l => ({ ...l, distKm: haversineKm(lat, lng, l.lat!, l.lng!) }))
+          .filter(l => l.distKm <= NEARBY_RADIUS_KM)
+          .sort((a, b) => a.distKm - b.distKm)
+          .slice(0, 10);
 
-      // 3. Init Gemini
+        landmarks = nearby.length > 0 ? nearby : allPlaces.slice(0, 20);
+
+        userLocationInfo = nearby.length > 0
+          ? `Người dùng đang ở tọa độ (${lat.toFixed(5)}, ${lng.toFixed(5)}). Đã tìm thấy **${nearby.length} địa điểm trong bán kính ${NEARBY_RADIUS_KM}km** — hãy ưu tiên gợi ý những nơi này và đề cập khoảng cách ước tính.`
+          : `Người dùng ở tọa độ (${lat.toFixed(5)}, ${lng.toFixed(5)}) nhưng không có địa điểm nào trong ${NEARBY_RADIUS_KM}km. Gợi ý các địa điểm nổi bật nhất của Hà Nội.`;
+      } else {
+        landmarks = allPlaces.slice(0, 20);
+        userLocationInfo = 'Không rõ vị trí hiện tại của người dùng.';
+      }
+
+      // 3. Format context
+      const context = landmarks.map(l => {
+        const dist = (l as any).distKm != null ? ` (~${((l as any).distKm as number).toFixed(2)}km)` : '';
+        return `- ${l.name}${dist} (${l.category} tại ${l.district}, Đ/c: ${l.address || 'Hà Nội'}): ${l.descriptionEn || 'Một địa điểm thú vị để khám phá.'}`;
+      }).join('\n');
+
+      // 4. Init Gemini
       const model = genAI.getGenerativeModel({ model: "gemini-2.5-flash" });
 
       const prompt = `
