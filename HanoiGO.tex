@@ -414,157 +414,215 @@ và điểm xuất phát. Hệ thống tự động sắp xếp lịch trình th
 quãng đường di chuyển là nhỏ nhất, đồng thời thoả mãn ràng buộc về giờ mở cửa
 và thời gian tham quan. Lịch trình được hiển thị trực tiếp trên bản đồ Leaflet.
 
-\subsubsection{Thuật toán}
+\medskip
+\textbf{Tình huống minh hoạ:} Một du khách nước ngoài đang đứng tại khu vực
+Nhà hát Lớn muốn thăm 5 địa điểm trong 1 ngày (08:00--18:00): Hồ Hoàn Kiếm,
+Cha Cá Lã Vọng, Đền Bạch Mã, Ca Trù Thăng Long, và Văn Miếu. Mục tiêu là hệ
+thống tự phân bổ thứ tự hợp lý nhất --- không để khách đi vòng ziczac giữa hai
+đầu phố, không xếp lịch vào địa điểm đang đóng cửa.
 
-Bài toán được mô hình hoá dưới dạng một biến thể của \textbf{Travelling Salesman Problem with Time Windows (TSPTW)} có bổ sung ràng buộc đa ngày và khung giờ nghỉ. Hệ thống sử dụng phương pháp \textbf{Cluster-first, Route-second} kết hợp cùng \textbf{Greedy Nearest Neighbor (GNN)}.
+\subsubsection{Thuật toán tổng quan}
 
-\paragraph{Mô hình hoá dữ liệu (Problem Formulation):}
-Đầu vào của thuật toán bao gồm tập hợp các địa điểm $P = \{p_1, p_2, \dots, p_n\}$, số ngày tham quan $D$, quỹ thời gian mỗi ngày $[T_{start}, T_{end}]$, và khung giờ nghỉ trưa $[L_{start}, L_{end}]$. Mỗi địa điểm $p_i$ được định nghĩa bởi tọa độ $(lat_i, lng_i)$, thời lượng tham quan $v_i$, và khung giờ mở cửa thực tế trong ngày $[O_{start}(i), O_{end}(i)]$.
+Bài toán thuộc dạng biến thể của \textbf{Travelling Salesman Problem with Time
+Windows (TSPTW)} mở rộng sang đa ngày. Hệ thống giải quyết theo pipeline
+\textbf{Cluster-first, Route-second} gồm 5 giai đoạn nối tiếp nhau.
 
-\paragraph{Giai đoạn 1: Tiền xử lý và Phân cụm (Clustering)}
-Hệ thống loại bỏ các địa điểm đóng cửa hoàn toàn dựa trên mảng \texttt{open\_days}. Tiếp theo, thuật toán K-Means chia tập $P$ thành $D$ cụm $C_1, C_2, \dots, C_D$, mỗi cụm đại diện cho 1 ngày.
-\begin{itemize}
-    \item \textbf{Khoảng cách (Distance Metric):} Sử dụng công thức Haversine $\text{Dist}(p_i, p_j)$ để gom cụm địa lý.
-    \item \textbf{Tính xác định (Determinism):} Việc chọn các tâm cụm (centroids) ban đầu bằng hàm lấy số ngẫu nhiên mặc định (\texttt{Math.random}) gây ra sự thiếu ổn định. Hệ thống đã thay thế bằng một bộ sinh số giả ngẫu nhiên có hạt giống \textbf{(Seeded PRNG)}, trong đó hạt giống $S$ được tính toán dựa trên toạ độ $(lat, lng)$ của các điểm. Điều này đảm bảo thuật toán là một \textit{hàm xác định (deterministic function)} --- cùng một input luôn cho ra một kết quả gom cụm đồng nhất.
-    \item \textbf{Cân bằng ngày mở cửa (\texttt{postClusterOpenDaySwap}):} Nếu một điểm $p_i$ bị xếp vào cụm $C_d$ mà ngày $d$ điểm này đóng cửa, thuật toán tự động duyệt tìm cụm $C_{k}$ khả dĩ nhất và hoán đổi để tối ưu khả năng tham quan.
-\end{itemize}
+% ── Giai đoạn 1 ─────────────────────────────────────────────────────────────
+\paragraph{Giai đoạn 1 --- Lọc và Phân cụm theo Địa lý (K-Means)}
 
-\paragraph{Giai đoạn 2: Định tuyến có ràng buộc thời gian (Time-Window GNN)}
-Trong mỗi cụm $C_d$, bài toán định tuyến được giải quyết theo hướng tiếp cận tham lam (Greedy). Tại mỗi bước chuyển từ điểm hiện tại (current) sang điểm dự kiến $j$, thời gian thực được lấy qua \textbf{Goong Distance Matrix API}, ký hiệu thời gian di chuyển là $\Delta T(current, j)$.
-
-Các công thức tính toán thời gian cho một ứng viên $j$ được diễn giải chi tiết như sau:
-\begin{enumerate}
-    \item \textbf{Tính thời gian đến ($T_{arrival}$):}
-    \begin{equation}
-        T_{arrival}(j) = T_{depart}(current) + \Delta T(current, j)
-    \end{equation}
-
-    \item \textbf{Tính thời gian chờ mở cửa ($wait\_open$):} Nếu đến sớm hơn giờ mở cửa.
-    \begin{equation}
-        wait\_open = \max(0, \; O_{start}(j) - T_{arrival}(j))
-    \end{equation}
-
-    \item \textbf{Tính thời gian chờ do nghỉ trưa ($wait\_lunch$):} Gọi thời điểm dự kiến bắt đầu tham quan là $T'_{visit} = T_{arrival}(j) + wait\_open$. Nếu khoảng thời gian tham quan vắt ngang qua giờ nghỉ trưa ($T'_{visit} < L_{end}$ và $T'_{visit} + v_j > L_{start}$), thời gian bắt đầu sẽ bị đẩy xuống cuối giờ nghỉ:
-    \begin{equation}
-        wait\_lunch = L_{end} - T'_{visit}
-    \end{equation}
-    Tổng thời gian chờ: $T_{wait}(j) = wait\_open + wait\_lunch$.
-    
-    \item \textbf{Kiểm tra tính hợp lệ (Feasibility Validation):} Điểm $j$ được coi là hợp lệ để xếp vào ngày nếu thoả mãn:
-    \begin{equation}
-        T_{arrival}(j) \le O_{end}(j) - v_j \quad \text{(Không đến quá muộn trước giờ đóng cửa)}
-    \end{equation}
-    \begin{equation}
-        T_{arrival}(j) + T_{wait}(j) + v_j \le T_{end} \quad \text{(Kịp hoàn thành trước giờ kết thúc ngày)}
-    \end{equation}
-    Các điểm không hợp lệ bị đẩy vào danh sách chờ xử lý sau ($P_{dropped}$).
-
-    \item \textbf{Hàm chi phí (Cost Function) và xử lý Tie-Breaking:} 
-    Trong số các ứng viên $j$ hợp lệ, thuật toán chọn điểm có $Cost(j)$ nhỏ nhất. Nếu chỉ dùng tổng thời gian thuần, hiện tượng ``tie-breaking'' sẽ xảy ra: ví dụ, các điểm cùng bị đẩy qua giờ nghỉ trưa đến 13:00 sẽ có chi phí bằng nhau, mất đi tính liên kết địa lý. Hệ thống thiết kế hàm phạt có trọng số:
-    \begin{equation}
-        Cost(j) = 2 \times \Delta T(current, j) + \Big(T_{wait}(j) \times 60\Big)
-    \end{equation}
-    Hệ số nhân $\times 2$ trên thời gian di chuyển đóng hai vai trò: (1) \textbf{phạt nặng di chuyển tích cực} hơn thời gian chờ thụ động --- ưu tiên chọn điểm gần hơn thay vì chờ điểm xa; (2) \textbf{phá vỡ thế cân bằng (tie-breaking)} khi nhiều ứng viên bị đẩy cùng đến 13:00 sau nghỉ trưa (lúc đó $T_{wait}$ bằng nhau, và $\Delta T \times 2$ sẽ phân biệt điểm gần -- xa). Bằng cách này, thuật toán đảm bảo lộ trình không zic-zắc và không có kết quả ngẫu nhiên khi thời gian bằng nhau.
-\end{enumerate}
-
-\paragraph{Giai đoạn 3: Giải quyết xung đột (Conflict Resolution - Gap Insertion)}
-Với các địa điểm bị loại ($p \in P_{dropped}$), hệ thống tiến hành thuật toán chèn khuyết (Gap Insertion).
-Để chèn điểm $p$ vào vị trí thứ $k$ (giữa điểm $k-1$ và điểm $k$ của một ngày $d$), hệ thống tính toán lại thời gian đến và đi:
-\begin{align}
-    T_{arrival}(p) &= T_{depart}(k-1) + \Delta T(k-1, p) \\
-    T_{depart}(p) &= T_{arrival}(p) + T_{wait}(p) + v_p
-\end{align}
-Hệ thống thực hiện kiểm tra dây chuyền (Cascade Validation) với 3 điều kiện:
-\begin{enumerate}
-    \item $T_{depart}(p) \le O_{end}(p)$ (Kịp hoàn thành trước khi $p$ đóng cửa).
-    \item $T_{depart}(p) \le T_{end}$ (Không vi phạm thời lượng của toàn bộ ngày).
-    \item $T_{depart}(p) + \Delta T(p, k) \le T_{arrival}(k)$ (Không làm trễ lịch của điểm đến $k$ tiếp theo).
-\end{enumerate}
-Nếu thỏa mãn toàn bộ, điểm $p$ được nội suy vào chuỗi. Nếu thử mọi vị trí ở tất cả các ngày đều thất bại, $p$ bị loại hoàn toàn, được đưa vào danh sách \texttt{unscheduled} và trả về cho Frontend hiển thị thông báo "Không thể sắp xếp (Quá giờ/Quá xa)".
-
-\subsubsection{Tính toán khoảng cách}
-
-\textbf{Bước 1 --- Haversine Formula} (K-Means clustering):
-
+\textit{Kỹ thuật:} Trước tiên, hệ thống tra cứu địa điểm theo \texttt{placeIds}
+(UUID) từ cơ sở dữ liệu, lọc bỏ các địa điểm đóng cửa hoàn toàn trong toàn bộ
+hành trình. Các địa điểm còn lại được phân vào $D$ cụm (một cụm = một ngày)
+bằng thuật toán K-Means với khoảng cách Haversine:
 \[
-  d = 2r \arcsin\!\left(\sqrt{
-    \sin^2\!\left(\frac{\Delta\phi}{2}\right)
-    + \cos\phi_1\cos\phi_2\sin^2\!\left(\frac{\Delta\lambda}{2}\right)
-  }\right)
+  d = 2R \arcsin\!\sqrt{
+    \sin^2\!\tfrac{\Delta\phi}{2}
+    + \cos\phi_1\cos\phi_2\sin^2\!\tfrac{\Delta\lambda}{2}
+  }
 \]
-
-trong đó $\phi$ là vĩ độ, $\lambda$ là kinh độ, $r = 6{,}371\text{ km}$.
+Tâm cụm ban đầu được chọn theo \textbf{K-Means++} (xác suất tỉ lệ khoảng cách)
+kết hợp \textbf{Seeded PRNG} để đảm bảo cùng một bộ địa điểm luôn cho ra kết
+quả phân cụm như nhau. Sau K-Means, nếu một địa điểm rơi vào ngày mà nó đóng
+cửa, bước \texttt{postClusterOpenDaySwap} sẽ hoán đổi nó sang cụm phù hợp hơn
+--- mà không làm thay đổi chỉ số ngày của các cụm khác.
 
 \medskip
-\textbf{Bước 2 --- Goong Distance Matrix API} (Greedy Nearest Neighbor routing):
+\textit{Tình huống thực tế:} Với 5 địa điểm trên, thuật toán nhận thấy
+Văn Miếu nằm ở phía Đống Đa, cách xa 4 địa điểm còn lại ở Hoàn Kiếm. K-Means
+tự động tách Văn Miếu sang Ngày 2, còn Ngày 1 gom 4 địa điểm Hoàn Kiếm lại với
+nhau --- du khách không phải đi ngược từ Hoàn Kiếm sang Đống Đa rồi quay lại.
 
-Hệ thống sử dụng \textbf{Goong Distance Matrix API} để định tuyến chính xác thay vì khoảng cách đường chim bay. Đặc biệt, API này được cấu hình với tham số \texttt{vehicle=bike} để phản ánh đúng thời gian di chuyển bằng xe máy tại Hà Nội --- phương tiện di chuyển phổ biến nhất của du khách và người dân địa phương.
+% ── Giai đoạn 2 ─────────────────────────────────────────────────────────────
+\paragraph{Giai đoạn 2 --- Tính toán Cửa sổ Thời gian (\texttt{calculateVisitWindow})}
 
-Một request duy nhất trả về toàn bộ ma trận thời gian thực tế giữa $N$ địa điểm:
+\textit{Kỹ thuật:} Đây là hàm trung tâm, được gọi nhất quán ở mọi giai đoạn
+(GNN, cascade, conflict resolution). Với mỗi địa điểm $p$ và thời điểm dự kiến
+đến $T_{arrival}$, hàm tính:
+\begin{enumerate}
+  \item Điều chỉnh theo giờ mở cửa: $T_{visit} = \max(T_{arrival},\, O_{start})$.
+  \item \textbf{Multi-pass blocked windows:} Thu thập tất cả khoảng ``cấm''
+        (giờ nghỉ trưa chung $[L_{start}, L_{end}]$ và giờ nghỉ riêng của địa
+        điểm $[B_{start}, B_{end}]$ nếu có), sắp xếp theo thứ tự. Nếu khoảng
+        tham quan $[T_{visit},\, T_{visit}+v]$ chồng lên bất kỳ khoảng cấm nào,
+        đẩy $T_{visit}$ ra sau khoảng đó và kiểm tra lại từ đầu.
+  \item Kiểm tra hợp lệ: $T_{visit}+v \le \min(O_{end},\, T_{end})$. Nếu vi
+        phạm, trả về \texttt{null}.
+\end{enumerate}
 
-\begin{lstlisting}[language={}]
-GET https://rsapi.goong.io/DistanceMatrix?
-  origins=21.0285,105.8412|21.0277,105.8412
-  &destinations=21.0285,105.8412|21.0277,105.8412
-  &vehicle=bike
+\medskip
+\textit{Tình huống thực tế:} Du khách đến Cha Cá Lã Vọng lúc 10:43, tham quan
+60 phút. Khoảng $[10{:}43, 11{:}43]$ chồng vào giờ nghỉ trưa $[11{:}00, 13{:}00]$.
+Hàm phát hiện xung đột, đẩy $T_{visit}$ về 13:00 và kiểm tra lại --- không còn
+chồng chéo nào, trả về \textit{bắt đầu 13:00, kết thúc 14:00}. Cách xử lý
+multi-pass này đảm bảo dù địa điểm có thêm giờ nghỉ riêng buổi chiều, logic vẫn
+hoạt động đúng mà không cần thêm code đặc biệt.
 
-Response:
-  rows: [
-    { elements: [{ duration: { value: 0 } }, { duration: { value: 180 } }] },
-    { elements: [{ duration: { value: 180 } }, { duration: { value: 0 } }] }
-  ] -- giay
-\end{lstlisting}
+% ── Giai đoạn 3 ─────────────────────────────────────────────────────────────
+\paragraph{Giai đoạn 3 --- Định tuyến Tham lam có Ràng buộc Thời gian (Time-Window GNN)}
 
-\textbf{Dự phòng lỗi (Fallback \& Rate Limiting):}
+\textit{Kỹ thuật:} Trong mỗi cụm, hệ thống gọi \textbf{Goong Distance Matrix
+API} một lần duy nhất để lấy ma trận $N \times N$ thời gian di chuyển thực tế
+bằng xe máy giữa tất cả các cặp địa điểm. Ma trận này được lưu lại để tái sử
+dụng ở các giai đoạn sau. Thuật toán GNN sau đó chọn điểm tiếp theo theo hàm
+chi phí:
+\begin{equation}
+  Cost(j) = 2 \times \Delta T(i \to j) + T_{wait}(j) \times 60
+\end{equation}
+Hệ số $\times 2$ phạt nặng di chuyển xa hơn thời gian chờ, đồng thời phá thế
+cân bằng khi nhiều điểm cùng bị đẩy ra sau giờ nghỉ trưa (tất cả đều bắt đầu
+lúc 13:00 nhưng cách nhau về vị trí địa lý).
 
-Trong quá trình gọi API, nếu gặp lỗi giới hạn tốc độ (\texttt{OVER\_RATE\_LIMIT}), hệ thống áp dụng cơ chế \textbf{Exponential Backoff} (thử lại tối đa 3 lần với độ trễ tăng dần 1s $\to$ 2s $\to$ 4s). Nếu API key gặp sự cố hoặc cạn kiệt request sau các lần thử, hệ thống chuyển đổi mượt mà sang công thức Haversine (tốc độ giả định $15\text{ km/h}$) để đảm bảo trải nghiệm người dùng không bị gián đoạn.
+\medskip
+\textit{Tình huống thực tế:} Lúc 10:43 sau khi rời Cha Cá Lã Vọng, thuật toán
+so sánh hai ứng viên: Đền Bạch Mã (200 m, đến 10:44) và Ca Trù Thăng Long
+(1,2 km, đến 10:55). Cả hai đều bị đẩy sang 13:00 vì giờ nghỉ trưa, nên
+$T_{wait}$ bằng nhau. Khi đó $\Delta T \times 2$ phân biệt: Đền Bạch Mã có chi
+phí thấp hơn → chọn Đền Bạch Mã đi trước. Kết quả là Ca Trù được xếp ngay
+sau đó lúc 14:10, không cần đi ngược lại.
 
-\subsubsection{Đánh giá và Tinh chỉnh Thuật toán}
+% ── Giai đoạn 4 ─────────────────────────────────────────────────────────────
+\paragraph{Giai đoạn 4 --- Điều chỉnh GPS Thực tế (\texttt{cascadeRouteTimes})}
 
-Qua quá trình thử nghiệm, thuật toán cơ sở (Baseline) đã được phân tích và cải tiến (Refactor) đáng kể để khắc phục các hạn chế về logic và hiệu năng thực tế:
-
+\textit{Kỹ thuật:} GNN chạy trên giả định xuất phát từ 08:00 không có thời gian
+di chuyển ban đầu. Sau đó, nếu người dùng cung cấp tọa độ GPS, hàm
+\texttt{cascadeRouteTimes} áp dụng offset thực tế:
 \begin{itemize}
-  \item \textbf{Phân cụm không gian (K-Means++):} Thuật toán cũ khởi tạo tâm cụm (centroid) theo chỉ số mảng tuần tự, dẫn đến chất lượng phân cụm kém nếu dữ liệu từ Database không sắp xếp theo địa lý. Bản tinh chỉnh sử dụng thuật toán \textbf{K-Means++}, lựa chọn các tâm cụm theo xác suất khoảng cách để đảm bảo độ phân tán tối ưu.
-  \item \textbf{Giải quyết xung đột (Gap Insertion):} Thay vì chỉ cố gắng chèn các địa điểm bị rớt lịch vào \textit{cuối} ngày kèm thời gian di chuyển gán cứng (10 phút) như bản cũ, hệ thống mới tính toán thời gian di chuyển thực và quét qua toàn bộ các \textit{khoảng trống} (gap) giữa các điểm đã lên lịch. Việc này giúp tận dụng tối đa quỹ thời gian rảnh của du khách.
-  \item \textbf{Tối ưu luồng thời gian thực tế:} Thuật toán được bổ sung tham số cho phép cấu hình Giờ nghỉ trưa (Lunch Break, mặc định 11:00--13:00) và kiểm tra chặt chẽ \texttt{open\_days} ngay khi chọn điểm xuất phát đầu tiên, khắc phục lỗi thuật toán cũ đôi khi xếp lịch vào một điểm đang đóng cửa chỉ vì nó nằm gần nhất.
+  \item \textbf{Điểm đầu tiên:} Gọi Goong API để tính thời gian từ GPS người
+        dùng đến điểm đầu; toàn bộ lịch trình dịch chuyển theo.
+  \item \textbf{Các điểm tiếp theo:} Tái sử dụng \texttt{travelFromPrevSec} đã
+        lưu từ Goong matrix ở Giai đoạn 3 --- không tính lại bằng Haversine.
+  \item \textbf{Khi có drop:} Nếu một điểm vi phạm ràng buộc sau khi cascade,
+        nó bị loại và thời gian di chuyển của điểm kế tiếp được tính lại qua
+        Goong API (vì predecessor đã thay đổi).
 \end{itemize}
 
-Để làm rõ hơn, Bảng~\ref{tab:algorithm_optimization} dưới đây tóm tắt các điểm khác biệt cốt lõi giữa hai phiên bản thuật toán:
+\medskip
+\textit{Tình huống thực tế:} GNN ban đầu xếp Hồ Hoàn Kiếm lúc 08:00. Nhưng
+du khách đang đứng ở Nhà hát Lớn --- Goong API cho biết đi xe máy mất 18 phút.
+Cascade dịch toàn bộ lịch: Hồ Hoàn Kiếm dời thành 08:28. Điểm kế tiếp (Cha Cá
+Lã Vọng) dùng lại thời gian di chuyển đã biết từ ma trận (5 phút) → đến 09:43.
+Không có địa điểm nào vi phạm giờ đóng cửa sau khi dịch, nên không có drop.
+
+% ── Giai đoạn 5 ─────────────────────────────────────────────────────────────
+\paragraph{Giai đoạn 5 --- Giải quyết Xung đột (Gap Insertion)}
+
+\textit{Kỹ thuật:} Nếu sau GNN + cascade còn địa điểm chưa được xếp lịch (do
+cụm ngày đó quá chật), hệ thống thử chèn từng địa điểm đó vào mọi \textit{khe
+trống} (gap) của tất cả các ngày. Với mỗi vị trí chèn $k$ trong ngày $d$:
+\begin{align}
+  T_{arrival}(p) &= T_{depart}(k-1) + \Delta T(k-1, p) \\
+  T_{depart}(p)  &= \texttt{calculateVisitWindow}(p,\; T_{arrival}(p))\texttt{.departMin}
+\end{align}
+Điều kiện chèn thành công: (1) \texttt{calculateVisitWindow} trả về khác
+\texttt{null}, và (2) $T_{depart}(p) + \Delta T(p, k) \le T_{arrival}(k)$
+(không làm trễ điểm đứng sau). Nếu không tìm được vị trí nào trong toàn bộ
+hành trình, địa điểm đi vào \texttt{unscheduled[]} và Frontend hiển thị thông
+báo lý do.
+
+\medskip
+\textit{Tình huống thực tế:} Giả sử hệ thống không xếp được Văn Miếu vào Ngày
+2 vì cụm đó chỉ có 30 phút trống trước 18:00. Conflict Resolution quét Ngày 1:
+giữa Ca Trù (kết thúc 15:10) và hết ngày (18:00) còn 170 phút trống ---
+Văn Miếu chỉ cần 90 phút kể cả di chuyển. Hệ thống chèn vào và cập nhật tổng
+thống kê ngày. Du khách nhận được 5 địa điểm đủ trong 1 ngày thay vì bị báo
+``không thể xếp lịch''.
+
+\subsubsection{Tính toán Khoảng cách và API}
+
+Hệ thống sử dụng hai lớp khoảng cách với mục đích khác nhau:
+
+\begin{table}[H]
+\centering
+\renewcommand{\arraystretch}{1.3}
+\begin{tabular}{@{} p{0.18\textwidth} p{0.22\textwidth} p{0.50\textwidth} @{}}
+\toprule
+\textbf{Phương pháp} & \textbf{Dùng ở đâu} & \textbf{Lý do} \\
+\midrule
+Haversine & K-Means clustering & Chỉ cần khoảng cách tương đối để gom cụm địa lý, không cần chính xác theo đường phố. \\
+\addlinespace
+Goong Distance Matrix API (\texttt{vehicle=bike}) & GNN routing, GPS cascade & Cần thời gian di chuyển thực tế theo đường phố Hà Nội để lịch không sai lệch. \\
+\addlinespace
+Haversine (fallback) & Khi Goong API thất bại & Đảm bảo hệ thống không crash khi API quá tải. \\
+\bottomrule
+\end{tabular}
+\caption{Phân tầng khoảng cách trong Trip Planner}
+\end{table}
+
+\textbf{Xử lý giới hạn tốc độ API:} Khi nhận mã lỗi \texttt{OVER\_RATE\_LIMIT},
+hệ thống áp dụng \textbf{Exponential Backoff} --- thử lại 3 lần với độ trễ
+tăng dần 1s $\to$ 2s $\to$ 4s trước khi chuyển sang Haversine fallback.
+
+\subsubsection{Ví dụ Đầu vào / Đầu ra}
+
+\textit{Bối cảnh:} Du khách đang ở Nhà hát Lớn (21.0285, 105.8412), muốn thăm
+4 địa điểm tại Hoàn Kiếm trong ngày 13/05/2026, từ 08:00 đến 18:00.
+
+\begin{lstlisting}[language={}]
+-- INPUT --
+placeIds: ["uuid-hoan-kiem", "uuid-cha-ca", "uuid-bach-ma", "uuid-ca-tru"]
+numDays: 1, startTime: 480 (08:00), endTime: 1080 (18:00)
+travelDate: "2026-05-13", startLat: 21.0285, startLng: 105.8412
+
+-- OUTPUT --
+Ngay 1:
+  [18 phut tu GPS] -> Ho Hoan Kiem    08:28 - 09:28
+  [ 5 phut di chuyen]  Cha Ca La Vong 09:43 - 10:43
+  [Nghi trua 11:00 - 13:00]
+  [ 1 phut di chuyen]  Den Bach Ma   13:01 - 14:01
+  [ 8 phut di chuyen]  Ca Tru TL     14:10 - 15:10
+
+unscheduled: []   <-- tat ca deu duoc xep lich
+\end{lstlisting}
+
+\subsubsection{Đánh giá và Tinh chỉnh Thuật toán}
 
 \begin{table}[htbp]
 \centering
 \caption{Bảng so sánh tối ưu hoá thuật toán Trip Planner}
 \label{tab:algorithm_optimization}
 \renewcommand{\arraystretch}{1.4}
-\begin{tabular}{@{} p{0.22\textwidth} p{0.35\textwidth} p{0.35\textwidth} @{}}
+\begin{tabular}{@{} p{0.20\textwidth} p{0.36\textwidth} p{0.36\textwidth} @{}}
 \toprule
-\textbf{Thành phần} & \textbf{Phiên bản cơ sở (Baseline)} & \textbf{Phiên bản tinh chỉnh (Refactored)} \\ 
+\textbf{Thành phần} & \textbf{Phiên bản cơ sở (Baseline)} & \textbf{Phiên bản tinh chỉnh (Refactored)} \\
 \midrule
-\textbf{Khởi tạo K-Means} & Chọn tâm cụm theo chỉ số mảng tuần tự. Gom cụm kém nếu dữ liệu không có thứ tự. & Áp dụng \textbf{K-Means++} kết hợp \textbf{Seeded PRNG} tạo tính xác định (Deterministic). \\ 
+\textbf{Tra cứu địa điểm} & Tra cứu theo tên (\texttt{placeNames}). Lỗi nếu tên trùng hoặc đổi tên. & Tra cứu theo UUID (\texttt{placeIds}), hỗ trợ tên như fallback tương thích ngược. \\
 \addlinespace
-\textbf{Giải quyết xung đột} & Chỉ nối điểm rớt lịch vào \textit{cuối ngày}. Gán cứng thời gian di chuyển (10 phút). & Áp dụng \textbf{Gap Insertion}. Dùng khoảng cách thực, quét mọi khoảng trống (gap) giữa các điểm để chèn. \\ 
+\textbf{Khởi tạo K-Means} & Chọn tâm cụm theo chỉ số mảng tuần tự. Gom cụm kém nếu dữ liệu không có thứ tự địa lý. & Áp dụng \textbf{K-Means++} kết hợp \textbf{Seeded PRNG} tạo tính xác định (Deterministic). \\
 \addlinespace
-\textbf{Dự phòng Rate Limit} & Thử lại (retry) đúng 1 lần với thời gian chờ cố định 3 giây. & Áp dụng \textbf{Exponential Backoff} (3 lần thử: 1s $\to$ 2s $\to$ 4s), tăng độ ổn định của API. \\ 
+\textbf{Bảo toàn chỉ số cụm} & Lọc bỏ cụm rỗng sau clustering, gây lệch ánh xạ ngày-cụm. & Giữ nguyên cụm rỗng; vòng lặp scheduling bỏ qua ngày trống an toàn. \\
 \addlinespace
-\textbf{Ràng buộc thời gian} & Bỏ qua giờ nghỉ trưa. Dễ xếp lịch nhầm vào điểm đang đóng cửa do chỉ ưu tiên khoảng cách. & Tích hợp \textbf{Lunch Break} vào cả luồng GNN và Cascade Insertion. Bắt buộc kiểm tra \texttt{open\_days} cho điểm đầu tiên, fix lỗi \texttt{firstWait}. \\ 
+\textbf{Cửa sổ thời gian} & Xử lý giờ nghỉ rời rạc tại nhiều chỗ, dễ bỏ sót giờ nghỉ riêng của địa điểm. & Hàm \textbf{\texttt{calculateVisitWindow}} tập trung, multi-pass, kiểm tra \texttt{openTimeEnd} nhất quán. \\
 \addlinespace
-\textbf{Khởi tạo điểm xuất phát} & Tính khoảng cách điểm đầu tiên bằng công thức thuần Haversine. & Nâng cấp dùng \textbf{Goong API} để tìm điểm xuất phát thực tế, có Haversine dự phòng (fallback). \\
+\textbf{Cascade GPS} & Bỏ Goong matrix, tính lại travel times bằng Haversine --- kết quả sai (ví dụ: 1 phút cho 2 điểm cách nhau 500m theo đường phố). & Tái sử dụng \texttt{travelFromPrevSec} từ Goong matrix. Chỉ gọi API lại khi stop bị drop. \\
+\addlinespace
+\textbf{Giải quyết xung đột} & Chỉ nối điểm rớt lịch vào \textit{cuối ngày}. Gán cứng 10 phút di chuyển. & \textbf{Gap Insertion} quét mọi khoảng trống trong ngày, dùng thời gian thực tế. \\
+\addlinespace
+\textbf{Dự phòng Rate Limit} & Thử lại 1 lần, chờ 3 giây cố định. & \textbf{Exponential Backoff} 3 lần (1s $\to$ 2s $\to$ 4s). \\
 \bottomrule
 \end{tabular}
 \end{table}
 
-\subsubsection{Ví dụ đầu vào / đầu ra}
 
-\begin{lstlisting}[language={}]
-Input:
-  Dia diem: [Van Mieu, Ho Tay, Hoan Kiem, Bao tang HN, Lang Chu Tich]
-  So ngay: 2
-  Diem xuat phat: Hoan Kiem
-
-Output:
-  Ngay 1: Hoan Kiem (8:00) -> Bao tang HN (10:00) -> Van Mieu (14:00)
-  Ngay 2: Lang Chu Tich (8:00) -> Ho Tay (10:30)
-\end{lstlisting}
 
 % -------------------------------------------------------------------------
 \subsection{Activity \& Group Chat}

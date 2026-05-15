@@ -73,7 +73,7 @@ export default function TripsPage() {
     setShowConfigModal(false);
 
     try {
-      const selectedNames = places.map((l) => l.name);
+      const selectedIds = places.map((l) => l.id);
 
       const res = await fetch(
         `${process.env.NEXT_PUBLIC_ACTIONS_URL}/trips/generate-itinerary`,
@@ -81,7 +81,7 @@ export default function TripsPage() {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
-            placeNames: selectedNames,
+            placeIds: selectedIds,
             numDays: config.numDays,
             startTime: timeToMin(config.startTime),
             endTime: timeToMin(config.endTime),

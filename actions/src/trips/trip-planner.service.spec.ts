@@ -1,4 +1,5 @@
 import { Test, TestingModule } from '@nestjs/testing';
+import { BadRequestException } from '@nestjs/common';
 import { TripPlannerService } from './trip-planner.service';
 import { PrismaService } from '../prisma/prisma.service';
 
@@ -133,8 +134,8 @@ describe('TripPlannerService', () => {
     prismaService = module.get<PrismaService>(PrismaService);
 
     // Mock Prisma query để trả về mockPlaces
-    (prismaService.$queryRawUnsafe as jest.Mock).mockImplementation((query, names) => {
-      return Promise.resolve(mockPlaces.filter((p) => names.includes(p.name)));
+    (prismaService.$queryRawUnsafe as jest.Mock).mockImplementation((query, values) => {
+      return Promise.resolve(mockPlaces.filter((p) => values.includes(p.name) || values.includes(p.id)));
     });
   });
 
@@ -610,5 +611,142 @@ describe('TripPlannerService', () => {
       const departMin = depH * 60 + depM;
       expect(departMin).toBeLessThanOrEqual(1080);
     }
+  });
+
+  it('placeIds lookup uses explicit uuid array cast', async () => {
+    const uuid = '11111111-1111-1111-1111-111111111111';
+    (prismaService.$queryRawUnsafe as jest.Mock).mockResolvedValueOnce([
+      { ...mockPlaces[0], id: uuid },
+    ]);
+
+    await service.generateItinerary({
+      placeIds: [uuid],
+      numDays: 1,
+      startTime: 480,
+      endTime: 1080,
+      travelDate: '2026-05-01T00:00:00.000Z',
+      visitDurationMin: 60,
+    });
+
+    const [query, values] = (prismaService.$queryRawUnsafe as jest.Mock).mock.calls[0];
+    expect(query).toContain('id = ANY($1::uuid[])');
+    expect(values).toEqual([uuid]);
+  });
+
+  it('missing placeIds and placeNames throws BadRequestException', async () => {
+    await expect(service.generateItinerary({
+      numDays: 1,
+      startTime: 480,
+      endTime: 1080,
+      travelDate: '2026-05-01T00:00:00.000Z',
+      visitDurationMin: 60,
+    })).rejects.toBeInstanceOf(BadRequestException);
+  });
+
+  it('GPS-delayed stops are not reinserted with zero first-leg travel', async () => {
+    const farStartPlaces = [
+      { ...mockPlaces[0], id: 'gps1', name: 'GPS Far A', visit_duration_min: 60 },
+      { ...mockPlaces[1], id: 'gps2', name: 'GPS Far B', visit_duration_min: 60 },
+    ];
+    (prismaService.$queryRawUnsafe as jest.Mock).mockResolvedValueOnce(farStartPlaces);
+    jest.spyOn(service as any, 'getTravelToFirstStop').mockResolvedValue(11 * 3600);
+
+    const result = await service.generateItinerary({
+      placeNames: ['GPS Far A', 'GPS Far B'],
+      numDays: 1,
+      startTime: 480,
+      endTime: 1080,
+      travelDate: '2026-05-01T00:00:00.000Z',
+      visitDurationMin: 60,
+      startLat: 10,
+      startLng: 10,
+    });
+
+    const scheduled = result.days.flatMap(day => day.stops);
+    expect(scheduled).toHaveLength(0);
+    expect(result.unscheduled.length).toBe(2);
+  });
+
+  it('recalculates later stops after dropping a GPS-delayed middle stop', async () => {
+    const closesEarly = {
+      id: 'mid-drop',
+      name: 'Middle Closes Early',
+      category: 'MUSEUM',
+      district: 'Hoan Kiem',
+      lat: 21.0286,
+      lng: 105.8543,
+      image_url: null,
+      always_open: false,
+      open_days: [0, 1, 2, 3, 4, 5, 6],
+      open_time_start: '08:00:00',
+      open_time_end: '09:30:00',
+      has_break: false,
+      break_start: null,
+      break_end: null,
+      visit_duration_min: 30,
+    };
+    const routePlaces = [
+      { ...mockPlaces[0], id: 'route-a', name: 'Route A', lat: 21.0285, lng: 105.8542, visit_duration_min: 30 },
+      closesEarly,
+      { ...mockPlaces[1], id: 'route-c', name: 'Route C', lat: 21.0287, lng: 105.8544, visit_duration_min: 30 },
+    ];
+    (prismaService.$queryRawUnsafe as jest.Mock).mockResolvedValueOnce(routePlaces);
+    jest.spyOn(service as any, 'getTravelToFirstStop').mockResolvedValue(60 * 60);
+
+    const result = await service.generateItinerary({
+      placeNames: ['Route A', 'Middle Closes Early', 'Route C'],
+      numDays: 1,
+      startTime: 480,
+      endTime: 1080,
+      travelDate: '2026-05-01T00:00:00.000Z',
+      visitDurationMin: 30,
+      startLat: 21.0284,
+      startLng: 105.8541,
+      lunchBreakStart: 720,
+      lunchBreakEnd: 750,
+    });
+
+    const stops = result.days[0].stops;
+    expect(stops.map(s => s.name)).not.toContain('Middle Closes Early');
+    expect(stops.map(s => s.name)).toEqual(expect.arrayContaining(['Route A', 'Route C']));
+    const routeA = stops.find(s => s.name === 'Route A')!;
+    const routeC = stops.find(s => s.name === 'Route C')!;
+    const [aDepH, aDepM] = routeA.departAt.split(':').map(Number);
+    const [cArrH, cArrM] = routeC.arriveAt.split(':').map(Number);
+    expect(cArrH * 60 + cArrM).toBeGreaterThanOrEqual(aDepH * 60 + aDepM);
+  });
+
+  it('pushes visits that overlap a place-specific break until after the break', async () => {
+    const breakPlace = {
+      id: 'break-overlap',
+      name: 'Break Overlap Place',
+      category: 'MUSEUM',
+      district: 'Hoan Kiem',
+      lat: 21.0285,
+      lng: 105.8542,
+      image_url: null,
+      always_open: false,
+      open_days: [0, 1, 2, 3, 4, 5, 6],
+      open_time_start: '08:00:00',
+      open_time_end: '18:00:00',
+      has_break: true,
+      break_start: '11:00:00',
+      break_end: '13:00:00',
+      visit_duration_min: 90,
+    };
+    (prismaService.$queryRawUnsafe as jest.Mock).mockResolvedValueOnce([breakPlace]);
+
+    const result = await service.generateItinerary({
+      placeNames: ['Break Overlap Place'],
+      numDays: 1,
+      startTime: 630,
+      endTime: 1080,
+      travelDate: '2026-05-01T00:00:00.000Z',
+      visitDurationMin: 90,
+      lunchBreakStart: 720,
+      lunchBreakEnd: 720,
+    });
+
+    expect(result.days[0].stops[0].departAt).toBe('14:30');
   });
 });

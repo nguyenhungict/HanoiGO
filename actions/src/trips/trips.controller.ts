@@ -1,6 +1,6 @@
 import { Controller, Post, Body } from '@nestjs/common';
 import { TripPlannerService } from './trip-planner.service';
-import type { GenerateItineraryDto } from './trip-planner.service';
+import type { GenerateItineraryDto } from './trip-planner.types';
 
 @Controller('trips')
 export class TripsController {
