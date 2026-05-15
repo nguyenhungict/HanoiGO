@@ -1,4 +1,8 @@
-import { Injectable, NotFoundException, BadRequestException } from '@nestjs/common';
+import {
+  Injectable,
+  NotFoundException,
+  BadRequestException,
+} from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
 import { ViolationType, ReportStatus, Role, UserStatus } from '@prisma/client';
 import * as bcrypt from 'bcrypt';
@@ -98,7 +102,13 @@ export class AdminService {
 
     const placeDetails = await this.prisma.place.findMany({
       where: { id: { in: popular.map((p) => p.placeId) } },
-      select: { id: true, name: true, category: true, district: true, imageUrl: true },
+      select: {
+        id: true,
+        name: true,
+        category: true,
+        district: true,
+        imageUrl: true,
+      },
     });
 
     return popular.map((p) => {
@@ -115,7 +125,12 @@ export class AdminService {
   }
 
   // ── User Listing (Paginated + Search) ──────────────────────────────
-  async getUsers(page = 1, limit = 10, search?: string, statusFilter?: UserStatus) {
+  async getUsers(
+    page = 1,
+    limit = 10,
+    search?: string,
+    statusFilter?: UserStatus,
+  ) {
     const skip = (page - 1) * limit;
 
     const where: any = {};
@@ -168,20 +183,23 @@ export class AdminService {
     reason: ViolationType,
     description?: string,
   ) {
-    if (!adminId) throw new BadRequestException('Admin identity not found in request');
+    if (!adminId)
+      throw new BadRequestException('Admin identity not found in request');
 
     const user = await this.prisma.user.findUnique({ where: { id: userId } });
     if (!user) throw new NotFoundException('User not found');
-    
+
     if (user.role === Role.ADMIN)
       throw new BadRequestException('Cannot ban an administrative account');
-    
+
     if (user.status === UserStatus.BANNED)
       throw new BadRequestException('User is already in suspended state');
 
     try {
-      console.log(`[AdminService] Attempting to ban UserID: ${userId} by AdminID: ${adminId}`);
-      
+      console.log(
+        `[AdminService] Attempting to ban UserID: ${userId} by AdminID: ${adminId}`,
+      );
+
       await this.prisma.$transaction(async (tx) => {
         // 1. Update status
         const updatedUser = await tx.user.update({
@@ -192,7 +210,9 @@ export class AdminService {
           },
         });
 
-        console.log(`[AdminService] Update step DONE. User: ${updatedUser.username}, Status in DB: ${updatedUser.status}`);
+        console.log(
+          `[AdminService] Update step DONE. User: ${updatedUser.username}, Status in DB: ${updatedUser.status}`,
+        );
 
         // 2. Create ban report record
         await tx.report.create({
@@ -200,7 +220,8 @@ export class AdminService {
             reporterId: adminId,
             targetId: userId,
             reason,
-            description: description || `Account suspended by admin for ${reason}`,
+            description:
+              description || `Account suspended by admin for ${reason}`,
             status: ReportStatus.RESOLVED,
             resolvedAt: new Date(),
           },
@@ -212,11 +233,11 @@ export class AdminService {
             adminId,
             action: 'BAN_USER',
             targetId: userId,
-            details: JSON.stringify({ 
-              reason, 
+            details: JSON.stringify({
+              reason,
               description,
               targetId: userId,
-              timestamp: new Date().toISOString()
+              timestamp: new Date().toISOString(),
             }),
           },
         });
@@ -236,7 +257,7 @@ export class AdminService {
 
     const user = await this.prisma.user.findUnique({ where: { id: userId } });
     if (!user) throw new NotFoundException('User not found');
-    
+
     if (user.status !== UserStatus.BANNED)
       throw new BadRequestException('User account is currently active');
 
@@ -254,9 +275,9 @@ export class AdminService {
             adminId,
             action: 'UNBAN_USER',
             targetId: userId,
-            details: JSON.stringify({ 
+            details: JSON.stringify({
               action: 'RESTORE_ACCESS',
-              timestamp: new Date().toISOString() 
+              timestamp: new Date().toISOString(),
             }),
           },
         });
@@ -335,11 +356,11 @@ export class AdminService {
 
   async createPlace(dto: CreatePlaceDto) {
     const wkt = `SRID=4326;POINT(${dto.lng} ${dto.lat})`;
-    
+
     // We use executeRaw for the geometry field because Prisma doesn't support it directly
-    // But first we create the record without the geometry to get an ID if needed, 
+    // But first we create the record without the geometry to get an ID if needed,
     // or just use executeRaw for the whole thing like the seed script.
-    
+
     try {
       const id = crypto.randomUUID();
       await this.prisma.$executeRawUnsafe(
@@ -366,7 +387,8 @@ export class AdminService {
 
       return this.prisma.place.findUnique({ where: { id } });
     } catch (error) {
-      if (error.code === 'P2002') throw new BadRequestException('Place with this name already exists');
+      if (error.code === 'P2002')
+        throw new BadRequestException('Place with this name already exists');
       throw error;
     }
   }
@@ -379,8 +401,10 @@ export class AdminService {
     delete updateData.lat;
     delete updateData.lng;
 
-    if (dto.openTimeStart) updateData.openTimeStart = this.parseTime(dto.openTimeStart);
-    if (dto.openTimeEnd) updateData.openTimeEnd = this.parseTime(dto.openTimeEnd);
+    if (dto.openTimeStart)
+      updateData.openTimeStart = this.parseTime(dto.openTimeStart);
+    if (dto.openTimeEnd)
+      updateData.openTimeEnd = this.parseTime(dto.openTimeEnd);
 
     await this.prisma.place.update({
       where: { id },
@@ -391,13 +415,13 @@ export class AdminService {
       const newLat = dto.lat ?? place.lat;
       const newLng = dto.lng ?? place.lng;
       const wkt = `SRID=4326;POINT(${newLng} ${newLat})`;
-      
+
       await this.prisma.$executeRawUnsafe(
         `UPDATE places SET lat = $1, lng = $2, location = ST_GeomFromEWKT($3) WHERE id = $4::uuid`,
         newLat,
         newLng,
         wkt,
-        id
+        id,
       );
     }
 
@@ -416,9 +440,10 @@ export class AdminService {
   // ── User Creation ──────────────────────────────────────────────────
   async createUser(dto: CreateUserDto) {
     const existing = await this.prisma.user.findFirst({
-      where: { OR: [{ email: dto.email }, { username: dto.username }] }
+      where: { OR: [{ email: dto.email }, { username: dto.username }] },
     });
-    if (existing) throw new BadRequestException('Username or email already exists');
+    if (existing)
+      throw new BadRequestException('Username or email already exists');
 
     const passwordHash = await bcrypt.hash(dto.password, 10);
 
@@ -438,13 +463,13 @@ export class AdminService {
         role: true,
         status: true,
         createdAt: true,
-      }
+      },
     });
   }
   async deleteUser(userId: string) {
     const user = await this.prisma.user.findUnique({ where: { id: userId } });
     if (!user) throw new NotFoundException('User not found');
-    
+
     if (user.role === Role.ADMIN)
       throw new BadRequestException('Cannot delete an administrative account');
 
@@ -453,16 +478,13 @@ export class AdminService {
         // Delete reports against this user or by this user
         await tx.report.deleteMany({
           where: {
-            OR: [
-              { targetId: userId },
-              { reporterId: userId }
-            ]
-          }
+            OR: [{ targetId: userId }, { reporterId: userId }],
+          },
         });
 
         // Delete admin logs targeting this user (targetId is a string, not uuid relation)
         await tx.adminLog.deleteMany({
-          where: { targetId: userId }
+          where: { targetId: userId },
         });
 
         // Finally delete the user

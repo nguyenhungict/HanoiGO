@@ -6,7 +6,8 @@ import { PrismaModule } from './prisma/prisma.module';
 import { PlacesModule } from './places/places.module';
 import { TripsModule } from './trips/trips.module';
 import { ActivitiesModule } from './activities/activities.module';
-import { ChatModule } from './chat/chat.module';
+import { AiChatModule } from './ai-chat/ai-chat.module';
+import { GroupChatModule } from './group-chat/group-chat.module';
 import { AdminModule } from './admin/admin.module';
 import { MediaModule } from './media/media.module';
 import { APP_GUARD } from '@nestjs/core';
@@ -21,7 +22,8 @@ import { RolesGuard } from './common/guards/roles.guard';
     PlacesModule,
     TripsModule,
     ActivitiesModule,
-    ChatModule,
+    AiChatModule,
+    GroupChatModule,
     AdminModule,
     MediaModule,
   ],

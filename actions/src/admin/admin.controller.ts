@@ -73,7 +73,12 @@ export class AdminController {
     @Body() body: BanUserDto,
     @Request() req: any,
   ) {
-    return this.adminService.banUser(req.user.id, userId, body.reason, body.description);
+    return this.adminService.banUser(
+      req.user.id,
+      userId,
+      body.reason,
+      body.description,
+    );
   }
 
   @Patch('users/:id/unban')

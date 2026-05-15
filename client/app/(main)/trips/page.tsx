@@ -1,9 +1,13 @@
 'use client';
 
-import React, { useState, useMemo, useCallback } from 'react';
+import React, { useState, useMemo, useCallback, useEffect } from 'react';
 import dynamic from 'next/dynamic';
 import Link from 'next/link';
-import { useTripStore, type Landmark } from '@/store/useTripStore';
+import { useTripStore } from '@/store/useTripStore';
+import { useAuthStore } from '@/store/useAuthStore';
+import { useNotification } from '@/hooks/use-notification';
+import { useConfirm } from '@/hooks/use-confirm';
+import { Trash2, Map as MapIcon, Clock, Calendar, CheckCircle2, AlertCircle } from 'lucide-react';
 
 const TripMap = dynamic(() => import('@/components/map/DiscoveryMap'), {
   ssr: false,
@@ -45,6 +49,16 @@ interface ItineraryResult {
   unscheduled: { name: string; reason: string }[];
 }
 
+interface SavedTrip {
+  id: string;
+  title: string;
+  numDays: number;
+  tripDays: Array<{
+    dayNumber: number;
+    tripStops: unknown[];
+  }>;
+}
+
 export default function TripsPage() {
   const selectedPlaces = useTripStore((s) => s.selectedPlaces);
   const removePlace = useTripStore((s) => s.removePlace);
@@ -61,6 +75,171 @@ export default function TripsPage() {
   const [itinerary, setItinerary] = useState<ItineraryResult | null>(null);
   const [activeDayTab, setActiveDayTab] = useState(1);
   const [userLocation, setUserLocation] = useState<[number, number] | null>(null);
+
+  const { token } = useAuthStore();
+  const [savedTrips, setSavedTrips] = useState<SavedTrip[]>([]);
+  const [viewMode, setViewMode] = useState<'create' | 'saved'>('create');
+  const [showSaveModal, setShowSaveModal] = useState(false);
+  const [tripTitle, setTripTitle] = useState('');
+  const [isSaving, setIsSaving] = useState(false);
+  const { show } = useNotification();
+  const { confirm } = useConfirm();
+
+  const fetchSavedTrips = useCallback(async () => {
+    if (!token) return;
+    try {
+      const res = await fetch(`${process.env.NEXT_PUBLIC_ACTIONS_URL}/trips/my-trips`, {
+        headers: { Authorization: `Bearer ${token}` }
+      });
+      if (res.ok) {
+        const data = await res.json();
+        setSavedTrips(data);
+      }
+    } catch (e) {
+      console.error(e);
+    }
+  }, [token]);
+
+  useEffect(() => {
+    fetchSavedTrips();
+  }, [fetchSavedTrips]);
+
+  const handleSaveTrip = async () => {
+    if (!itinerary || !token) return;
+    setIsSaving(true);
+    try {
+      const payload = {
+        title: tripTitle || `My Trip to Hanoi - ${config.travelDate}`,
+        numDays: config.numDays,
+        startPlaceId: itinerary.days[0]?.stops[0]?.placeId,
+        days: itinerary.days.map((day) => ({
+          dayNumber: day.dayNumber,
+          district: day.stops[0]?.district || day.stops.find(s => s.district)?.district || 'Hanoi',
+          stops: day.stops.map((stop) => ({
+            placeId: stop.placeId,
+            stopOrder: stop.order,
+            arriveAt: stop.arriveAt,
+            departAt: stop.departAt,
+            distanceFromPrevM: 0,
+            durationFromPrevS: stop.travelFromPrevMin * 60,
+            isSkipped: false,
+          })),
+        })),
+      };
+
+      const res = await fetch(`${process.env.NEXT_PUBLIC_ACTIONS_URL}/trips/save`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${token}`,
+        },
+        body: JSON.stringify(payload),
+      });
+
+      if (res.ok) {
+        show({
+          type: 'success',
+          title: 'Success',
+          message: 'Your itinerary has been saved!',
+        });
+        setShowSaveModal(false);
+        fetchSavedTrips();
+      } else {
+        show({
+          type: 'error',
+          title: 'Error',
+          message: 'Could not save itinerary at this time.',
+        });
+      }
+    } catch (e) {
+      console.error(e);
+      show({
+        type: 'error',
+        title: 'Connection Error',
+        message: 'Please check your network connection.',
+      });
+    } finally {
+      setIsSaving(false);
+    }
+  };
+
+  const handleViewSavedTrip = (trip: any) => {
+    const formattedItinerary: ItineraryResult = {
+      days: trip.tripDays.map((day: any, i: number) => ({
+        dayNumber: day.dayNumber,
+        dayOfWeek: 0,
+        dayLabel: `Day ${day.dayNumber}`,
+        color: ['#3b82f6', '#ef4444', '#10b981', '#f59e0b', '#8b5cf6', '#ec4899', '#14b8a6'][i % 7],
+        totalTravelMin: Math.round(
+          day.tripStops.reduce((sum: number, stop: any) => sum + (stop.durationFromPrevS || 0) / 60, 0)
+        ),
+        freeTimeMin: 0,
+        stops: day.tripStops.map((stop: any) => {
+          // Extract HH:mm from ISO string (e.g., 1970-01-01T08:30:00.000Z)
+          const formatDbTime = (timeStr: string) => {
+            if (!timeStr) return '00:00';
+            const date = new Date(timeStr);
+            return `${date.getUTCHours().toString().padStart(2, '0')}:${date.getUTCMinutes().toString().padStart(2, '0')}`;
+          };
+
+          return {
+            placeId: stop.placeId,
+            name: stop.place?.name || 'Unknown',
+            category: stop.place?.category || 'PLACE',
+            district: stop.place?.district || '',
+            lat: stop.place?.lat || 0,
+            lng: stop.place?.lng || 0,
+            arriveAt: formatDbTime(stop.arriveAt),
+            departAt: formatDbTime(stop.departAt),
+            travelFromPrevMin: Math.round((stop.durationFromPrevS || 0) / 60),
+            waitMin: 0,
+            order: stop.stopOrder,
+          };
+        }),
+      })),
+      infeasible: [],
+      unscheduled: [],
+    };
+
+    setItinerary(formattedItinerary);
+    setActiveDayTab(1);
+    setViewMode('create');
+  };
+
+  const handleDeleteTrip = async (e: React.MouseEvent, tripId: string) => {
+    e.stopPropagation();
+    if (!token) return;
+    
+    const isConfirmed = await confirm({
+      title: 'Delete Itinerary',
+      message: 'Are you sure you want to delete this itinerary? This action cannot be undone.',
+      confirmText: 'Delete Now',
+      cancelText: 'Cancel',
+      type: 'danger'
+    });
+
+    if (!isConfirmed) return;
+
+    try {
+      const res = await fetch(`${process.env.NEXT_PUBLIC_ACTIONS_URL}/trips/${tripId}`, {
+        method: 'DELETE',
+        headers: { Authorization: `Bearer ${token}` }
+      });
+      if (res.ok) {
+        show({
+          type: 'success',
+          title: 'Deleted',
+          message: 'The itinerary has been removed.',
+        });
+        fetchSavedTrips();
+        if (itinerary) setItinerary(null);
+      } else {
+        show({ type: 'error', title: 'Error', message: 'Could not delete itinerary.' });
+      }
+    } catch (e) {
+      console.error(e);
+    }
+  };
 
   const timeToMin = (t: string) => {
     const [h, m] = t.split(':').map(Number);
@@ -263,9 +442,9 @@ export default function TripsPage() {
                             <div className="flex-1 pb-4">
                               <div className="bg-amber-50/50 border border-amber-500/20 p-4 rounded-2xl flex items-center justify-between">
                                 <div>
-                                  <h3 className="font-black text-sm text-amber-900 tracking-tight">Nghỉ trưa & Tự do</h3>
+                                  <h3 className="font-black text-sm text-amber-900 tracking-tight">Lunch Break & Leisure</h3>
                                   <p className="text-[10px] text-amber-700/70 font-bold uppercase tracking-wider mt-0.5">
-                                    Thưởng thức ẩm thực Hà Nội
+                                    Enjoy Hanoi cuisine
                                   </p>
                                 </div>
                                 <span className="px-2.5 py-1 bg-amber-500/10 text-amber-700 text-[9px] font-black rounded-lg uppercase tracking-wider">
@@ -303,11 +482,11 @@ export default function TripsPage() {
                                 <span className="material-symbols-outlined text-[14px]">
                                   two_wheeler
                                 </span>
-                                {stop.travelFromPrevMin} phút di chuyển
+                                {stop.travelFromPrevMin} min travel
                                 {displayWait > 0 && (
                                   <span className="text-amber-600">
                                     {' '}
-                                    • ⏳ chờ {displayWait}p
+                                    • ⏳ wait {displayWait}m
                                   </span>
                                 )}
                               </div>
@@ -342,7 +521,7 @@ export default function TripsPage() {
                   {(itinerary.infeasible?.length ?? 0) > 0 && (
                     <div className="space-y-1">
                       <div className="text-[10px] font-black text-amber-700 uppercase tracking-widest">
-                        Không khả dụng (Đóng cửa)
+                        Infeasible (Closed)
                       </div>
                       {itinerary.infeasible?.map((i) => (
                         <p
@@ -358,7 +537,7 @@ export default function TripsPage() {
                   {(itinerary.unscheduled?.length ?? 0) > 0 && (
                     <div className="space-y-1">
                       <div className="text-[10px] font-black text-amber-700 uppercase tracking-widest">
-                        Không thể sắp xếp (Quá giờ/Quá xa)
+                        Unscheduled (Time/Distance)
                       </div>
                       {itinerary.unscheduled?.map((i) => (
                         <p
@@ -376,7 +555,8 @@ export default function TripsPage() {
           ) : (
             /* ═══ SELECTION VIEW ═══ */
             <>
-              <div className="space-y-2">
+              {/* Header */}
+              <div className="space-y-2 mb-4">
                 <h1 className="text-xl font-black tracking-tight text-on-surface">
                   Trip Planner
                 </h1>
@@ -385,7 +565,98 @@ export default function TripsPage() {
                 </p>
               </div>
 
-              {count === 0 ? (
+              {/* Tabs */}
+              <div className="flex bg-surface-container-high rounded-xl p-1 mb-6">
+                <button
+                  onClick={() => setViewMode('create')}
+                  className={`flex-1 py-2 text-[10px] font-black uppercase tracking-widest rounded-lg transition-all ${
+                    viewMode === 'create'
+                      ? 'bg-white shadow-sm text-on-surface'
+                      : 'text-outline hover:text-on-surface'
+                  }`}
+                >
+                  New Trip
+                </button>
+                <button
+                  onClick={() => setViewMode('saved')}
+                  className={`flex-1 py-2 text-[10px] font-black uppercase tracking-widest rounded-lg transition-all flex items-center justify-center gap-1.5 ${
+                    viewMode === 'saved'
+                      ? 'bg-white shadow-sm text-on-surface'
+                      : 'text-outline hover:text-on-surface'
+                  }`}
+                >
+                  Saved
+                  <span className="bg-primary/10 text-primary px-1.5 py-0.5 rounded text-[8px]">
+                    {savedTrips.length}
+                  </span>
+                </button>
+              </div>
+
+              {viewMode === 'saved' ? (
+                /* Saved Trips List */
+                savedTrips.length === 0 ? (
+                  <div className="flex flex-col items-center justify-center text-center py-16 space-y-4">
+                    <div className="w-16 h-16 rounded-2xl bg-secondary-container/50 flex items-center justify-center">
+                      <span className="material-symbols-outlined text-3xl text-primary/40">
+                        bookmark_border
+                      </span>
+                    </div>
+                    <div className="space-y-1 max-w-[200px]">
+                      <h2 className="text-base font-black tracking-tight text-on-surface">
+                        No saved itineraries
+                      </h2>
+                      <p className="text-xs text-outline font-medium">
+                        You haven't saved any itineraries yet. Create one and save it!
+                      </p>
+                    </div>
+                  </div>
+                ) : (
+                  <div className="space-y-3">
+                    {savedTrips.map((trip) => (
+                      <div
+                        key={trip.id}
+                        onClick={() => handleViewSavedTrip(trip)}
+                        className="bg-surface-container-lowest border border-outline/5 p-4 rounded-2xl shadow-sm hover:border-primary/20 hover:shadow-lg transition-all cursor-pointer group relative"
+                      >
+                        <div className="flex justify-between items-start mb-1">
+                          <h3 className="font-black text-sm text-on-surface">
+                            {trip.title}
+                          </h3>
+                          <button
+                            onClick={(e) => handleDeleteTrip(e, trip.id)}
+                            className="p-1.5 text-outline hover:text-error hover:bg-error/10 rounded-lg transition-all opacity-0 group-hover:opacity-100"
+                          >
+                            <Trash2 size={14} />
+                          </button>
+                        </div>
+                        <div className="text-[10px] font-bold text-outline flex items-center gap-2 uppercase tracking-wider mb-3">
+                          <span>{trip.numDays} days</span>
+                          <span>•</span>
+                          <span>
+                            {trip.tripDays?.reduce(
+                              (sum: number, day) =>
+                                sum + (day.tripStops?.length || 0),
+                              0
+                            )}{' '}
+                            places
+                          </span>
+                        </div>
+                        <div className="flex items-center gap-2 mt-4">
+                          <button 
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              handleViewSavedTrip(trip);
+                            }}
+                            className="flex-1 py-2 bg-primary/5 text-primary rounded-xl text-[10px] font-black uppercase tracking-widest group-hover:bg-primary group-hover:text-white transition-all"
+                          >
+                            View Details
+                          </button>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                )
+              ) : count === 0 ? (
                 /* Empty State */
                 <div className="flex flex-col items-center justify-center text-center py-16 space-y-6">
                   <div className="w-24 h-24 rounded-[2rem] bg-secondary-container/50 flex items-center justify-center">
@@ -395,10 +666,10 @@ export default function TripsPage() {
                   </div>
                   <div className="space-y-2 max-w-xs">
                     <h2 className="text-xl font-black tracking-tight text-on-surface">
-                      Chưa có địa điểm nào
+                      No places selected
                     </h2>
                     <p className="text-sm text-outline font-medium leading-relaxed">
-                      Khám phá bản đồ Discovery và bấm ❤️ để lưu các địa điểm bạn muốn ghé thăm.
+                      Explore the Discovery map and click ❤️ to save places you want to visit.
                     </p>
                   </div>
                   <Link
@@ -406,7 +677,7 @@ export default function TripsPage() {
                     className="bg-primary text-white px-8 py-3.5 rounded-2xl font-black text-[10px] uppercase tracking-widest shadow-lg shadow-primary/20 hover:scale-[1.02] active:scale-[0.98] transition-all flex items-center gap-2"
                   >
                     <span className="material-symbols-outlined text-sm">explore</span>
-                    Khám phá ngay
+                    Explore Now
                   </Link>
                 </div>
               ) : (
@@ -414,13 +685,13 @@ export default function TripsPage() {
                 <>
                   <div className="flex items-center justify-between">
                     <label className="font-label text-[10px] font-black uppercase tracking-widest text-outline">
-                      {count} địa điểm đã chọn
+                      {count} selected places
                     </label>
                     <button
                       onClick={clearPlaces}
                       className="text-[10px] font-black text-outline/50 hover:text-red-500 uppercase tracking-widest transition-colors"
                     >
-                      Xóa tất cả
+                      Clear All
                     </button>
                   </div>
 
@@ -448,7 +719,7 @@ export default function TripsPage() {
                         <button
                           onClick={() => removePlace(place.id)}
                           className="w-8 h-8 rounded-full flex items-center justify-center text-outline/30 hover:text-red-500 hover:bg-red-50 transition-all opacity-0 group-hover:opacity-100"
-                          title="Xóa"
+                          title="Remove"
                         >
                           <span className="material-symbols-outlined text-[16px]">
                             close
@@ -471,18 +742,25 @@ export default function TripsPage() {
               className="w-full py-4 bg-primary text-white rounded-2xl font-black shadow-lg shadow-primary/20 hover:scale-[1.01] active:scale-[0.99] transition-all uppercase tracking-widest text-[10px] flex items-center justify-center gap-2"
             >
               <span className="material-symbols-outlined text-lg">auto_awesome</span>
-              Cấu hình & tạo lịch trình
+              Configure & Generate Itinerary
             </button>
           </div>
         )}
 
         {itinerary && (
-          <div className="p-6 bg-surface-container-low border-t border-outline/10">
+          <div className="p-6 bg-surface-container-low border-t border-outline/10 flex gap-2">
             <button
               onClick={handleReset}
-              className="w-full py-4 bg-outline/10 text-on-surface rounded-2xl font-black hover:bg-outline/20 transition-all uppercase tracking-widest text-[10px]"
+              className="flex-1 py-4 bg-outline/10 text-on-surface rounded-2xl font-black hover:bg-outline/20 transition-all uppercase tracking-widest text-[10px]"
             >
-              Tạo lịch trình mới
+              New Trip
+            </button>
+            <button
+              onClick={() => setShowSaveModal(true)}
+              className="flex-[2] py-4 bg-primary text-white rounded-2xl font-black shadow-lg shadow-primary/20 hover:scale-[1.01] active:scale-[0.99] transition-all uppercase tracking-widest text-[10px] flex items-center justify-center gap-2"
+            >
+              <span className="material-symbols-outlined text-lg">save</span>
+              Save Itinerary
             </button>
           </div>
         )}
@@ -502,10 +780,10 @@ export default function TripsPage() {
             <div className="bg-white/90 backdrop-blur-xl px-6 py-5 rounded-3xl shadow-2xl text-center space-y-2 max-w-[280px]">
               <span className="material-symbols-outlined text-4xl text-primary/30">map</span>
               <p className="text-sm font-black text-on-surface tracking-tight">
-                Bản đồ lịch trình
+                Itinerary Map
               </p>
               <p className="text-[10px] font-bold text-outline uppercase tracking-widest">
-                Các điểm đã chọn sẽ hiển thị tại đây
+                Selected points will appear here
               </p>
             </div>
           </div>
@@ -518,17 +796,17 @@ export default function TripsPage() {
           <div className="bg-white rounded-3xl w-full max-w-md p-6 shadow-2xl space-y-5 animate-in zoom-in-95 duration-300">
             <div className="space-y-0.5">
               <h2 className="text-xl font-black tracking-tight text-on-surface">
-                Cấu hình chuyến đi
+                Trip Configuration
               </h2>
               <p className="text-[10px] font-black text-outline uppercase tracking-widest">
-                {count} địa điểm đã chọn
+                {count} selected places
               </p>
             </div>
 
             {/* Number of days */}
             <div className="space-y-2">
               <label className="text-[10px] font-black text-outline uppercase tracking-widest block">
-                Số ngày
+                Number of days
               </label>
               <div className="flex gap-2">
                 {[1, 2, 3, 4, 5].map((n) => (
@@ -551,7 +829,7 @@ export default function TripsPage() {
             {/* Travel date */}
             <div className="space-y-2">
               <label className="text-[10px] font-black text-outline uppercase tracking-widest block">
-                Ngày bắt đầu
+                Start Date
               </label>
               <input
                 type="date"
@@ -565,7 +843,7 @@ export default function TripsPage() {
             <div className="grid grid-cols-2 gap-4">
               <div className="space-y-2">
                 <label className="text-[10px] font-black text-outline uppercase tracking-widest block">
-                  Bắt đầu
+                  Start Time
                 </label>
                 <input
                   type="time"
@@ -576,7 +854,7 @@ export default function TripsPage() {
               </div>
               <div className="space-y-2">
                 <label className="text-[10px] font-black text-outline uppercase tracking-widest block">
-                  Kết thúc
+                  End Time
                 </label>
                 <input
                   type="time"
@@ -591,7 +869,7 @@ export default function TripsPage() {
             <div className="grid grid-cols-2 gap-4">
               <div className="space-y-2">
                 <label className="text-[10px] font-black text-outline uppercase tracking-widest block">
-                  Nghỉ trưa từ
+                  Lunch break from
                 </label>
                 <input
                   type="time"
@@ -602,7 +880,7 @@ export default function TripsPage() {
               </div>
               <div className="space-y-2">
                 <label className="text-[10px] font-black text-outline uppercase tracking-widest block">
-                  Đến
+                  to
                 </label>
                 <input
                   type="time"
@@ -616,8 +894,8 @@ export default function TripsPage() {
             {/* Visit duration */}
             <div className="space-y-2">
               <label className="text-[10px] font-black text-outline uppercase tracking-widest block">
-                Thời gian tham quan mỗi điểm:{' '}
-                <span className="text-primary">{config.visitDuration} phút</span>
+                Visit duration per place:{' '}
+                <span className="text-primary">{config.visitDuration} mins</span>
               </label>
               <input
                 type="range"
@@ -631,8 +909,8 @@ export default function TripsPage() {
                 className="w-full accent-primary"
               />
               <div className="flex justify-between text-[9px] font-bold text-outline">
-                <span>15 phút</span>
-                <span>120 phút</span>
+                <span>15 mins</span>
+                <span>120 mins</span>
               </div>
             </div>
 
@@ -642,7 +920,7 @@ export default function TripsPage() {
                 onClick={() => setShowConfigModal(false)}
                 className="flex-1 py-3.5 bg-surface-container-high text-outline rounded-2xl font-black text-[10px] uppercase tracking-widest hover:bg-outline/20 transition-all"
               >
-                Hủy
+                Cancel
               </button>
               <button
                 onClick={handleGenerate}
@@ -656,7 +934,7 @@ export default function TripsPage() {
                     auto_awesome
                   </span>
                 )}
-                {isGenerating ? 'Đang tối ưu...' : 'Tạo lịch trình'}
+                {isGenerating ? 'Optimizing...' : 'Generate Itinerary'}
               </button>
             </div>
           </div>
@@ -669,11 +947,58 @@ export default function TripsPage() {
           <div className="bg-white p-6 rounded-3xl shadow-2xl flex flex-col items-center gap-3 animate-in zoom-in-95">
             <div className="w-10 h-10 border-3 border-primary/20 border-t-primary rounded-full animate-spin"></div>
             <p className="text-sm font-black text-on-surface">
-              Đang tối ưu lịch trình...
+              Optimizing itinerary...
             </p>
             <p className="text-[10px] font-bold text-outline uppercase tracking-widest">
               Goong Distance Matrix API
             </p>
+          </div>
+        </div>
+      )}
+
+      {/* Save Modal */}
+      {showSaveModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-sm p-4 animate-in fade-in duration-200">
+          <div className="bg-white w-full max-w-sm rounded-3xl shadow-2xl p-6 animate-in zoom-in-95 duration-200">
+            <h2 className="text-xl font-black tracking-tight text-on-surface mb-2">
+              Save Itinerary
+            </h2>
+            <p className="text-xs font-medium text-outline mb-5">
+              Give this itinerary a name to find it easily later.
+            </p>
+            
+            <div className="space-y-2 mb-6">
+              <label className="text-[10px] font-black text-outline uppercase tracking-widest block">
+                Itinerary Name
+              </label>
+              <input
+                type="text"
+                placeholder={`Trip Hanoi - ${config.travelDate}`}
+                value={tripTitle}
+                onChange={(e) => setTripTitle(e.target.value)}
+                className="w-full px-4 py-3 bg-surface-container-low border border-outline/10 rounded-xl font-bold text-sm outline-none focus:border-primary/30 focus:ring-4 focus:ring-primary/5"
+              />
+            </div>
+
+            <div className="flex gap-3">
+              <button
+                onClick={() => setShowSaveModal(false)}
+                className="flex-1 py-3 bg-surface-container-high text-outline rounded-2xl font-black text-[10px] uppercase tracking-widest hover:bg-outline/20 transition-all"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={handleSaveTrip}
+                disabled={isSaving}
+                className="flex-1 py-3 bg-primary text-white rounded-2xl font-black text-[10px] uppercase tracking-widest shadow-lg shadow-primary/20 hover:scale-[1.01] active:scale-[0.99] transition-all disabled:opacity-50 flex items-center justify-center gap-2"
+              >
+                {isSaving ? (
+                  <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin"></div>
+                ) : (
+                  'Save'
+                )}
+              </button>
+            </div>
           </div>
         </div>
       )}

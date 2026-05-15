@@ -1,4 +1,10 @@
-import { Injectable, ForbiddenException, BadRequestException, NotFoundException, Logger } from '@nestjs/common';
+import {
+  Injectable,
+  ForbiddenException,
+  BadRequestException,
+  NotFoundException,
+  Logger,
+} from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
 import { CreateActivityDto } from './dto/create-activity.dto';
 import { MemberStatus, ActivityStatus } from '@prisma/client';
@@ -37,15 +43,24 @@ export class ActivitiesService {
       return activity;
     } catch (error) {
       this.logger.error('Error creating activity:', error);
-      throw new BadRequestException(error.message || 'Failed to create activity');
+      throw new BadRequestException(
+        error.message || 'Failed to create activity',
+      );
     }
   }
 
-  async findAll(userId?: string, lat?: number, lng?: number, radius: number = 5000) {
+  async findAll(
+    userId?: string,
+    lat?: number,
+    lng?: number,
+    radius: number = 5000,
+  ) {
     try {
       const userUuid = userId ? userId : '00000000-0000-0000-0000-000000000000';
 
-      this.logger.log(`Finding activities for user ${userId || 'guest'}. Location: ${lat}, ${lng}`);
+      this.logger.log(
+        `Finding activities for user ${userId || 'guest'}. Location: ${lat}, ${lng}`,
+      );
 
       let results: any[];
       if (lat !== undefined && lng !== undefined) {
@@ -107,20 +122,23 @@ export class ActivitiesService {
       WHERE a.id = ${id}::uuid
     `;
 
-    if (activities.length === 0) throw new NotFoundException('Activity not found');
+    if (activities.length === 0)
+      throw new NotFoundException('Activity not found');
     const activity = activities[0];
 
     const members = await this.prisma.activityMember.findMany({
       where: { activityId: id },
       include: {
         user: {
-          select: { username: true, avatarUrl: true }
-        }
-      }
+          select: { username: true, avatarUrl: true },
+        },
+      },
     });
 
     activity.activityMembers = members;
-    activity.memberCount = members.filter(m => m.status === MemberStatus.APPROVED).length;
+    activity.memberCount = members.filter(
+      (m) => m.status === MemberStatus.APPROVED,
+    ).length;
 
     return activity;
   }
@@ -137,7 +155,9 @@ export class ActivitiesService {
     });
 
     if (requestCount >= 5) {
-      throw new ForbiddenException('You have reached the limit of 5 join requests per day.');
+      throw new ForbiddenException(
+        'You have reached the limit of 5 join requests per day.',
+      );
     }
 
     const existing = await this.prisma.activityMember.findUnique({
@@ -145,16 +165,21 @@ export class ActivitiesService {
     });
 
     if (existing) {
-      throw new BadRequestException('You have already sent a request or are a member of this activity.');
+      throw new BadRequestException(
+        'You have already sent a request or are a member of this activity.',
+      );
     }
 
     const activities = await this.prisma.$queryRaw<any[]>`
       SELECT status FROM activities WHERE id = ${activityId}::uuid
     `;
 
-    if (activities.length === 0) throw new NotFoundException('Activity not found');
+    if (activities.length === 0)
+      throw new NotFoundException('Activity not found');
     if (activities[0].status !== 'OPEN') {
-      throw new BadRequestException('This activity is no longer open for joining.');
+      throw new BadRequestException(
+        'This activity is no longer open for joining.',
+      );
     }
 
     return this.prisma.activityMember.create({
@@ -176,7 +201,9 @@ export class ActivitiesService {
     }
 
     if (existing.status === MemberStatus.APPROVED) {
-      throw new BadRequestException('You are already an approved member. Use leave activity instead (if implemented).');
+      throw new BadRequestException(
+        'You are already an approved member. Use leave activity instead (if implemented).',
+      );
     }
 
     return this.prisma.activityMember.delete({
@@ -189,8 +216,10 @@ export class ActivitiesService {
       SELECT host_id as "hostId" FROM activities WHERE id = ${activityId}::uuid
     `;
 
-    if (activities.length === 0) throw new NotFoundException('Activity not found');
-    if (activities[0].hostId !== hostId) throw new ForbiddenException('Only the host can approve members');
+    if (activities.length === 0)
+      throw new NotFoundException('Activity not found');
+    if (activities[0].hostId !== hostId)
+      throw new ForbiddenException('Only the host can approve members');
 
     return this.prisma.activityMember.update({
       where: { activityId_userId: { activityId, userId } },
@@ -203,8 +232,10 @@ export class ActivitiesService {
       SELECT host_id as "hostId" FROM activities WHERE id = ${activityId}::uuid
     `;
 
-    if (activities.length === 0) throw new NotFoundException('Activity not found');
-    if (activities[0].hostId !== hostId) throw new ForbiddenException('Only the host can reject members');
+    if (activities.length === 0)
+      throw new NotFoundException('Activity not found');
+    if (activities[0].hostId !== hostId)
+      throw new ForbiddenException('Only the host can reject members');
 
     return this.prisma.activityMember.update({
       where: { activityId_userId: { activityId, userId } },
@@ -217,7 +248,8 @@ export class ActivitiesService {
       SELECT host_id as "hostId" FROM activities WHERE id = ${activityId}::uuid
     `;
 
-    if (activityResult.length === 0) throw new NotFoundException('Activity not found');
+    if (activityResult.length === 0)
+      throw new NotFoundException('Activity not found');
     if (activityResult[0].hostId !== userId) {
       throw new ForbiddenException('Only the host can delete this activity');
     }
@@ -252,7 +284,6 @@ export class ActivitiesService {
       return [];
     }
   }
-
 
   async getMembers(activityId: string) {
     return this.prisma.activityMember.findMany({

@@ -103,8 +103,8 @@ describe('TripPlannerService', () => {
       name: 'Quán Cafe Cầu Giấy',
       category: 'CAFE',
       district: 'Cầu Giấy',
-      lat: 21.0280,
-      lng: 105.7950,
+      lat: 21.028,
+      lng: 105.795,
       image_url: null,
       always_open: false,
       open_days: [0, 1, 2, 3, 4, 5, 6],
@@ -134,9 +134,15 @@ describe('TripPlannerService', () => {
     prismaService = module.get<PrismaService>(PrismaService);
 
     // Mock Prisma query để trả về mockPlaces
-    (prismaService.$queryRawUnsafe as jest.Mock).mockImplementation((query, values) => {
-      return Promise.resolve(mockPlaces.filter((p) => values.includes(p.name) || values.includes(p.id)));
-    });
+    (prismaService.$queryRawUnsafe as jest.Mock).mockImplementation(
+      (query: string, values: string[]) => {
+        return Promise.resolve(
+          mockPlaces.filter(
+            (p) => values.includes(p.name) || values.includes(p.id),
+          ),
+        );
+      },
+    );
   });
 
   it('should be defined', () => {
@@ -161,7 +167,7 @@ describe('TripPlannerService', () => {
     };
 
     const result = await service.generateItinerary(dto);
-    
+
     expect(result.days.length).toBe(2);
 
     // Lấy tên các địa điểm trong mỗi ngày
@@ -170,7 +176,7 @@ describe('TripPlannerService', () => {
 
     // Kiểm tra xem Hoàn Kiếm và Cầu Giấy có bị lẫn lộn không
     const isDay1HoanKiem = day1Names.includes('Hồ Hoàn Kiếm');
-    
+
     if (isDay1HoanKiem) {
       expect(day1Names).toContain('Nhà Thờ Lớn');
       expect(day1Names).toContain('Phố Cổ Hà Nội');
@@ -200,10 +206,14 @@ describe('TripPlannerService', () => {
     const result = await service.generateItinerary(dto);
 
     // Bảo tàng Dân tộc học phải nằm trong mảng infeasible
-    expect(result.infeasible.some((i) => i.name === 'Bảo tàng Dân tộc học')).toBeTruthy();
-    
+    expect(
+      result.infeasible.some((i) => i.name === 'Bảo tàng Dân tộc học'),
+    ).toBeTruthy();
+
     // Hồ Hoàn Kiếm phải được lên lịch
-    expect(result.days[0].stops.some((s) => s.name === 'Hồ Hoàn Kiếm')).toBeTruthy();
+    expect(
+      result.days[0].stops.some((s) => s.name === 'Hồ Hoàn Kiếm'),
+    ).toBeTruthy();
   });
 
   // TEST 3: Tối ưu giờ mở cửa chênh lệch (Time Window)
@@ -221,16 +231,16 @@ describe('TripPlannerService', () => {
     const stops = result.days[0].stops;
 
     expect(stops.length).toBe(2);
-    
+
     // Công viên Cầu Giấy (mở 24/24) nên đi đầu tiên lúc 8h
     expect(stops[0].name).toBe('Công viên Cầu Giấy');
-    
+
     // Quán cafe Cầu Giấy (mở lúc 14h = 840) nên đi sau
     expect(stops[1].name).toBe('Quán Cafe Cầu Giấy');
-    
+
     // Thời gian chờ ở điểm số 2 (Cafe) sẽ phải đáng kể vì đi sau công viên (tầm 9h-9h30 đã đến) nhưng phải đợi đến 14h
     // Nếu thuật toán có Time Window tốt, nó sẽ tính toán đúng waitMin thay vì crash
-    expect(stops[1].waitMin).toBeGreaterThan(0); 
+    expect(stops[1].waitMin).toBeGreaterThan(0);
   });
 
   // TEST 4: TỐI ƯU ĐIỂM XUẤT PHÁT (Người dùng yêu cầu)
@@ -242,7 +252,7 @@ describe('TripPlannerService', () => {
       endTime: 1080, // 18:00
       travelDate: '2026-05-01T00:00:00.000Z',
       visitDurationMin: 60,
-      
+
       // Khách ở ngay cạnh Nhà Hát Lớn (Rất gần Hồ Hoàn Kiếm, Xa Phố Cổ hơn 1 chút)
       startLat: 21.0242,
       startLng: 105.8576,
@@ -262,13 +272,13 @@ describe('TripPlannerService', () => {
   // TEST 5: Tối ưu ngược lại điểm xuất phát
   it('nên chọn Phố Cổ Hà Nội làm điểm ĐẦU TIÊN nếu người dùng đang ở ngay trong khu Phố Cổ', async () => {
     const dto = {
-      placeNames: ['Hồ Hoàn Kiếm', 'Phố Cổ Hà Nội'], 
+      placeNames: ['Hồ Hoàn Kiếm', 'Phố Cổ Hà Nội'],
       numDays: 1,
       startTime: 480, // 08:00
       endTime: 1080, // 18:00
       travelDate: '2026-05-01T00:00:00.000Z',
       visitDurationMin: 60,
-      
+
       // Khách ở ngay tại Chợ Đồng Xuân (Phố Cổ Hà Nội)
       startLat: 21.0378,
       startLng: 105.8499,
@@ -312,8 +322,11 @@ describe('TripPlannerService', () => {
   it('mỗi stop phải có thời gian đến < thời gian đi (không bị đảo ngược)', async () => {
     const dto = {
       placeNames: [
-        'Hồ Hoàn Kiếm', 'Nhà Thờ Lớn', 'Phố Cổ Hà Nội',
-        'Bảo tàng Dân tộc học', 'Công viên Cầu Giấy',
+        'Hồ Hoàn Kiếm',
+        'Nhà Thờ Lớn',
+        'Phố Cổ Hà Nội',
+        'Bảo tàng Dân tộc học',
+        'Công viên Cầu Giấy',
       ],
       numDays: 2,
       startTime: 480,
@@ -350,8 +363,12 @@ describe('TripPlannerService', () => {
   it('không có stop nào có departAt vượt quá giờ kết thúc', async () => {
     const dto = {
       placeNames: [
-        'Hồ Hoàn Kiếm', 'Nhà Thờ Lớn', 'Phố Cổ Hà Nội',
-        'Bảo tàng Dân tộc học', 'Công viên Cầu Giấy', 'Quán Cafe Cầu Giấy',
+        'Hồ Hoàn Kiếm',
+        'Nhà Thờ Lớn',
+        'Phố Cổ Hà Nội',
+        'Bảo tàng Dân tộc học',
+        'Công viên Cầu Giấy',
+        'Quán Cafe Cầu Giấy',
       ],
       numDays: 1,
       startTime: 480,
@@ -404,7 +421,7 @@ describe('TripPlannerService', () => {
       placeNames: ['Hồ Hoàn Kiếm', 'Nhà Thờ Lớn', 'Quán Cafe Cầu Giấy'],
       numDays: 1,
       startTime: 480, // 08:00
-      endTime: 1080,  // 18:00
+      endTime: 1080, // 18:00
       travelDate: '2026-05-01T00:00:00.000Z',
       visitDurationMin: 30,
     };
@@ -413,13 +430,13 @@ describe('TripPlannerService', () => {
     const stops = result.days[0].stops;
 
     // Tìm Quán Cafe Cầu Giấy
-    const cafeStop = stops.find(s => s.name === 'Quán Cafe Cầu Giấy');
-    
+    const cafeStop = stops.find((s) => s.name === 'Quán Cafe Cầu Giấy');
+
     if (cafeStop) {
       // Cafe mở lúc 14:00 (840 phút). Nếu đến sớm hơn 14h → waitMin > 0
       const [arrH, arrM] = cafeStop.arriveAt.split(':').map(Number);
       const arriveMin = arrH * 60 + arrM;
-      
+
       if (arriveMin < 840) {
         // Đến trước 14h → phải có wait time
         expect(cafeStop.waitMin).toBeGreaterThan(0);
@@ -492,9 +509,9 @@ describe('TripPlannerService', () => {
     const stops = result.days[0]?.stops || [];
 
     // Place đóng cửa Thứ 6 không nên xuất hiện trong stops
-    expect(stops.some(s => s.name === 'Place Đóng Cửa Thứ 6')).toBe(false);
+    expect(stops.some((s) => s.name === 'Place Đóng Cửa Thứ 6')).toBe(false);
     // Hồ Hoàn Kiếm (always_open) phải có mặt
-    expect(stops.some(s => s.name === 'Hồ Hoàn Kiếm')).toBe(true);
+    expect(stops.some((s) => s.name === 'Hồ Hoàn Kiếm')).toBe(true);
   });
 
   // TEST 13: Bug 2 — resolveConflicts phải dùng startTime thực, không hardcode 480
@@ -524,8 +541,8 @@ describe('TripPlannerService', () => {
       name: 'Place Mở Muộn',
       category: 'BAR',
       district: 'Hoàn Kiếm',
-      lat: 21.0290,
-      lng: 105.8520,
+      lat: 21.029,
+      lng: 105.852,
       image_url: null,
       always_open: false,
       open_days: [0, 1, 2, 3, 4, 5, 6],
@@ -537,7 +554,9 @@ describe('TripPlannerService', () => {
       visit_duration_min: 120, // 2 tiếng → depart 19:00 > endTime 18:00
     };
 
-    (prismaService.$queryRawUnsafe as jest.Mock).mockResolvedValueOnce([latePlace]);
+    (prismaService.$queryRawUnsafe as jest.Mock).mockResolvedValueOnce([
+      latePlace,
+    ]);
 
     const dto = {
       placeNames: ['Place Mở Muộn'],
@@ -551,15 +570,17 @@ describe('TripPlannerService', () => {
     const result = await service.generateItinerary(dto);
 
     // Place phải bị drop (unscheduled) vì departMin = 19:00 > 18:00
-    const scheduled = result.days.flatMap(d => d.stops);
-    expect(scheduled.some(s => s.name === 'Place Mở Muộn')).toBe(false);
+    const scheduled = result.days.flatMap((d) => d.stops);
+    expect(scheduled.some((s) => s.name === 'Place Mở Muộn')).toBe(false);
   });
 
   // TEST 15: Lunch break — không có stop nào bắt đầu visit trong khoảng 11:00-13:00
   it('không có stop nào startVisit trong khoảng lunch break mặc định (11:00-13:00)', async () => {
     const dto = {
       placeNames: [
-        'Hồ Hoàn Kiếm', 'Nhà Thờ Lớn', 'Phố Cổ Hà Nội',
+        'Hồ Hoàn Kiếm',
+        'Nhà Thờ Lớn',
+        'Phố Cổ Hà Nội',
         'Công viên Cầu Giấy',
       ],
       numDays: 1,
@@ -582,7 +603,8 @@ describe('TripPlannerService', () => {
 
         // startVisit không nên nằm trong [660, 780)
         // HOẶC nếu startVisit < 660, departMin không nên > 660
-        const overlapsLunch = startVisitMin < 780 && departMin > 660 && startVisitMin >= 660;
+        const overlapsLunch =
+          startVisitMin < 780 && departMin > 660 && startVisitMin >= 660;
         expect(overlapsLunch).toBe(false);
       }
     }
@@ -597,8 +619,8 @@ describe('TripPlannerService', () => {
       endTime: 1080,
       travelDate: '2026-05-01T00:00:00.000Z',
       visitDurationMin: 30, // 30 phút — kết thúc trước 11:30, trước lunch 12:00
-      lunchBreakStart: 720,  // 12:00
-      lunchBreakEnd: 750,    // 12:30
+      lunchBreakStart: 720, // 12:00
+      lunchBreakEnd: 750, // 12:30
     };
 
     const result = await service.generateItinerary(dto);
@@ -628,28 +650,45 @@ describe('TripPlannerService', () => {
       visitDurationMin: 60,
     });
 
-    const [query, values] = (prismaService.$queryRawUnsafe as jest.Mock).mock.calls[0];
+    const [query, values] = (prismaService.$queryRawUnsafe as jest.Mock).mock
+      .calls[0] as [string, string[]];
     expect(query).toContain('id = ANY($1::uuid[])');
     expect(values).toEqual([uuid]);
   });
 
   it('missing placeIds and placeNames throws BadRequestException', async () => {
-    await expect(service.generateItinerary({
-      numDays: 1,
-      startTime: 480,
-      endTime: 1080,
-      travelDate: '2026-05-01T00:00:00.000Z',
-      visitDurationMin: 60,
-    })).rejects.toBeInstanceOf(BadRequestException);
+    await expect(
+      service.generateItinerary({
+        numDays: 1,
+        startTime: 480,
+        endTime: 1080,
+        travelDate: '2026-05-01T00:00:00.000Z',
+        visitDurationMin: 60,
+      }),
+    ).rejects.toBeInstanceOf(BadRequestException);
   });
 
   it('GPS-delayed stops are not reinserted with zero first-leg travel', async () => {
     const farStartPlaces = [
-      { ...mockPlaces[0], id: 'gps1', name: 'GPS Far A', visit_duration_min: 60 },
-      { ...mockPlaces[1], id: 'gps2', name: 'GPS Far B', visit_duration_min: 60 },
+      {
+        ...mockPlaces[0],
+        id: 'gps1',
+        name: 'GPS Far A',
+        visit_duration_min: 60,
+      },
+      {
+        ...mockPlaces[1],
+        id: 'gps2',
+        name: 'GPS Far B',
+        visit_duration_min: 60,
+      },
     ];
-    (prismaService.$queryRawUnsafe as jest.Mock).mockResolvedValueOnce(farStartPlaces);
-    jest.spyOn(service as any, 'getTravelToFirstStop').mockResolvedValue(11 * 3600);
+    (prismaService.$queryRawUnsafe as jest.Mock).mockResolvedValueOnce(
+      farStartPlaces,
+    );
+    jest
+      .spyOn(service as any, 'getTravelToFirstStop')
+      .mockResolvedValue(11 * 3600);
 
     const result = await service.generateItinerary({
       placeNames: ['GPS Far A', 'GPS Far B'],
@@ -662,7 +701,7 @@ describe('TripPlannerService', () => {
       startLng: 10,
     });
 
-    const scheduled = result.days.flatMap(day => day.stops);
+    const scheduled = result.days.flatMap((day) => day.stops);
     expect(scheduled).toHaveLength(0);
     expect(result.unscheduled.length).toBe(2);
   });
@@ -686,12 +725,30 @@ describe('TripPlannerService', () => {
       visit_duration_min: 30,
     };
     const routePlaces = [
-      { ...mockPlaces[0], id: 'route-a', name: 'Route A', lat: 21.0285, lng: 105.8542, visit_duration_min: 30 },
+      {
+        ...mockPlaces[0],
+        id: 'route-a',
+        name: 'Route A',
+        lat: 21.0285,
+        lng: 105.8542,
+        visit_duration_min: 30,
+      },
       closesEarly,
-      { ...mockPlaces[1], id: 'route-c', name: 'Route C', lat: 21.0287, lng: 105.8544, visit_duration_min: 30 },
+      {
+        ...mockPlaces[1],
+        id: 'route-c',
+        name: 'Route C',
+        lat: 21.0287,
+        lng: 105.8544,
+        visit_duration_min: 30,
+      },
     ];
-    (prismaService.$queryRawUnsafe as jest.Mock).mockResolvedValueOnce(routePlaces);
-    jest.spyOn(service as any, 'getTravelToFirstStop').mockResolvedValue(60 * 60);
+    (prismaService.$queryRawUnsafe as jest.Mock).mockResolvedValueOnce(
+      routePlaces,
+    );
+    jest
+      .spyOn(service as any, 'getTravelToFirstStop')
+      .mockResolvedValue(60 * 60);
 
     const result = await service.generateItinerary({
       placeNames: ['Route A', 'Middle Closes Early', 'Route C'],
@@ -707,10 +764,12 @@ describe('TripPlannerService', () => {
     });
 
     const stops = result.days[0].stops;
-    expect(stops.map(s => s.name)).not.toContain('Middle Closes Early');
-    expect(stops.map(s => s.name)).toEqual(expect.arrayContaining(['Route A', 'Route C']));
-    const routeA = stops.find(s => s.name === 'Route A')!;
-    const routeC = stops.find(s => s.name === 'Route C')!;
+    expect(stops.map((s) => s.name)).not.toContain('Middle Closes Early');
+    expect(stops.map((s) => s.name)).toEqual(
+      expect.arrayContaining(['Route A', 'Route C']),
+    );
+    const routeA = stops.find((s) => s.name === 'Route A')!;
+    const routeC = stops.find((s) => s.name === 'Route C')!;
     const [aDepH, aDepM] = routeA.departAt.split(':').map(Number);
     const [cArrH, cArrM] = routeC.arriveAt.split(':').map(Number);
     expect(cArrH * 60 + cArrM).toBeGreaterThanOrEqual(aDepH * 60 + aDepM);
@@ -734,7 +793,9 @@ describe('TripPlannerService', () => {
       break_end: '13:00:00',
       visit_duration_min: 90,
     };
-    (prismaService.$queryRawUnsafe as jest.Mock).mockResolvedValueOnce([breakPlace]);
+    (prismaService.$queryRawUnsafe as jest.Mock).mockResolvedValueOnce([
+      breakPlace,
+    ]);
 
     const result = await service.generateItinerary({
       placeNames: ['Break Overlap Place'],

@@ -27,7 +27,9 @@ export class JwtStrategy extends PassportStrategy(Strategy) {
     });
 
     if (!user || user.status === UserStatus.BANNED) {
-      throw new UnauthorizedException('User is not allowed to access this resource');
+      throw new UnauthorizedException(
+        'User is not allowed to access this resource',
+      );
     }
 
     const tokenVersion =

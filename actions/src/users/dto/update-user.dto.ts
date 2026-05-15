@@ -1,13 +1,25 @@
-import { IsString, IsOptional, IsArray, IsUrl, MaxLength } from 'class-validator';
+import {
+  IsString,
+  IsOptional,
+  IsArray,
+  IsUrl,
+  MaxLength,
+} from 'class-validator';
 import { ApiPropertyOptional } from '@nestjs/swagger';
 
 export class UpdateUserDto {
-  @ApiPropertyOptional({ example: 'Hung Nguyen', description: 'Họ và tên hiển thị' })
+  @ApiPropertyOptional({
+    example: 'Hung Nguyen',
+    description: 'Họ và tên hiển thị',
+  })
   @IsOptional()
   @IsString()
   fullName?: string;
 
-  @ApiPropertyOptional({ example: 'hung_nguyen', description: 'Tên định danh (username)' })
+  @ApiPropertyOptional({
+    example: 'hung_nguyen',
+    description: 'Tên định danh (username)',
+  })
   @IsOptional()
   @IsString()
   username?: string;
@@ -17,13 +29,19 @@ export class UpdateUserDto {
   @IsString()
   nationality?: string;
 
-  @ApiPropertyOptional({ example: ['Vietnamese', 'English'], description: 'Danh sách ngôn ngữ' })
+  @ApiPropertyOptional({
+    example: ['Vietnamese', 'English'],
+    description: 'Danh sách ngôn ngữ',
+  })
   @IsOptional()
   @IsArray()
   @IsString({ each: true })
   languages?: string[];
 
-  @ApiPropertyOptional({ example: 'I love Hanoi!', description: 'Giới thiệu bản thân' })
+  @ApiPropertyOptional({
+    example: 'I love Hanoi!',
+    description: 'Giới thiệu bản thân',
+  })
   @IsOptional()
   @IsString()
   @MaxLength(150)

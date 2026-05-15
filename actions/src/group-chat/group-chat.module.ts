@@ -1,7 +1,5 @@
 import { Module } from '@nestjs/common';
-import { ChatController } from './chat.controller';
-import { ChatService } from './chat.service';
-import { ChatGateway } from './chat.gateway';
+import { GroupChatGateway } from './group-chat.gateway';
 import { JwtModule } from '@nestjs/jwt';
 import { ConfigModule, ConfigService } from '@nestjs/config';
 import { PrismaModule } from '../prisma/prisma.module';
@@ -18,7 +16,7 @@ import { PrismaModule } from '../prisma/prisma.module';
       }),
     }),
   ],
-  controllers: [ChatController],
-  providers: [ChatService, ChatGateway],
+  providers: [GroupChatGateway],
+  exports: [GroupChatGateway],
 })
-export class ChatModule {}
+export class GroupChatModule {}

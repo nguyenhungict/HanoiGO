@@ -49,7 +49,8 @@ export class AuthService {
       throw new ConflictException('Email đã được sử dụng');
     }
 
-    const existingUsername = await this.usersService.findOneByUsername(username);
+    const existingUsername =
+      await this.usersService.findOneByUsername(username);
     if (existingUsername) {
       throw new ConflictException('Tên người dùng đã được sử dụng');
     }
@@ -182,7 +183,7 @@ export class AuthService {
 
   async login(loginDto: any) {
     const { email, password } = loginDto;
-    
+
     let user = await this.usersService.findOneByEmail(email);
     if (!user) {
       user = await this.usersService.findOneByUsername(email);
@@ -202,7 +203,9 @@ export class AuthService {
     }
 
     if (user.status === UserStatus.PENDING) {
-      throw new ForbiddenException('Vui lòng xác thực email của bạn trước khi đăng nhập.');
+      throw new ForbiddenException(
+        'Vui lòng xác thực email của bạn trước khi đăng nhập.',
+      );
     }
 
     const tokens = await this.generateTokens(
@@ -226,7 +229,9 @@ export class AuthService {
   async forgotPassword(email: string) {
     const user = await this.usersService.findOneByEmail(email);
     if (!user) {
-      return { message: 'Nếu email tồn tại, bạn sẽ nhận được link đặt lại mật khẩu.' };
+      return {
+        message: 'Nếu email tồn tại, bạn sẽ nhận được link đặt lại mật khẩu.',
+      };
     }
 
     const resetSecret = this.getResetSecret(user.passwordHash);
@@ -260,7 +265,9 @@ export class AuthService {
       `,
     });
 
-    return { message: 'Nếu email tồn tại, bạn sẽ nhận được link đặt lại mật khẩu.' };
+    return {
+      message: 'Nếu email tồn tại, bạn sẽ nhận được link đặt lại mật khẩu.',
+    };
   }
 
   async resetPassword(token: string, newPassword: string) {
@@ -275,7 +282,9 @@ export class AuthService {
       throw new BadRequestException('Token không hợp lệ');
     }
 
-    const user = await this.prisma.user.findUnique({ where: { id: payload.sub } });
+    const user = await this.prisma.user.findUnique({
+      where: { id: payload.sub },
+    });
     if (!user) {
       throw new BadRequestException('Token không hợp lệ');
     }
@@ -297,7 +306,8 @@ export class AuthService {
   }
 
   private getResetSecret(passwordHash: string): string {
-    const jwtSecret = this.configService.get<string>('JWT_SECRET') || 'secretKey';
+    const jwtSecret =
+      this.configService.get<string>('JWT_SECRET') || 'secretKey';
     return `${jwtSecret}:${passwordHash}`;
   }
 

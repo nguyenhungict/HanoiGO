@@ -44,7 +44,7 @@ export default function ChatAssistant() {
         lng = pos.coords.longitude;
       } catch (e) {}
 
-      const res = await fetch(`${process.env.NEXT_PUBLIC_ACTIONS_URL}/chat/message`, {
+      const res = await fetch(`${process.env.NEXT_PUBLIC_ACTIONS_URL}/ai-chat/message`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ message: userMessage, lat, lng }),
@@ -66,13 +66,13 @@ export default function ChatAssistant() {
   ];
 
   return (
-    <div className="fixed bottom-[88px] right-8 z-[1001] flex flex-col items-end font-sans">
+    <div className="fixed bottom-24 right-8 z-[1001] flex flex-col items-end font-body">
       {/* Chat Container */}
       {isOpen && (
         <div className="absolute bottom-16 right-0 w-[360px] h-[540px] flex flex-col group animate-in slide-in-from-bottom-8 fade-in duration-500">
           
           {/* Main Glass Frame */}
-          <div className="absolute inset-0 bg-white/40 backdrop-blur-[40px] rounded-[2.5rem] shadow-[0_30px_60px_-12px_rgba(0,0,0,0.12)] border border-white/40 overflow-hidden flex flex-col">
+          <div className="absolute inset-0 bg-background/80 backdrop-blur-3xl rounded-[2.5rem] shadow-[0_30px_60px_-12px_rgba(0,0,0,0.25)] border border-white/40 overflow-hidden flex flex-col">
             
             {/* Liquid Aurora Background */}
             <div className="absolute inset-0 -z-10 overflow-hidden pointer-events-none">
@@ -84,11 +84,11 @@ export default function ChatAssistant() {
             {/* Header - Compact */}
             <header className="px-6 pt-6 pb-3 flex items-center justify-between shrink-0">
               <div className="flex items-center gap-2.5">
-                <div className="w-9 h-9 rounded-xl bg-primary flex items-center justify-center shadow-lg shadow-primary/20">
-                  <span className="material-symbols-outlined text-white text-lg">auto_awesome</span>
+                <div className="w-10 h-10 rounded-2xl bg-primary flex items-center justify-center shadow-xl shadow-primary/25">
+                  <span className="material-symbols-outlined text-white text-xl">auto_awesome</span>
                 </div>
                 <div>
-                  <h3 className="font-black text-base tracking-tight text-slate-800">HanoiGO AI</h3>
+                  <h3 className="font-black text-[15px] tracking-tighter text-on-surface">HanoiGO AI</h3>
                   <div className="flex items-center gap-1">
                     <span className="w-1 h-1 rounded-full bg-green-500 animate-pulse"></span>
                     <span className="text-[8px] font-black uppercase tracking-widest text-slate-500">Online</span>
@@ -107,10 +107,10 @@ export default function ChatAssistant() {
             <div className="flex-1 overflow-y-auto px-5 py-3 space-y-6 scrollbar-none">
               {messages.map((m, i) => (
                 <div key={i} className={`flex ${m.role === 'user' ? 'justify-end' : 'justify-start'}`}>
-                  <div className={`relative px-5 py-3.5 rounded-[1.8rem] text-[13px] leading-relaxed transition-all
+                  <div className={`relative px-5 py-4 rounded-[1.8rem] text-[13px] leading-relaxed transition-all shadow-sm
                     ${m.role === 'user' 
-                      ? 'bg-primary text-white rounded-tr-none shadow-[0_10px_20px_-8px_rgba(255,90,95,0.4)] font-bold' 
-                      : 'bg-white/40 backdrop-blur-md text-slate-700 rounded-tl-none border border-white/50 shadow-sm'}`}>
+                      ? 'bg-primary text-white rounded-tr-none shadow-xl shadow-primary/20 font-bold' 
+                      : 'bg-white/60 backdrop-blur-md text-on-surface rounded-tl-none border border-white/50'}`}>
                     
                     {m.role === 'assistant' ? (
                       <ReactMarkdown 
@@ -165,7 +165,7 @@ export default function ChatAssistant() {
 
               {/* Input Pill - Compact */}
               <div className="relative group/input">
-                <div className="relative flex items-center bg-white/80 backdrop-blur-xl border border-white rounded-full p-1.5 pl-5 shadow-xl shadow-black/[0.03]">
+                <div className="relative flex items-center bg-white/60 backdrop-blur-xl border border-white/80 rounded-full p-2 pl-5 shadow-2xl shadow-black/[0.05] group-focus-within/input:bg-white group-focus-within/input:shadow-primary/5 transition-all">
                   <input 
                     type="text" 
                     value={input}
@@ -177,8 +177,8 @@ export default function ChatAssistant() {
                   <button 
                     onClick={() => handleSend()}
                     disabled={!input.trim() || isLoading}
-                    className="w-9 h-9 bg-primary text-white rounded-full flex items-center justify-center shadow-lg shadow-primary/20 hover:scale-105 active:scale-90 disabled:opacity-30 transition-all">
-                    <span className="material-symbols-outlined text-base">send</span>
+                    className="w-10 h-10 bg-primary text-white rounded-full flex items-center justify-center shadow-xl shadow-primary/30 hover:scale-105 active:scale-95 disabled:opacity-30 transition-all">
+                    <span className="material-symbols-outlined text-xl">arrow_upward</span>
                   </button>
                 </div>
               </div>
@@ -190,15 +190,15 @@ export default function ChatAssistant() {
       {/* Main Trigger Bubble - Matched with Location Button */}
       <button 
         onClick={() => setIsOpen(!isOpen)}
-        className={`w-12 h-12 rounded-2xl shadow-2xl flex items-center justify-center border border-outline/10 transition-all duration-500 group overflow-hidden active:scale-95
-          ${isOpen ? 'bg-primary text-white rotate-90 scale-90' : 'bg-white text-primary hover:bg-slate-50'}`}
+        className={`w-14 h-14 rounded-[22px] shadow-[0_20px_50px_rgba(0,0,0,0.2)] flex items-center justify-center border transition-all duration-700 group overflow-hidden active:scale-90 relative
+          ${isOpen ? 'bg-primary text-white scale-95 border-primary shadow-primary/20' : 'bg-background/90 backdrop-blur-xl text-primary border-white/50 hover:bg-white'}`}
       >
-        <div className="absolute inset-0 bg-gradient-to-tr from-transparent via-primary/5 to-transparent translate-x-[-150%] group-hover:translate-x-[150%] transition-transform duration-1000"></div>
-        <span className={`material-symbols-outlined text-2xl transition-transform duration-500 ${isOpen ? 'rotate-[360deg]' : 'group-hover:scale-110'}`}>
+        <div className="absolute inset-0 bg-gradient-to-tr from-transparent via-white/20 to-transparent translate-x-[-150%] group-hover:translate-x-[150%] transition-transform duration-1000"></div>
+        <span className={`material-symbols-outlined text-3xl transition-all duration-700 ${isOpen ? 'rotate-[360deg] scale-75' : 'group-hover:scale-110'}`}>
           {isOpen ? 'close' : 'auto_awesome'}
         </span>
         {!isOpen && (
-           <div className="absolute top-2 right-2 w-2.5 h-2.5 bg-green-500 border-2 border-white rounded-full animate-pulse"></div>
+           <div className="absolute top-3.5 right-3.5 w-3 h-3 bg-green-500 border-2 border-background rounded-full animate-pulse shadow-sm shadow-green-500/50"></div>
         )}
       </button>
 

@@ -61,7 +61,7 @@ export const ActivityChat: React.FC<{ activityId: string; activityTitle: string;
   // ── socket lifecycle ────────────────────────────────────────────────────────
   useEffect(() => {
     if (!token) return;
-    const socket = io(`${process.env.NEXT_PUBLIC_ACTIONS_URL}/chat`, {
+    const socket = io(`${process.env.NEXT_PUBLIC_ACTIONS_URL}/group-chat`, {
       auth: { token }, transports: ['websocket'],
     });
 

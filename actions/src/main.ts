@@ -7,7 +7,7 @@ import { join } from 'path';
 
 async function bootstrap() {
   const app = await NestFactory.create<NestExpressApplication>(AppModule);
-  
+
   // Phục vụ ảnh từ thư mục public
   app.useStaticAssets(join(process.cwd(), 'public'));
 
@@ -27,7 +27,7 @@ async function bootstrap() {
     .setVersion('1.0')
     .addBearerAuth() // Cho phép test API có bảo mật JWT
     .build();
-  
+
   const document = SwaggerModule.createDocument(app, config);
   SwaggerModule.setup('docs', app, document);
 

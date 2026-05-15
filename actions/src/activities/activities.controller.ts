@@ -1,4 +1,15 @@
-import { Controller, Get, Post, Patch, Delete, Body, Param, Query, UseGuards, Request } from '@nestjs/common';
+import {
+  Controller,
+  Get,
+  Post,
+  Patch,
+  Delete,
+  Body,
+  Param,
+  Query,
+  UseGuards,
+  Request,
+} from '@nestjs/common';
 import { ActivitiesService } from './activities.service';
 import { CreateActivityDto } from './dto/create-activity.dto';
 import { AuthGuard } from '@nestjs/passport';
@@ -57,7 +68,7 @@ export class ActivitiesController {
   async requestToJoin(@Request() req: any, @Param('id') id: string) {
     return this.activitiesService.requestToJoin(req.user.id, id);
   }
-  
+
   @Delete(':id/join')
   @UseGuards(AuthGuard('jwt'))
   @ApiBearerAuth()
@@ -75,7 +86,11 @@ export class ActivitiesController {
     @Param('id') activityId: string,
     @Param('userId') userId: string,
   ) {
-    return this.activitiesService.approveMember(req.user.id, activityId, userId);
+    return this.activitiesService.approveMember(
+      req.user.id,
+      activityId,
+      userId,
+    );
   }
 
   @Patch(':id/reject/:userId')
@@ -97,7 +112,7 @@ export class ActivitiesController {
   async getMembers(@Param('id') id: string) {
     return this.activitiesService.getMembers(id);
   }
-  
+
   @Delete(':id')
   @UseGuards(AuthGuard('jwt'))
   @ApiBearerAuth()

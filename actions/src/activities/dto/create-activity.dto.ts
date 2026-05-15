@@ -1,4 +1,12 @@
-import { IsString, IsOptional, IsNumber, IsDateString, IsUUID, Min, Max } from 'class-validator';
+import {
+  IsString,
+  IsOptional,
+  IsNumber,
+  IsDateString,
+  IsUUID,
+  Min,
+  Max,
+} from 'class-validator';
 
 export class CreateActivityDto {
   @IsString()

@@ -86,3 +86,37 @@ export interface ItineraryResponse {
   infeasible: { name: string; reason: string }[];
   unscheduled: { name: string; reason: string }[];
 }
+
+export interface GoongMatrixResponse {
+  rows: Array<{
+    elements: Array<{
+      status: string;
+      duration?: {
+        value: number;
+        text: string;
+      };
+      distance?: {
+        value: number;
+        text: string;
+      };
+    }>;
+  }>;
+}
+
+export interface DbPlace {
+  id: string;
+  name: string;
+  category: string;
+  district: string;
+  lat: number;
+  lng: number;
+  image_url: string | null;
+  always_open: boolean;
+  open_days: number[];
+  open_time_start: Date | string | null;
+  open_time_end: Date | string | null;
+  has_break: boolean;
+  break_start: Date | string | null;
+  break_end: Date | string | null;
+  visit_duration_min: number;
+}
