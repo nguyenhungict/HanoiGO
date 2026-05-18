@@ -74,7 +74,7 @@ export const ActivityReelCard: React.FC<ActivityReelCardProps> = ({ activity, on
       <div className="flex items-center gap-3 px-4 pt-4 pb-3">
         {/* Avatar */}
         <div className="relative shrink-0">
-          <div className="w-10 h-10 rounded-full bg-secondary border-2 border-primary/20 overflow-hidden flex items-center justify-center text-white font-bold text-sm shadow">
+          <div className="w-10 h-10 rounded-xl bg-secondary border-2 border-primary/20 overflow-hidden flex items-center justify-center text-white font-bold text-sm shadow">
             {activity.hostAvatar
               ? <img src={resolveImageUrl(activity.hostAvatar) ?? ''} alt={activity.hostName || ''} className="w-full h-full object-cover" />
               : <span className="text-on-surface font-bold">{(activity.hostName || 'H').charAt(0).toUpperCase()}</span>
@@ -202,20 +202,20 @@ export const ActivityReelCard: React.FC<ActivityReelCardProps> = ({ activity, on
         <div className="flex items-center gap-1">
           {/* Interested / Like button */}
           <button
-            className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-on-surface/50 hover:text-primary hover:bg-primary/5 transition-all text-[11px] font-bold uppercase tracking-widest"
+            className="px-4 h-[34px] flex items-center gap-1.5 bg-white text-on-surface border border-outline/20 rounded-xl hover:bg-surface transition-all active:scale-95 font-bold text-[10px] uppercase tracking-widest shadow-sm"
             onClick={(e) => { e.stopPropagation(); /* Future: Like logic */ }}
           >
-            <span className="material-symbols-outlined text-lg">thumb_up</span>
-            <span className="hidden sm:inline">Interested</span>
+            <span className="material-symbols-outlined text-[16px]">thumb_up</span>
+            <span>Interested</span>
           </button>
 
           {/* Chat — only for members/host */}
           {(isHost || isMember) && onChat && (
             <button
               onClick={(e) => { e.stopPropagation(); onChat(activity); }}
-              className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-primary bg-primary/8 hover:bg-primary/12 transition-all text-[11px] font-bold uppercase tracking-widest border border-primary/10"
+              className="px-4 h-[34px] flex items-center gap-1.5 bg-white text-on-surface border border-outline/20 rounded-xl hover:bg-surface transition-all active:scale-95 font-bold text-[10px] uppercase tracking-widest shadow-sm"
             >
-              <span className="material-symbols-outlined text-lg">forum</span>
+              <span className="material-symbols-outlined text-[16px]">forum</span>
               <span>Chat</span>
             </button>
           )}
@@ -225,26 +225,26 @@ export const ActivityReelCard: React.FC<ActivityReelCardProps> = ({ activity, on
           {isHost ? (
             <button
               onClick={(e) => { e.stopPropagation(); onClick(activity); }}
-              className="px-5 py-2 bg-on-surface text-white rounded-xl hover:bg-on-surface/90 transition-all font-bold text-[10px] uppercase tracking-widest shadow-md"
+              className="px-4 h-[34px] flex items-center justify-center bg-on-surface text-white rounded-xl hover:bg-on-surface/90 transition-all active:scale-95 font-bold text-[10px] uppercase tracking-widest shadow-sm"
             >
               Manage
             </button>
           ) : isMember ? (
             <button
               onClick={(e) => { e.stopPropagation(); onClick(activity); }}
-              className="px-5 py-2 bg-emerald-600 text-white rounded-xl hover:bg-emerald-700 transition-all font-bold text-[10px] uppercase tracking-widest shadow-md flex items-center gap-2"
+              className="px-4 py-2 bg-tertiary text-white rounded-xl hover:bg-tertiary/90 transition-all active:scale-95 font-bold text-[10px] uppercase tracking-widest shadow-sm flex items-center gap-1.5"
             >
-              <span className="material-symbols-outlined text-sm">check_circle</span>
+              <span className="material-symbols-outlined text-[14px]">check_circle</span>
               Joined
             </button>
           ) : hasRequested ? (
-            <div className="px-5 py-2 bg-secondary/50 text-on-surface-variant text-center rounded-xl text-[10px] font-bold uppercase tracking-widest border border-outline/5">
-              Pending…
+            <div className="px-4 py-2 bg-secondary/40 text-on-surface-variant/70 rounded-xl flex items-center gap-1 border border-outline/10 text-[10px] font-bold uppercase tracking-widest justify-center">
+              Pending
             </div>
           ) : (
             <button
               onClick={(e) => { e.stopPropagation(); onClick(activity); }}
-              className="px-5 py-2 bg-primary text-white rounded-xl hover:opacity-90 transition-all font-bold text-[10px] uppercase tracking-widest shadow-lg shadow-primary/20"
+              className="px-4 py-2 bg-primary text-white rounded-xl hover:bg-primary/90 transition-all active:scale-95 font-bold text-[10px] uppercase tracking-widest shadow-sm"
             >
               Join Group
             </button>

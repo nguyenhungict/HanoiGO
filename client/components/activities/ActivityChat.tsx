@@ -177,7 +177,7 @@ export const ActivityChat: React.FC<{ activityId: string; activityTitle: string;
             const isOnline = onlineUsers.includes(a.hostId);
             return (
               <button key={a.id} onClick={() => switchActivity(a.id, a.title)}
-                className={`w-full flex items-center gap-3 p-3 rounded-2xl transition-all text-left ${isActive ? 'bg-primary/5 text-primary shadow-sm' : 'hover:bg-secondary/40 text-on-surface-variant'}`}>
+                className={`w-full flex items-center gap-3 p-3 rounded-xl transition-all text-left ${isActive ? 'bg-primary/5 text-primary shadow-sm' : 'hover:bg-secondary/40 text-on-surface-variant'}`}>
                 <div className="relative flex-shrink-0">
                   <div className={`w-11 h-11 rounded-xl flex items-center justify-center font-bold text-base shadow-sm ${isActive ? 'bg-primary text-white' : 'bg-white border border-outline/10 text-on-surface-variant'}`}>
                     {a.title.charAt(0)}
@@ -238,7 +238,7 @@ export const ActivityChat: React.FC<{ activityId: string; activityTitle: string;
 
           {messages.length === 0 && !loadingMore ? (
             <div className="h-full flex flex-col items-center justify-center gap-4 opacity-30 py-20">
-              <div className="w-16 h-16 rounded-[1.5rem] bg-secondary flex items-center justify-center">
+              <div className="w-16 h-16 rounded-xl bg-secondary flex items-center justify-center">
                 <span className="material-symbols-outlined text-3xl text-on-secondary/30">chat_bubble</span>
               </div>
               <p className="font-bold text-sm uppercase tracking-widest text-on-surface-variant/40">No messages yet</p>
@@ -298,7 +298,7 @@ export const ActivityChat: React.FC<{ activityId: string; activityTitle: string;
                         <div className="flex flex-col gap-1">
                           {/* Bubble + hover actions */}
                           <div className={`flex items-center gap-2 ${isMe ? 'flex-row-reverse' : 'flex-row'}`}>
-                            <div className={`px-4 py-2.5 rounded-2xl text-sm leading-relaxed select-text shadow-sm
+                            <div className={`px-4 py-2.5 rounded-xl text-sm leading-relaxed select-text shadow-sm
                               ${isMe ? 'bg-primary text-white rounded-tr-sm' : 'bg-white text-on-surface rounded-tl-sm border border-outline/10'}`}>
                               {m.content}
                             </div>
@@ -314,7 +314,7 @@ export const ActivityChat: React.FC<{ activityId: string; activityTitle: string;
                                   {/* Emoji picker */}
                                   {showEmojiFor === m.id && (
                                     <div onClick={e => e.stopPropagation()}
-                                      className={`absolute bottom-9 ${isMe ? 'right-0' : 'left-0'} flex gap-1 bg-white border border-outline/10 shadow-xl rounded-2xl p-2 z-20 animate-in zoom-in-95 duration-150`}>
+                                      className={`absolute bottom-9 ${isMe ? 'right-0' : 'left-0'} flex gap-1 bg-white border border-outline/10 shadow-xl rounded-xl p-2 z-20 animate-in zoom-in-95 duration-150`}>
                                         {['👍', '❤️', '😂', '😮', '😢', '🔥'].map(e => (
                                           <button key={e} onClick={() => handleReact(m.id, e)}
                                             className="text-lg hover:scale-125 transition-transform w-8 h-8 flex items-center justify-center rounded-xl hover:bg-secondary/40">{e}</button>
@@ -377,7 +377,7 @@ export const ActivityChat: React.FC<{ activityId: string; activityTitle: string;
                 onChange={e => handleInputChange(e.target.value)}
                 onKeyDown={e => e.key === 'Enter' && !e.shiftKey && handleSend()}
                 placeholder="Type a message..."
-                className="w-full pl-5 pr-12 py-3 bg-secondary/30 border border-transparent rounded-[1.5rem] focus:ring-4 focus:ring-primary/5 focus:bg-white focus:border-primary/20 transition-all text-sm outline-none font-semibold text-on-surface placeholder:text-outline/30"
+                className="w-full pl-5 pr-12 py-3 bg-secondary/30 border border-transparent rounded-xl focus:ring-4 focus:ring-primary/5 focus:bg-white focus:border-primary/20 transition-all text-sm outline-none font-semibold text-on-surface placeholder:text-outline/30"
               />
               <button onClick={handleSend} disabled={!input.trim() || !connected}
                 className="absolute right-2 top-1.5 w-9 h-9 flex items-center justify-center text-primary disabled:opacity-30 hover:bg-primary/10 rounded-full transition-all active:scale-90">
@@ -392,7 +392,7 @@ export const ActivityChat: React.FC<{ activityId: string; activityTitle: string;
       {showInfo && (
         <div className="hidden lg:flex w-[280px] flex-shrink-0 flex-col border-l border-outline/5 bg-white animate-in slide-in-from-right duration-300">
           <div className="p-8 flex flex-col items-center text-center border-b border-outline/5">
-            <div className="w-20 h-20 rounded-[2rem] bg-gradient-to-br from-primary to-primary-container shadow-xl shadow-primary/10 flex items-center justify-center text-white text-3xl font-bold mb-4">
+            <div className="w-20 h-20 rounded-xl bg-gradient-to-br from-primary to-primary-container shadow-xl shadow-primary/10 flex items-center justify-center text-white text-3xl font-bold mb-4">
               {activeTitle.charAt(0)}
             </div>
             <h3 className="font-bold text-lg text-on-surface tracking-tight">{activeTitle}</h3>

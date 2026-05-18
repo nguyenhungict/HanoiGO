@@ -1,6 +1,7 @@
 import Link from 'next/link';
 import { cookies } from 'next/headers';
 import { logoutAction } from '@/lib/actions';
+import Logo from '@/components/Logo';
 
 export default async function HomePage() {
   const cookieStore = await cookies();
@@ -12,7 +13,9 @@ export default async function HomePage() {
       {/* Top Navigation Bar */}
       <nav className="fixed top-0 w-full z-50 bg-white/80 backdrop-blur-xl shadow-sm shadow-rose-900/5 transition-all glass-nav border-b border-outline/5">
         <div className="max-w-7xl mx-auto flex justify-between items-center px-8 py-4">
-          <Link href="/" className="text-2xl font-black text-primary tracking-tighter"><span className="text-2xl font-black tracking-tighter text-on-surface">Hanoi<span className="text-primary">GO</span></span></Link>
+          <Link href="/" className="flex items-center gap-3 transition-transform duration-500 hover:scale-[1.03] active:scale-[0.98]">
+            <Logo className="h-8 md:h-9 w-auto text-on-surface" />
+          </Link>
 
           {/* <div className="hidden md:flex items-center gap-8 font-headline tracking-tight font-medium">
             <Link className="text-on-surface-variant hover:text-primary transition-colors duration-300" href="/discovery">Discovery</Link>
@@ -225,7 +228,7 @@ export default async function HomePage() {
       <footer className="bg-white w-full py-24 px-8 border-t border-outline/10">
         <div className="max-w-7xl mx-auto grid grid-cols-1 md:grid-cols-4 gap-16">
           <div className="md:col-span-1 space-y-6">
-            <div className="font-black text-primary text-3xl tracking-tighter">HanoiGO</div>
+            <Logo className="h-9 w-auto text-on-surface" />
             <p className="text-sm font-medium leading-relaxed text-outline max-w-xs">
               Curating the intersection of heritage and modernity. We are your premium guide to the soul of the North.
             </p>

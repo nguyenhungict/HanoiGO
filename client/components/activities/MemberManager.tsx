@@ -81,7 +81,7 @@ export const MemberManager: React.FC<MemberManagerProps> = ({ activityId }) => {
             {requests.map(member => (
               <div key={member.userId} className="flex items-center justify-between p-5 bg-white border border-outline/10 rounded-[2rem] shadow-sm hover:shadow-md transition-shadow group">
                 <div className="flex items-center gap-4">
-                  <div className="w-12 h-12 rounded-2xl bg-primary text-white flex items-center justify-center font-black text-lg shadow-xl shadow-primary/10 transition-transform group-hover:scale-110">
+                  <div className="w-12 h-12 rounded-xl bg-primary text-white flex items-center justify-center font-black text-lg shadow-xl shadow-primary/10 transition-transform group-hover:scale-110">
                     {member.user.username.charAt(0).toUpperCase()}
                   </div>
                   <div>
@@ -95,17 +95,19 @@ export const MemberManager: React.FC<MemberManagerProps> = ({ activityId }) => {
                 <div className="flex gap-2">
                   <button 
                     onClick={() => handleApprove(member.userId)}
-                    className="w-12 h-12 rounded-2xl bg-tertiary text-white flex items-center justify-center hover:opacity-90 transition-all active:scale-90 shadow-lg shadow-tertiary/20"
+                    className="px-4 py-2 bg-tertiary text-white flex items-center gap-1.5 rounded-xl hover:bg-tertiary/90 transition-all active:scale-95 font-bold text-[10px] uppercase tracking-widest shadow-sm"
                     title="Approve"
                   >
-                    <span className="material-symbols-outlined font-black">done_all</span>
+                    <span className="material-symbols-outlined text-[14px]">check_circle</span>
+                    Approve
                   </button>
                   <button 
                     onClick={() => handleReject(member.userId)}
-                    className="w-12 h-12 rounded-2xl bg-secondary/40 text-on-surface-variant flex items-center justify-center hover:bg-primary/10 hover:text-primary transition-all active:scale-90"
+                    className="px-4 py-2 bg-secondary text-on-secondary flex items-center gap-1.5 rounded-xl hover:bg-secondary/90 transition-all active:scale-95 font-bold text-[10px] uppercase tracking-widest shadow-sm"
                     title="Reject"
                   >
-                    <span className="material-symbols-outlined">close</span>
+                    <span className="material-symbols-outlined text-[14px]">close</span>
+                    Reject
                   </button>
                 </div>
               </div>
@@ -124,7 +126,7 @@ export const MemberManager: React.FC<MemberManagerProps> = ({ activityId }) => {
         <div className="grid grid-cols-2 gap-4">
           {approved.map(member => (
             <div key={member.userId} className="flex items-center gap-4 p-4 bg-secondary/30 rounded-[2rem] border border-outline/10 group transition-all hover:bg-white hover:shadow-lg">
-              <div className="w-10 h-10 rounded-2xl bg-white flex items-center justify-center font-black text-xs text-primary shadow-sm border border-outline/10 group-hover:scale-110 transition-transform">
+              <div className="w-10 h-10 rounded-xl bg-white flex items-center justify-center font-black text-xs text-primary shadow-sm border border-outline/10 group-hover:scale-110 transition-transform">
                 {member.user.username.charAt(0).toUpperCase()}
               </div>
               <div className="overflow-hidden">

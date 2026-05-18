@@ -101,7 +101,7 @@ export const CreateActivityDialog: React.FC<CreateActivityDialogProps> = ({ onCl
               </label>
 
               {imagePreview ? (
-                <div className="relative w-full rounded-2xl overflow-hidden border border-outline/10 group">
+                <div className="relative w-full rounded-xl overflow-hidden border border-outline/10 group">
                   <img
                     src={imagePreview}
                     alt="Preview"
@@ -140,9 +140,9 @@ export const CreateActivityDialog: React.FC<CreateActivityDialogProps> = ({ onCl
                 <button
                   type="button"
                   onClick={() => fileInputRef.current?.click()}
-                  className="w-full h-36 flex flex-col items-center justify-center gap-3 bg-white border-2 border-dashed border-outline/20 rounded-2xl hover:bg-secondary/50 hover:border-primary/50 transition-all group cursor-pointer"
+                  className="w-full h-36 flex flex-col items-center justify-center gap-3 bg-white border-2 border-dashed border-outline/20 rounded-xl hover:bg-secondary/50 hover:border-primary/50 transition-all group cursor-pointer"
                 >
-                  <div className="w-12 h-12 rounded-2xl bg-white shadow flex items-center justify-center group-hover:scale-110 transition-transform">
+                  <div className="w-12 h-12 rounded-xl bg-white shadow flex items-center justify-center group-hover:scale-110 transition-transform">
                     <span className="material-symbols-outlined text-2xl text-primary">add_photo_alternate</span>
                   </div>
                   <div className="text-center">
@@ -168,7 +168,7 @@ export const CreateActivityDialog: React.FC<CreateActivityDialogProps> = ({ onCl
                 required
                 type="text"
                 placeholder="e.g., Street Food Crawl in Old Quarter"
-                className="w-full px-5 py-3.5 bg-white border border-outline/10 rounded-2xl focus:ring-8 focus:ring-primary/5 focus:bg-white focus:border-primary/40 transition-all outline-none font-bold placeholder:text-on-surface-variant/40 text-sm shadow-inner"
+                className="w-full px-5 py-3.5 bg-white border border-outline/10 rounded-xl focus:ring-8 focus:ring-primary/5 focus:bg-white focus:border-primary/40 transition-all outline-none font-bold placeholder:text-on-surface-variant/40 text-sm shadow-inner"
                 value={formData.title}
                 onChange={e => setFormData({ ...formData, title: e.target.value })}
               />
@@ -181,7 +181,7 @@ export const CreateActivityDialog: React.FC<CreateActivityDialogProps> = ({ onCl
                 <input
                   required
                   type="datetime-local"
-                  className="w-full px-5 py-3.5 bg-white border border-outline/10 rounded-2xl focus:ring-8 focus:ring-primary/5 focus:bg-white focus:border-primary/40 transition-all outline-none font-semibold text-on-surface text-sm shadow-inner"
+                  className="w-full px-5 py-3.5 bg-white border border-outline/10 rounded-xl focus:ring-8 focus:ring-primary/5 focus:bg-white focus:border-primary/40 transition-all outline-none font-semibold text-on-surface text-sm shadow-inner"
                   value={formData.scheduledAt}
                   onChange={e => setFormData({ ...formData, scheduledAt: e.target.value })}
                 />
@@ -193,7 +193,7 @@ export const CreateActivityDialog: React.FC<CreateActivityDialogProps> = ({ onCl
                   type="number"
                   min="2"
                   max="50"
-                  className="w-full px-5 py-3.5 bg-white border border-outline/10 rounded-2xl focus:ring-8 focus:ring-primary/5 focus:bg-white focus:border-primary/40 transition-all outline-none font-bold text-sm shadow-inner text-on-surface"
+                  className="w-full px-5 py-3.5 bg-white border border-outline/10 rounded-xl focus:ring-8 focus:ring-primary/5 focus:bg-white focus:border-primary/40 transition-all outline-none font-bold text-sm shadow-inner text-on-surface"
                   value={formData.maxMembers}
                   onChange={e => setFormData({ ...formData, maxMembers: parseInt(e.target.value) })}
                 />
@@ -207,7 +207,7 @@ export const CreateActivityDialog: React.FC<CreateActivityDialogProps> = ({ onCl
                 required
                 type="text"
                 placeholder="Where should everyone meet?"
-                className="w-full px-5 py-3.5 bg-white border border-outline/10 rounded-2xl focus:ring-8 focus:ring-primary/5 focus:bg-white focus:border-primary/40 transition-all outline-none font-bold placeholder:text-on-surface-variant/40 text-sm shadow-inner"
+                className="w-full px-5 py-3.5 bg-white border border-outline/10 rounded-xl focus:ring-8 focus:ring-primary/5 focus:bg-white focus:border-primary/40 transition-all outline-none font-bold placeholder:text-on-surface-variant/40 text-sm shadow-inner"
                 value={formData.address}
                 onChange={e => setFormData({ ...formData, address: e.target.value })}
               />
@@ -249,7 +249,7 @@ export const CreateActivityDialog: React.FC<CreateActivityDialogProps> = ({ onCl
                 required
                 placeholder="What's the plan? Give some details to attract members..."
                 rows={3}
-                className="w-full px-5 py-3.5 bg-white border border-outline/10 rounded-2xl focus:ring-8 focus:ring-primary/5 focus:bg-white focus:border-primary/40 transition-all outline-none font-semibold placeholder:text-on-surface-variant/40 resize-none text-sm text-on-surface shadow-inner"
+                className="w-full px-5 py-3.5 bg-white border border-outline/10 rounded-xl focus:ring-8 focus:ring-primary/5 focus:bg-white focus:border-primary/40 transition-all outline-none font-semibold placeholder:text-on-surface-variant/40 resize-none text-sm text-on-surface shadow-inner"
                 value={formData.description}
                 onChange={e => setFormData({ ...formData, description: e.target.value })}
               />
@@ -264,7 +264,7 @@ export const CreateActivityDialog: React.FC<CreateActivityDialogProps> = ({ onCl
             <button
               type="submit"
               disabled={loading || uploadingImage}
-              className="w-full bg-primary text-white py-3.5 rounded-2xl font-bold uppercase tracking-widest text-xs hover:shadow-xl hover:shadow-primary/20 transition-all active:scale-[0.98] flex items-center justify-center gap-3 disabled:opacity-60"
+              className="w-full bg-primary text-white py-3.5 rounded-xl font-bold uppercase tracking-widest text-xs hover:shadow-xl hover:shadow-primary/20 transition-all active:scale-[0.98] flex items-center justify-center gap-3 disabled:opacity-60"
             >
               {loading ? (
                 <div className="w-5 h-5 border-4 border-white/30 border-t-white rounded-full animate-spin" />

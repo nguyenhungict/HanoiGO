@@ -10,6 +10,15 @@ interface ActivityCardProps {
   isActive?: boolean;
 }
 
+const CATEGORY_ICONS: Record<string, string> = {
+  'Nature & Outdoors': 'forest',
+  'Arts & Culture': 'theater_comedy',
+  'Heritage & History': 'history_edu',
+  'Spiritual': 'temple_buddhist',
+  'Eat & Shop': 'restaurant',
+  'Sightseeing': 'photo_camera',
+};
+
 export const ActivityCard: React.FC<ActivityCardProps> = ({ activity, onClick, onChat, isActive }) => {
   const formatDate = (dateString: string) => {
     try {
@@ -84,11 +93,7 @@ export const ActivityCard: React.FC<ActivityCardProps> = ({ activity, onClick, o
           <div className="flex items-center gap-3">
               <div className="bg-secondary px-3 py-1.5 rounded-xl border border-outline/5 flex items-center gap-2">
                 <span className="material-symbols-outlined text-sm text-on-surface/40">
-                  {activity.category === 'food' ? 'restaurant' : 
-                   activity.category === 'history' ? 'history_edu' : 
-                   activity.category === 'nature' ? 'forest' : 
-                   activity.category === 'sport' ? 'sports_soccer' : 
-                   activity.category === 'shopping' ? 'shopping_bag' : 'theater_comedy'}
+                  {CATEGORY_ICONS[activity.category] || 'theater_comedy'}
                 </span>
                 <span className="text-[9px] font-bold text-on-secondary uppercase tracking-widest whitespace-nowrap">
                    {formatDate(activity.scheduledAt)}
@@ -126,10 +131,11 @@ export const ActivityCard: React.FC<ActivityCardProps> = ({ activity, onClick, o
                   e.stopPropagation();
                   onChat?.(activity);
                 }}
-                className="w-10 h-10 flex items-center justify-center bg-primary/8 text-primary rounded-xl hover:bg-primary hover:text-white transition-all active:scale-95 border border-primary/10"
+                className="px-4 h-[34px] flex items-center gap-1.5 bg-white text-on-surface border border-outline/20 rounded-xl hover:bg-surface transition-all active:scale-95 font-bold text-[10px] uppercase tracking-widest shadow-sm"
                 title="Open Chat"
               >
-                <span className="material-symbols-outlined text-[18px]">forum</span>
+                <span className="material-symbols-outlined text-[16px]">forum</span>
+                <span>Chat</span>
               </button>
             )}
 
@@ -139,7 +145,7 @@ export const ActivityCard: React.FC<ActivityCardProps> = ({ activity, onClick, o
                   e.stopPropagation();
                   onClick(activity); 
                 }}
-                className="px-4 py-2 bg-on-surface text-white rounded-xl hover:bg-on-surface/90 transition-all active:scale-95 font-bold text-[10px] uppercase tracking-widest shadow-sm"
+                className="px-4 h-[34px] flex items-center justify-center bg-on-surface text-white rounded-xl hover:bg-on-surface/90 transition-all active:scale-95 font-bold text-[10px] uppercase tracking-widest shadow-sm"
               >
                 Manage
               </button>
@@ -149,24 +155,24 @@ export const ActivityCard: React.FC<ActivityCardProps> = ({ activity, onClick, o
                   e.stopPropagation();
                   onClick(activity); 
                 }}
-                className="px-4 py-2 bg-emerald-600 text-white rounded-xl hover:bg-emerald-700 transition-all active:scale-95 font-bold text-[10px] uppercase tracking-widest shadow-sm flex items-center gap-1.5"
+                className="px-4 py-2 bg-tertiary text-white rounded-xl hover:bg-tertiary/90 transition-all active:scale-95 font-bold text-[10px] uppercase tracking-widest shadow-sm flex items-center gap-1.5"
               >
                 <span className="material-symbols-outlined text-[14px]">check_circle</span>
                 Joined
               </button>
             ) : hasRequested ? (
-                <div className="px-4 py-2 bg-secondary/40 text-on-surface-variant/50 rounded-xl flex items-center gap-1 border border-outline/5">
-                   <span className="text-[10px] font-bold uppercase tracking-widest">Pending</span>
-                </div>
+                 <div className="px-4 py-2 bg-secondary/40 text-on-surface-variant/70 rounded-xl flex items-center gap-1 border border-outline/10 text-[10px] font-bold uppercase tracking-widest justify-center">
+                    Pending
+                 </div>
             ) : (
                <button 
                 onClick={(e) => {
                   e.stopPropagation();
                   onClick(activity); 
                 }}
-                className="px-4 py-2 bg-primary text-white rounded-xl hover:opacity-90 transition-all active:scale-95 font-bold text-[10px] uppercase tracking-widest shadow-lg shadow-primary/20"
+                className="px-4 py-2 bg-primary text-white rounded-xl hover:bg-primary/90 transition-all active:scale-95 font-bold text-[10px] uppercase tracking-widest shadow-sm"
               >
-                Interested
+                Join Group
               </button>
             )}
           </div>
