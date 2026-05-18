@@ -14,6 +14,16 @@ const TravelBasket = dynamic(() => import('@/components/TravelBasket'), { ssr: f
 
 import { fetchLandmarks } from '@/lib/landmarks';
 
+// AI-recommended marker to highlight on map
+export interface AiMarker {
+  id: string;
+  name: string;
+  lat: number;
+  lng: number;
+  category: string;
+  distanceKm?: number;
+}
+
 export default function DiscoveryPage() {
   const [landmarks, setLandmarks] = useState<Landmark[]>([]);
   const [searchQuery, setSearchQuery] = useState('');
@@ -21,6 +31,7 @@ export default function DiscoveryPage() {
   const [userLocation, setUserLocation] = useState<[number, number] | null>(null);
   const [mapFocus, setMapFocus] = useState<[number, number] | null>(null);
   const [activeLandmarkId, setActiveLandmarkId] = useState<string | null>(null);
+  const [aiMarkers, setAiMarkers] = useState<AiMarker[]>([]);
 
   // Zustand — subscribe to selectedPlaces directly for reactivity
   const selectedPlaces = useTripStore((s) => s.selectedPlaces);
@@ -166,6 +177,7 @@ export default function DiscoveryPage() {
           showLandmarks={true}
           focusLocation={mapFocus}
           focusedLandmarkId={activeLandmarkId}
+          aiMarkers={aiMarkers}
         />
       </section>
 
@@ -173,7 +185,12 @@ export default function DiscoveryPage() {
       <TravelBasket />
 
       {/* AI Chat Assistant */}
-      <ChatAssistant />
+      <ChatAssistant
+        onAiMarkers={(markers) => {
+          setAiMarkers(markers);
+          if (markers.length > 0) setMapFocus([markers[0].lat, markers[0].lng]);
+        }}
+      />
     </div>
   );
 }

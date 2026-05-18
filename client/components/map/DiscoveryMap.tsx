@@ -196,6 +196,7 @@ interface DiscoveryMapProps {
   showLandmarks?: boolean;
   focusLocation?: [number, number] | null;
   focusedLandmarkId?: string | null;
+  aiMarkers?: { id: string; name: string; lat: number; lng: number; category: string; distanceKm?: number }[];
 }
 
 // Create numbered itinerary marker icon
@@ -223,7 +224,8 @@ export default function DiscoveryMap({
   onLocationFound, 
   showLandmarks = true,
   focusLocation = null,
-  focusedLandmarkId = null
+  focusedLandmarkId = null,
+  aiMarkers = [],
 }: DiscoveryMapProps) {
   const [landmarks, setLandmarks] = useState<Landmark[]>([]);
   const [zoomLevel, setZoomLevel] = useState(13);
@@ -355,6 +357,15 @@ export default function DiscoveryMap({
     }
   }, [mapInstance, itineraryMarkers]);
 
+  // Auto-zoom map to AI recommended markers
+  React.useEffect(() => {
+    if (mapInstance && aiMarkers.length > 0) {
+      const points: [number, number][] = aiMarkers.map(m => [m.lat, m.lng]);
+      const bounds = L.latLngBounds(points);
+      mapInstance.flyToBounds(bounds, { padding: [80, 80], duration: 1.5 });
+    }
+  }, [mapInstance, aiMarkers]);
+
   return (
     <div className="w-full h-full relative z-0 font-body">
       <style>{`
@@ -470,6 +481,39 @@ export default function DiscoveryMap({
            />
         )}
         
+        {/* AI-recommended place markers */}
+        {aiMarkers.map(m => {
+          const aiIcon = L.divIcon({
+            className: 'ai-marker',
+            html: `
+              <div style="position:relative;display:flex;align-items:center;justify-content:center;">
+                <div style="width:32px;height:32px;border-radius:50%;background:linear-gradient(135deg,#f59e0b,#ef4444);border:3px solid white;box-shadow:0 4px 16px rgba(239,68,68,0.5);display:flex;align-items:center;justify-content:center;">
+                  <span class="material-symbols-outlined" style="color:white;font-size:16px;">auto_awesome</span>
+                </div>
+                <div style="position:absolute;inset:0;border-radius:50%;background:rgba(239,68,68,0.3);animation:ping 1.5s ease-in-out infinite;"></div>
+              </div>
+            `,
+            iconSize: [32, 32],
+            iconAnchor: [16, 16],
+            popupAnchor: [0, -20],
+          });
+          return (
+            <Marker key={`ai-${m.id}`} position={[m.lat, m.lng]} icon={aiIcon}>
+              <Popup closeButton={false} offset={[0, -10]}>
+                <div className="bg-white rounded-2xl p-4 shadow-xl min-w-[180px] border border-orange-100">
+                  <div className="flex items-center gap-1.5 mb-1">
+                    <span className="material-symbols-outlined text-sm text-amber-500">auto_awesome</span>
+                    <span className="text-[9px] font-black uppercase tracking-widest text-amber-500">AI gợi ý</span>
+                  </div>
+                  <h3 className="font-black text-sm tracking-tight text-on-surface">{m.name}</h3>
+                  <p className="text-[10px] font-bold text-outline mt-0.5">{m.category}</p>
+                  {m.distanceKm && <p className="text-[10px] font-black text-primary mt-1">{m.distanceKm.toFixed(1)} km từ bạn</p>}
+                </div>
+              </Popup>
+            </Marker>
+          );
+        })}
+
         {/* Itinerary markers (numbered, colored per day) */}
         {itineraryMarkers.map(marker => (
           <Marker

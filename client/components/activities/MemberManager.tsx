@@ -51,10 +51,9 @@ export const MemberManager: React.FC<MemberManagerProps> = ({ activityId }) => {
 
   if (loading) {
     return (
-      <div className="space-y-4">
-        {[1, 2, 3].map(i => (
-          <div key={i} className="h-20 bg-secondary/30 rounded-[2rem] animate-pulse" />
-        ))}
+      <div className="space-y-2">
+        <div className="h-10 bg-secondary-container/50 rounded-lg animate-pulse" />
+        <div className="h-10 bg-secondary-container/50 rounded-lg animate-pulse" />
       </div>
     );
   }
@@ -63,51 +62,46 @@ export const MemberManager: React.FC<MemberManagerProps> = ({ activityId }) => {
   const approved = members.filter(m => m.status === 'APPROVED');
 
   return (
-    <div className="space-y-8 animate-in fade-in duration-500">
-      {/* Pending Requests */}
+    <div className="space-y-4 animate-in fade-in duration-300">
+      {/* Join Requests */}
       <div>
-        <div className="flex items-center justify-between mb-6">
-           <h4 className="text-[11px] font-black uppercase tracking-[0.2em] text-on-surface-variant">Join Requests</h4>
-           <span className="px-2.5 py-1 bg-primary/10 text-primary text-[9px] font-bold rounded-full">{requests.length} Pending</span>
+        <div className="flex items-center justify-between mb-2">
+           <h4 className="text-[9px] font-black uppercase tracking-widest text-on-surface-variant">Join Requests</h4>
+           <span className="px-2 py-0.5 bg-primary/10 text-primary text-[8px] font-bold rounded shadow-sm">{requests.length} Pending</span>
         </div>
 
         {requests.length === 0 ? (
-          <div className="p-10 rounded-[2.5rem] bg-secondary/20 border border-dashed border-outline/20 text-center">
-             <span className="material-symbols-outlined text-outline/30 text-4xl mb-2">inbox</span>
-             <p className="text-xs text-on-surface-variant font-bold uppercase tracking-widest">No new requests</p>
+          <div className="py-4 px-3 rounded-lg bg-secondary-container/20 border border-dashed border-outline/20 flex items-center justify-center gap-2">
+             <span className="material-symbols-outlined text-outline/40 text-sm">inbox</span>
+             <p className="text-[9px] text-on-surface-variant font-black uppercase tracking-widest">No new requests</p>
           </div>
         ) : (
-          <div className="space-y-3">
+          <div className="space-y-2">
             {requests.map(member => (
-              <div key={member.userId} className="flex items-center justify-between p-5 bg-white border border-outline/10 rounded-[2rem] shadow-sm hover:shadow-md transition-shadow group">
-                <div className="flex items-center gap-4">
-                  <div className="w-12 h-12 rounded-xl bg-primary text-white flex items-center justify-center font-black text-lg shadow-xl shadow-primary/10 transition-transform group-hover:scale-110">
+              <div key={member.userId} className="flex items-center justify-between p-2.5 bg-white border border-outline/10 rounded-lg shadow-sm">
+                <div className="flex items-center gap-2.5">
+                  <div className="w-8 h-8 rounded shrink-0 bg-primary/10 text-primary flex items-center justify-center font-black text-xs shadow-inner">
                     {member.user.username.charAt(0).toUpperCase()}
                   </div>
-                  <div>
-                    <p className="text-sm font-black text-on-surface">{member.user.username}</p>
-                    <div className="flex items-center gap-1.5 mt-0.5">
-                       <span className="material-symbols-outlined text-[12px] text-on-surface-variant">public</span>
-                       <p className="text-[10px] font-bold text-on-surface-variant uppercase tracking-widest">{member.user.nationality || 'Traveler'}</p>
-                    </div>
+                  <div className="min-w-0">
+                    <p className="text-xs font-black text-on-surface truncate">{member.user.username}</p>
+                    <p className="text-[8px] font-bold text-on-surface-variant uppercase tracking-widest truncate">{member.user.nationality || 'Traveler'}</p>
                   </div>
                 </div>
-                <div className="flex gap-2">
+                <div className="flex gap-1.5 shrink-0">
                   <button 
                     onClick={() => handleApprove(member.userId)}
-                    className="px-4 py-2 bg-tertiary text-white flex items-center gap-1.5 rounded-xl hover:bg-tertiary/90 transition-all active:scale-95 font-bold text-[10px] uppercase tracking-widest shadow-sm"
+                    className="w-7 h-7 flex items-center justify-center bg-tertiary text-white rounded hover:bg-tertiary/90 transition-colors shadow-sm"
                     title="Approve"
                   >
-                    <span className="material-symbols-outlined text-[14px]">check_circle</span>
-                    Approve
+                    <span className="material-symbols-outlined text-[14px]">check</span>
                   </button>
                   <button 
                     onClick={() => handleReject(member.userId)}
-                    className="px-4 py-2 bg-secondary text-on-secondary flex items-center gap-1.5 rounded-xl hover:bg-secondary/90 transition-all active:scale-95 font-bold text-[10px] uppercase tracking-widest shadow-sm"
+                    className="w-7 h-7 flex items-center justify-center bg-white border border-outline/20 text-on-surface rounded hover:bg-secondary transition-colors shadow-sm"
                     title="Reject"
                   >
                     <span className="material-symbols-outlined text-[14px]">close</span>
-                    Reject
                   </button>
                 </div>
               </div>
@@ -117,26 +111,28 @@ export const MemberManager: React.FC<MemberManagerProps> = ({ activityId }) => {
       </div>
 
       {/* Approved Members */}
-      <div>
-        <div className="flex items-center justify-between mb-6">
-           <h4 className="text-[11px] font-black uppercase tracking-[0.2em] text-on-surface-variant">Squad Members</h4>
-           <span className="px-2.5 py-1 bg-tertiary/10 text-tertiary text-[9px] font-bold rounded-full">{approved.length} Active</span>
-        </div>
-        
-        <div className="grid grid-cols-2 gap-4">
-          {approved.map(member => (
-            <div key={member.userId} className="flex items-center gap-4 p-4 bg-secondary/30 rounded-[2rem] border border-outline/10 group transition-all hover:bg-white hover:shadow-lg">
-              <div className="w-10 h-10 rounded-xl bg-white flex items-center justify-center font-black text-xs text-primary shadow-sm border border-outline/10 group-hover:scale-110 transition-transform">
-                {member.user.username.charAt(0).toUpperCase()}
+      {approved.length > 0 && (
+        <div className="pt-2">
+          <div className="flex items-center justify-between mb-2">
+             <h4 className="text-[9px] font-black uppercase tracking-widest text-on-surface-variant">Squad Members</h4>
+             <span className="px-2 py-0.5 bg-tertiary/10 text-tertiary text-[8px] font-bold rounded shadow-sm">{approved.length} Active</span>
+          </div>
+          
+          <div className="grid grid-cols-2 gap-2">
+            {approved.map(member => (
+              <div key={member.userId} className="flex items-center gap-2.5 p-2 bg-secondary-container/30 rounded-lg border border-outline/10">
+                <div className="w-6 h-6 rounded shrink-0 bg-white flex items-center justify-center font-black text-[10px] text-primary shadow-sm border border-outline/10">
+                  {member.user.username.charAt(0).toUpperCase()}
+                </div>
+                <div className="min-w-0">
+                  <p className="text-[10px] font-black text-on-surface truncate">{member.user.username}</p>
+                  <p className="text-[7px] font-bold text-on-surface-variant uppercase tracking-widest truncate">{member.user.nationality || 'Traveler'}</p>
+                </div>
               </div>
-              <div className="overflow-hidden">
-                <p className="text-[13px] font-black text-on-surface truncate">{member.user.username}</p>
-                <p className="text-[9px] font-bold text-on-surface-variant uppercase tracking-widest truncate">{member.user.nationality || 'Traveler'}</p>
-              </div>
-            </div>
-          ))}
+            ))}
+          </div>
         </div>
-      </div>
+      )}
     </div>
   );
 };

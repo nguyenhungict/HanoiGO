@@ -99,12 +99,12 @@ export default function ActivitiesPage() {
       <div className="absolute bottom-[-10%] right-[-10%] w-[40%] h-[40%] bg-secondary/20 rounded-full blur-[120px] pointer-events-none" />
 
       {/* ── Header ──────────────────────────────────────────────── */}
-      <header className="px-5 py-4 bg-white/80 backdrop-blur-2xl border-b border-outline/5 flex flex-row gap-4 justify-between items-center z-20 shrink-0">
+      <header className="px-5 py-3 bg-white/80 backdrop-blur-2xl border-b border-outline/5 flex flex-row gap-4 justify-between items-center z-20 shrink-0">
         <div className="flex items-center gap-4">
           {/* Title */}
           <div>
             <h1 className="text-xl font-bold tracking-tight text-on-surface leading-none">Activities</h1>
-            <p className="text-primary text-[8px] font-bold uppercase tracking-[0.2em] mt-0.5">Hanoi Guild Network</p>
+            <p className="text-primary text-[8px] font-bold uppercase tracking-[0.2em] mt-0.5">Hanoi Guild</p>
           </div>
 
           {/* Feed / Joined tabs */}
@@ -124,6 +124,36 @@ export default function ActivitiesPage() {
         </div>
 
         <div className="flex items-center gap-3">
+          {/* Categories Dropdown */}
+          <div className="relative group">
+            <button className="flex items-center gap-1.5 px-4 py-2 bg-secondary rounded-2xl text-[10px] font-bold uppercase tracking-widest text-on-surface hover:bg-outline/5 transition-all border border-outline/5">
+              <span className="material-symbols-outlined text-sm">
+                {CATEGORIES.find(c => c.id === selectedCategory)?.icon || 'category'}
+              </span>
+              <span>{CATEGORIES.find(c => c.id === selectedCategory)?.name || 'All Categories'}</span>
+              <span className="material-symbols-outlined text-sm">expand_more</span>
+            </button>
+            {/* Dropdown Menu */}
+            <div className="absolute top-full right-0 mt-2 w-48 bg-white border border-outline/10 rounded-2xl shadow-xl opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-200 z-50 flex flex-col p-2">
+              {CATEGORIES.map(cat => (
+                <button
+                  key={cat.id}
+                  onClick={() => setSelectedCategory(cat.id)}
+                  className={`flex items-center gap-2.5 px-3 py-2.5 rounded-xl text-[10px] font-bold uppercase tracking-widest transition-colors w-full text-left ${
+                    selectedCategory === cat.id
+                      ? 'bg-primary text-white'
+                      : 'text-on-surface hover:bg-secondary hover:text-primary'
+                  }`}
+                >
+                  <span className="material-symbols-outlined text-sm">{cat.icon}</span>
+                  <span>{cat.name}</span>
+                </button>
+              ))}
+            </div>
+          </div>
+
+          <div className="w-[1px] h-7 bg-outline/10" />
+
           {/* View switcher: Reel / Map */}
           <div className="flex bg-secondary p-1 rounded-2xl border border-outline/5 shadow-inner">
             <button
@@ -161,24 +191,6 @@ export default function ActivitiesPage() {
 
       {/* ── Main Content ─────────────────────────────────────────── */}
       <main className="flex-1 relative overflow-hidden flex flex-col">
-
-        {/* Categories Bar */}
-        <div className="px-4 py-3 border-b border-outline/5 flex gap-2 overflow-x-auto hide-scrollbar bg-white/60 backdrop-blur-md z-10 shrink-0">
-          {CATEGORIES.map(cat => (
-            <button
-              key={cat.id}
-              onClick={() => setSelectedCategory(cat.id)}
-              className={`flex items-center gap-1.5 px-3.5 py-1.5 rounded-xl transition-all whitespace-nowrap border-2 ${
-                selectedCategory === cat.id
-                  ? 'bg-primary border-primary text-white shadow-md shadow-primary/20 scale-105'
-                  : 'bg-white border-outline/5 text-on-surface/60 hover:border-primary/30 hover:text-primary'
-              }`}
-            >
-              <span className="material-symbols-outlined text-sm">{cat.icon}</span>
-              <span className="text-[9px] font-bold uppercase tracking-widest">{cat.name}</span>
-            </button>
-          ))}
-        </div>
 
         <div className="flex-1 relative overflow-hidden">
 
