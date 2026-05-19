@@ -124,12 +124,27 @@ export default function PlaceManagement() {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoading(true);
+
+    // Filter payload to only include fields allowed by the backend DTO
+    const payload = {
+      name: formData.name,
+      category: formData.category,
+      district: formData.district,
+      address: formData.address || undefined,
+      lat: Number(formData.lat),
+      lng: Number(formData.lng),
+      imageUrl: formData.imageUrl || undefined,
+      tags: formData.tags || [],
+      alwaysOpen: Boolean(formData.alwaysOpen),
+      openTimeStart: formData.alwaysOpen ? undefined : (formData.openTimeStart || '08:00'),
+      openTimeEnd: formData.alwaysOpen ? undefined : (formData.openTimeEnd || '17:00'),
+    };
     
     let res;
     if (editingPlace) {
-      res = await updateAdminPlaceAction(editingPlace.id, formData);
+      res = await updateAdminPlaceAction(editingPlace.id, payload);
     } else {
-      res = await createAdminPlaceAction(formData);
+      res = await createAdminPlaceAction(payload);
     }
 
     if (res.success) {
@@ -141,7 +156,9 @@ export default function PlaceManagement() {
         message: editingPlace ? 'Heritage record has been successfully modified.' : 'New cultural asset has been added to the database.' 
       });
     } else {
-      show({ type: 'error', title: 'Archive Error', message: res.error || 'Could not commit data to registry.' });
+      // Map class-validator array messages to a readable string if applicable
+      const errorMsg = Array.isArray(res.error) ? res.error.join('; ') : res.error;
+      show({ type: 'error', title: 'Archive Error', message: errorMsg || 'Could not commit data to registry.' });
       setLoading(false);
     }
   };

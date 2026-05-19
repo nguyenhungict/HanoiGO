@@ -7,7 +7,6 @@ import { LocationPickerMap } from './LocationPickerMap';
 interface DbPlace {
   id: string;
   name: string;
-  nameEn?: string;
   category: string;
   lat: number;
   lng: number;
@@ -99,8 +98,7 @@ export const CreateActivityDialog: React.FC<CreateActivityDialogProps> = ({ onCl
       .then((data: any[]) => {
         const mapped: DbPlace[] = data.map(p => ({
           id: p.id,
-          name: p.nameEn || p.name,
-          nameEn: p.nameEn,
+          name: p.name,
           category: p.category || 'Place',
           lat: p.lat,
           lng: p.lng,

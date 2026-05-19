@@ -254,8 +254,6 @@ async function main() {
     const category = inferCategory(typeof place.tags === 'string' ? place.tags : null);
     const district = inferDistrict(place.latitude, place.longitude);
     const visitDuration = inferVisitDuration(category);
-    const nameEn = place.name;
-
     // Build the WKT for PostGIS
     const wkt = `SRID=4326;POINT(${place.longitude} ${place.latitude})`;
 
@@ -263,17 +261,17 @@ async function main() {
       await prisma.$executeRawUnsafe(
         `
         INSERT INTO places (
-          id, name, name_en, category, district,
+          id, name, category, district,
           lat, lng, location,
           always_open, open_days, open_time_start, open_time_end,
           has_break, break_start, break_end,
           visit_duration_min, tags, created_at
         ) VALUES (
-          gen_random_uuid(), $1, $2, $3, $4,
-          $5, $6, ST_GeomFromEWKT($7),
-          $8, $9, $10::time, $11::time,
-          $12, $13::time, $14::time,
-          $15, $16, now()
+          gen_random_uuid(), $1, $2, $3,
+          $4, $5, ST_GeomFromEWKT($6),
+          $7, $8, $9::time, $10::time,
+          $11, $12::time, $13::time,
+          $14, $15, now()
         )
         ON CONFLICT (name) DO UPDATE SET
           always_open = EXCLUDED.always_open,
@@ -286,21 +284,20 @@ async function main() {
           visit_duration_min = EXCLUDED.visit_duration_min
         `,
         place.name,                                     // $1
-        nameEn,                                         // $2
-        category,                                       // $3
-        district,                                       // $4
-        place.latitude,                                 // $5
-        place.longitude,                                // $6
-        wkt,                                            // $7
-        hours.alwaysOpen,                               // $8
-        hours.openDays,                                 // $9
-        hours.openTimeStart,                            // $10
-        hours.openTimeEnd,                              // $11
-        hours.hasBreak,                                 // $12
-        hours.breakStart,                               // $13
-        hours.breakEnd,                                 // $14
-        visitDuration,                                  // $15
-        typeof place.tags === 'string' ? place.tags.split(' • ') : [],  // $16
+        category,                                       // $2
+        district,                                       // $3
+        place.latitude,                                 // $4
+        place.longitude,                                // $5
+        wkt,                                            // $6
+        hours.alwaysOpen,                               // $7
+        hours.openDays,                                 // $8
+        hours.openTimeStart,                            // $9
+        hours.openTimeEnd,                              // $10
+        hours.hasBreak,                                 // $11
+        hours.breakStart,                               // $12
+        hours.breakEnd,                                 // $13
+        visitDuration,                                  // $14
+        typeof place.tags === 'string' ? place.tags.split(' • ') : [],  // $15
       );
 
       const dayNames = ['CN', 'T2', 'T3', 'T4', 'T5', 'T6', 'T7'];
