@@ -197,6 +197,8 @@ interface DiscoveryMapProps {
   focusLocation?: [number, number] | null;
   focusedLandmarkId?: string | null;
   aiMarkers?: { id: string; name: string; lat: number; lng: number; category: string; distanceKm?: number }[];
+  selectedCategory?: string;
+  isSidebarOpen?: boolean;
 }
 
 // Create numbered itinerary marker icon
@@ -226,6 +228,8 @@ export default function DiscoveryMap({
   focusLocation = null,
   focusedLandmarkId = null,
   aiMarkers = [],
+  selectedCategory = 'all',
+  isSidebarOpen = true,
 }: DiscoveryMapProps) {
   const [landmarks, setLandmarks] = useState<Landmark[]>([]);
   const [zoomLevel, setZoomLevel] = useState(13);
@@ -242,6 +246,24 @@ export default function DiscoveryMap({
     }
   }, [focusLocation, mapInstance]);
 
+  useEffect(() => {
+    if (mapInstance) {
+      const interval = setInterval(() => {
+        mapInstance.invalidateSize();
+      }, 100);
+      
+      const timeout = setTimeout(() => {
+        clearInterval(interval);
+        mapInstance.invalidateSize();
+      }, 850);
+
+      return () => {
+        clearInterval(interval);
+        clearTimeout(timeout);
+      };
+    }
+  }, [isSidebarOpen, mapInstance]);
+
   // Update parent when location is found
   useEffect(() => {
     if (userLocation && onLocationFound) {
@@ -256,6 +278,61 @@ export default function DiscoveryMap({
   const [routingDestination, setRoutingDestination] = useState<Landmark | null>(null);
   const [isRoutingLoading, setIsRoutingLoading] = useState(false);
   const lastFetchedRouteRef = React.useRef<string | null>(null);
+
+  // === Drag and Minimize States ===
+  const [isRoutePanelMinimized, setIsRoutePanelMinimized] = useState(false);
+  const [dragOffset, setDragOffset] = useState({ x: 0, y: 0 });
+  const [isDragging, setIsDragging] = useState(false);
+  const [dragStart, setDragStart] = useState({ x: 0, y: 0 });
+
+  // Reset drag offset when destination changes
+  useEffect(() => {
+    setDragOffset({ x: 0, y: 0 });
+  }, [routingDestination]);
+
+  const handlePointerDown = (e: React.PointerEvent<HTMLDivElement>) => {
+    const target = e.target as HTMLElement;
+    // Don't drag when clicking buttons
+    if (target.closest('button')) return;
+    
+    setIsDragging(true);
+    setDragStart({
+      x: e.clientX - dragOffset.x,
+      y: e.clientY - dragOffset.y
+    });
+    
+    const dragHandle = target.closest('.drag-handle');
+    if (dragHandle) {
+      try {
+        dragHandle.setPointerCapture(e.pointerId);
+      } catch (err) {
+        console.warn("Set pointer capture failed:", err);
+      }
+    }
+  };
+
+  const handlePointerMove = (e: React.PointerEvent<HTMLDivElement>) => {
+    if (!isDragging) return;
+    setDragOffset({
+      x: e.clientX - dragStart.x,
+      y: e.clientY - dragStart.y
+    });
+  };
+
+  const handlePointerUp = (e: React.PointerEvent<HTMLDivElement>) => {
+    if (isDragging) {
+      setIsDragging(false);
+      const target = e.target as HTMLElement;
+      const dragHandle = target.closest('.drag-handle');
+      if (dragHandle) {
+        try {
+          dragHandle.releasePointerCapture(e.pointerId);
+        } catch (err) {
+          console.warn("Release pointer capture failed:", err);
+        }
+      }
+    }
+  };
 
   const hasItinerary = itineraryMarkers.length > 0;
 
@@ -338,6 +415,8 @@ export default function DiscoveryMap({
     setRoutingDestination(null);
     setActiveRoute(null);
     setRouteDetails(null);
+    setIsRoutePanelMinimized(false);
+    setDragOffset({ x: 0, y: 0 });
   };
 
   const handleCenterOnUser = () => {
@@ -366,6 +445,28 @@ export default function DiscoveryMap({
     }
   }, [mapInstance, aiMarkers]);
 
+  // Auto-zoom map to filtered landmarks when selectedCategory changes
+  React.useEffect(() => {
+    if (mapInstance && selectedCategory && selectedCategory !== 'all') {
+      const filtered = landmarks.filter(l => {
+        const cat = l.category.toLowerCase();
+        if (selectedCategory === 'heritage') return cat.includes('heritage') || cat.includes('historic');
+        if (selectedCategory === 'spiritual') return cat.includes('spiritual') || cat.includes('temple');
+        if (selectedCategory === 'nature') return cat.includes('nature') || cat.includes('outdoor');
+        if (selectedCategory === 'art') return cat.includes('art') || cat.includes('museum') || cat.includes('theater');
+        if (selectedCategory === 'eat') return cat.includes('eat') || cat.includes('shop') || cat.includes('food');
+        if (selectedCategory === 'sightseeing') return cat.includes('sightseeing') || cat.includes('tourist') || cat.includes('attraction');
+        return cat.includes(selectedCategory);
+      });
+      
+      if (filtered.length > 0) {
+        const points: [number, number][] = filtered.map(l => [l.lat, l.lng]);
+        const bounds = L.latLngBounds(points);
+        mapInstance.flyToBounds(bounds, { padding: [60, 60], duration: 1.2 });
+      }
+    }
+  }, [mapInstance, selectedCategory, landmarks]);
+
   return (
     <div className="w-full h-full relative z-0 font-body">
       <style>{`
@@ -381,10 +482,21 @@ export default function DiscoveryMap({
       `}</style>
       
       {/* Routing Panel Overlay */}
-      {routingDestination && (
-        <div className="absolute top-8 left-1/2 -translate-x-1/2 z-[1000] w-[92%] max-w-sm bg-background/80 backdrop-blur-2xl rounded-[32px] shadow-2xl border border-white/40 overflow-hidden animate-in fade-in slide-in-from-top-6 duration-500">
-          <div className="p-4 px-5 flex items-center justify-between border-b border-outline/5 bg-white/20">
-            <div className="flex items-center gap-4">
+      {routingDestination && !isRoutePanelMinimized && (
+        <div 
+          style={{
+            transform: `translate(${dragOffset.x}px, ${dragOffset.y}px) translateX(-50%)`,
+            left: '50%',
+          }}
+          className="absolute top-8 z-[1000] w-[92%] max-w-sm bg-background/80 backdrop-blur-2xl rounded-[32px] shadow-2xl border border-white/40 overflow-hidden animate-in fade-in slide-in-from-top-6 duration-500 touch-none"
+        >
+          <div 
+            className="p-4 px-5 flex items-center justify-between border-b border-outline/5 bg-white/20 drag-handle cursor-grab active:cursor-grabbing select-none"
+            onPointerDown={handlePointerDown}
+            onPointerMove={handlePointerMove}
+            onPointerUp={handlePointerUp}
+          >
+            <div className="flex items-center gap-3 pointer-events-none">
                <div className="w-10 h-10 rounded-2xl bg-primary/10 flex items-center justify-center text-primary shadow-inner">
                   <span className="material-symbols-outlined text-[22px]">{getCategoryIcon(routingDestination.category)}</span>
                </div>
@@ -392,8 +504,16 @@ export default function DiscoveryMap({
                   <span className="text-[9px] font-black text-primary uppercase tracking-[0.2em]">Đường đến</span>
                   <span className="text-[15px] font-extrabold text-on-surface line-clamp-1 max-w-[180px] tracking-tight">{routingDestination.name}</span>
                </div>
+               <div className="flex flex-col gap-0.5 ml-2 opacity-30">
+                  <div className="w-4 h-0.5 bg-outline rounded-full"></div>
+                  <div className="w-4 h-0.5 bg-outline rounded-full"></div>
+               </div>
             </div>
-            <button onClick={handleCancelRouting} className="w-9 h-9 flex items-center justify-center rounded-full bg-on-surface/5 hover:bg-on-surface/10 text-on-surface transition-all active:scale-90">
+            <button 
+              onClick={() => setIsRoutePanelMinimized(true)} 
+              className="w-9 h-9 flex items-center justify-center rounded-full bg-on-surface/5 hover:bg-on-surface/10 text-on-surface transition-all active:scale-90 z-10"
+              title="Ẩn bảng chi tiết"
+            >
               <span className="material-symbols-outlined text-[20px]">close</span>
             </button>
           </div>
@@ -421,20 +541,73 @@ export default function DiscoveryMap({
                   <div className="w-6 h-6 border-3 border-primary/20 border-t-primary rounded-full animate-spin"></div>
                </div>
             ) : routeDetails ? (
-               <div className="flex items-center justify-center gap-10 py-2">
-                  <div className="flex flex-col items-center">
-                     <span className="text-3xl font-black text-on-surface tracking-tighter tabular-nums">{routeDetails.duration}</span>
-                     <span className="text-[10px] font-black text-outline uppercase tracking-[0.2em] mt-1 opacity-60">Thời gian</span>
-                  </div>
-                  <div className="w-px h-10 bg-outline/10"></div>
-                  <div className="flex flex-col items-center">
-                     <span className="text-3xl font-black text-on-surface tracking-tighter tabular-nums">{routeDetails.distance}</span>
-                     <span className="text-[10px] font-black text-outline uppercase tracking-[0.2em] mt-1 opacity-60">Quãng đường</span>
-                  </div>
+               <div className="flex flex-col gap-3">
+                 <div className="flex items-center justify-center gap-10 py-2">
+                    <div className="flex flex-col items-center">
+                       <span className="text-3xl font-black text-on-surface tracking-tighter tabular-nums">{routeDetails.duration}</span>
+                       <span className="text-[10px] font-black text-outline uppercase tracking-[0.2em] mt-1 opacity-60">Thời gian</span>
+                    </div>
+                    <div className="w-px h-10 bg-outline/10"></div>
+                    <div className="flex flex-col items-center">
+                       <span className="text-3xl font-black text-on-surface tracking-tighter tabular-nums">{routeDetails.distance}</span>
+                       <span className="text-[10px] font-black text-outline uppercase tracking-[0.2em] mt-1 opacity-60">Quãng đường</span>
+                    </div>
+                 </div>
+                 
+                 <button 
+                    onClick={handleCancelRouting}
+                    className="w-full mt-2 text-center text-[10px] font-black text-red-500 uppercase tracking-widest hover:bg-red-500 hover:text-white transition-all py-3 bg-red-500/10 rounded-2xl active:scale-95"
+                 >
+                   Hủy chỉ đường
+                 </button>
                </div>
             ) : (
-               <div className="text-center py-3 text-xs font-bold text-outline uppercase tracking-widest opacity-60">Không tìm được đường đi</div>
+               <div className="flex flex-col gap-3">
+                 <div className="text-center py-3 text-xs font-bold text-outline uppercase tracking-widest opacity-60">Không tìm được đường đi</div>
+                 <button 
+                    onClick={handleCancelRouting}
+                    className="w-full mt-2 text-center text-[10px] font-black text-red-500 uppercase tracking-widest hover:bg-red-500 hover:text-white transition-all py-3 bg-red-500/10 rounded-2xl active:scale-95"
+                 >
+                   Hủy chỉ đường
+                 </button>
+               </div>
             )}
+          </div>
+        </div>
+      )}
+
+      {/* Mini Status Bar (Minimized Routing Panel) */}
+      {routingDestination && isRoutePanelMinimized && (
+        <div className="absolute top-1/2 -translate-y-1/2 right-6 z-[1000] bg-background/90 backdrop-blur-2xl px-5 py-2.5 rounded-full shadow-2xl border border-white/40 flex items-center gap-4 animate-in fade-in slide-in-from-right-4 duration-300">
+          <div className="flex items-center gap-2">
+            <span className="material-symbols-outlined text-primary text-lg">
+              {transportMode === 'driving' ? 'two_wheeler' : 'directions_walk'}
+            </span>
+            <div className="flex items-center gap-1.5">
+              <span className="text-[10px] font-black text-primary uppercase tracking-[0.1em] line-clamp-1 max-w-[100px]">
+                {routingDestination.name}
+              </span>
+              <span className="text-[12px] font-black text-on-surface whitespace-nowrap">
+                {isRoutingLoading ? '...' : routeDetails ? `${routeDetails.distance} • ${routeDetails.duration}` : 'N/A'}
+              </span>
+            </div>
+          </div>
+          <div className="w-px h-4 bg-outline/15"></div>
+          <div className="flex items-center gap-1.5">
+            <button 
+              onClick={() => setIsRoutePanelMinimized(false)}
+              className="w-7 h-7 flex items-center justify-center rounded-full bg-primary/10 text-primary hover:bg-primary/20 transition-all active:scale-90"
+              title="Hiện chi tiết"
+            >
+              <span className="material-symbols-outlined text-[16px]">open_in_full</span>
+            </button>
+            <button 
+              onClick={handleCancelRouting}
+              className="bg-red-500/10 text-red-500 hover:bg-red-500 hover:text-white px-3.5 py-1 rounded-full text-[10px] font-black uppercase tracking-wider transition-all active:scale-95 flex items-center gap-1"
+              title="Thoát chỉ đường"
+            >
+              Thoát
+            </button>
           </div>
         </div>
       )}
@@ -535,7 +708,19 @@ export default function DiscoveryMap({
         ))}
 
         {/* Normal landmark markers (hidden when itinerary is active) */}
-        {showLandmarks && !hasItinerary && landmarks.map(landmark => {
+        {showLandmarks && !hasItinerary && landmarks
+          .filter(l => {
+            if (!selectedCategory || selectedCategory === 'all') return true;
+            const cat = l.category.toLowerCase();
+            if (selectedCategory === 'heritage') return cat.includes('heritage') || cat.includes('historic');
+            if (selectedCategory === 'spiritual') return cat.includes('spiritual') || cat.includes('temple');
+            if (selectedCategory === 'nature') return cat.includes('nature') || cat.includes('outdoor');
+            if (selectedCategory === 'art') return cat.includes('art') || cat.includes('museum') || cat.includes('theater');
+            if (selectedCategory === 'eat') return cat.includes('eat') || cat.includes('shop') || cat.includes('food');
+            if (selectedCategory === 'sightseeing') return cat.includes('sightseeing') || cat.includes('tourist') || cat.includes('attraction');
+            return cat.includes(selectedCategory);
+          })
+          .map(landmark => {
             const isFocused = focusedLandmarkId === landmark.id;
             return (
               <Marker 
@@ -578,7 +763,10 @@ export default function DiscoveryMap({
                               Detail
                             </Link>
                             <button 
-                              onClick={() => setRoutingDestination(landmark)}
+                              onClick={() => {
+                                setRoutingDestination(landmark);
+                                setIsRoutePanelMinimized(false);
+                              }}
                               className="flex-[1.5] py-3.5 bg-primary text-white font-black text-[10px] uppercase tracking-[0.15em] rounded-2xl transition-all shadow-xl shadow-primary/25 hover:scale-[1.03] active:scale-95 flex items-center justify-center gap-2"
                             >
                               <span className="material-symbols-outlined text-[18px]">directions</span>
