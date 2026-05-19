@@ -1,13 +1,13 @@
-'use client';
-
-import React from 'react';
+import React, { useState } from 'react';
 import { useAuthStore } from '@/store/useAuthStore';
+import { cancelJoinRequestAction } from '@/lib/actions';
 
 interface ActivityCardProps {
   activity: any;
   onClick: (activity: any) => void;
   onChat?: (activity: any) => void;
   isActive?: boolean;
+  onCancelSuccess?: () => void;
 }
 
 const CATEGORY_CONFIG: Record<string, { icon: string; color: string }> = {
@@ -19,7 +19,24 @@ const CATEGORY_CONFIG: Record<string, { icon: string; color: string }> = {
   'Sightseeing':         { icon: 'photo_camera',     color: '#0288D1' },
 };
 
-export const ActivityCard: React.FC<ActivityCardProps> = ({ activity, onClick, onChat, isActive }) => {
+export const ActivityCard: React.FC<ActivityCardProps> = ({ activity, onClick, onChat, isActive, onCancelSuccess }) => {
+  const [canceling, setCanceling] = useState(false);
+
+  const handleCancelClick = async (e: React.MouseEvent) => {
+    e.stopPropagation();
+    if (canceling) return;
+    
+    setCanceling(true);
+    const result = await cancelJoinRequestAction(activity.id);
+    setCanceling(false);
+    
+    if (result.success) {
+      onCancelSuccess?.();
+    } else {
+      console.error(result.error);
+    }
+  };
+
   const formatDate = (dateString: string) => {
     try {
       const date = new Date(dateString);
@@ -165,10 +182,23 @@ export const ActivityCard: React.FC<ActivityCardProps> = ({ activity, onClick, o
                 <span>Joined</span>
               </button>
             ) : hasRequested ? (
-              <div className="px-8 h-[40px] flex items-center justify-center bg-secondary-container text-on-secondary/70 rounded-lg border border-outline/10 text-[11px] font-black uppercase tracking-widest gap-1.5">
-                <span className="material-symbols-outlined text-[14px]">schedule</span>
-                <span>Pending</span>
-              </div>
+              <button 
+                type="button"
+                onClick={handleCancelClick}
+                disabled={canceling}
+                className="group/btn px-8 h-[40px] flex items-center justify-center bg-amber-50 hover:bg-red-50 text-amber-600 hover:text-red-600 rounded-lg border border-amber-200/50 hover:border-red-200/50 text-[11px] font-black uppercase tracking-widest gap-1.5 transition-all duration-300 active:scale-95 disabled:opacity-50"
+              >
+                {canceling ? (
+                  <div className="w-3.5 h-3.5 border-2 border-red-600/30 border-t-red-600 rounded-full animate-spin" />
+                ) : (
+                  <>
+                    <span className="material-symbols-outlined text-[14px] group-hover/btn:hidden">schedule</span>
+                    <span className="material-symbols-outlined text-[14px] hidden group-hover/btn:inline">cancel</span>
+                    <span className="group-hover/btn:hidden">Pending</span>
+                    <span className="hidden group-hover/btn:inline">Cancel</span>
+                  </>
+                )}
+              </button>
             ) : (
               <button 
                 onClick={(e) => {

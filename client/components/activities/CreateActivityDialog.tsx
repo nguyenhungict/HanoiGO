@@ -1,7 +1,17 @@
 'use client';
 
-import React, { useState, useRef } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 import { createActivityAction, uploadImageAction } from '@/lib/actions';
+import { LocationPickerMap } from './LocationPickerMap';
+
+interface DbPlace {
+  id: string;
+  name: string;
+  nameEn?: string;
+  category: string;
+  lat: number;
+  lng: number;
+}
 
 interface CreateActivityDialogProps {
   onClose: () => void;
@@ -10,11 +20,55 @@ interface CreateActivityDialogProps {
 
 const BACKEND_URL = process.env.NEXT_PUBLIC_ACTIONS_URL || 'http://localhost:8888';
 
+function translateAddressToEnglish(address: string): string {
+  if (!address) return '';
+  
+  const customMappings: { [key: string]: string } = {
+    'Hồ Hoàn Kiếm': 'Hoan Kiem Lake',
+    'Hồ Tây': 'West Lake',
+    'Đền Ngọc Sơn': 'Ngoc Son Temple',
+    'Văn Miếu': 'Temple of Literature',
+    'Nhà thờ Lớn': 'St. Joseph\'s Cathedral',
+    'Chùa Trấn Quốc': 'Tran Quoc Pagoda',
+    'Lăng Bác': 'Ho Chi Minh Mausoleum',
+    'Hoàng thành Thăng Long': 'Imperial Citadel of Thang Long',
+    'Nhà hát Lớn': 'Hanoi Opera House',
+    'Việt Nam': 'Vietnam',
+    'Viet Nam': 'Vietnam',
+    'Hà Nội': 'Hanoi',
+    'Thành phố Hà Nội': 'Hanoi',
+  };
+
+  let result = address;
+
+  Object.entries(customMappings).forEach(([vi, en]) => {
+    const regex = new RegExp(vi, 'gi');
+    result = result.replace(regex, en);
+  });
+
+  result = result.replace(/Phường\s+([^,]+)/gi, '$1 Ward');
+  result = result.replace(/Quận\s+([^,]+)/gi, '$1 District');
+  result = result.replace(/Thành phố\s+([^,]+)/gi, '$1 City');
+  result = result.replace(/(Đường|Phố)\s+([^,]+)/gi, '$2 Street');
+  result = result.replace(/Ngõ\s+([^,]+)/gi, 'Alley $1');
+
+  result = result
+    .normalize('NFD')
+    .replace(/[\u0300-\u036f]/g, '')
+    .replace(/đ/g, 'd')
+    .replace(/Đ/g, 'D');
+
+  result = result.replace(/\s+/g, ' ').trim();
+
+  return result;
+}
+
 export const CreateActivityDialog: React.FC<CreateActivityDialogProps> = ({ onClose, onCreated }) => {
   const [formData, setFormData] = useState({
     title: '',
     description: '',
     address: '',
+    placeId: '',
     lat: 21.0285,
     lng: 105.8542,
     scheduledAt: '',
@@ -27,6 +81,149 @@ export const CreateActivityDialog: React.FC<CreateActivityDialogProps> = ({ onCl
   const [uploadingImage, setUploadingImage] = useState(false);
   const [imagePreview, setImagePreview] = useState<string | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
+
+  const [localPlaces, setLocalPlaces] = useState<DbPlace[]>([]);
+  const [predictions, setPredictions] = useState<any[]>([]);
+  const [searching, setSearching] = useState(false);
+  const [showPredictions, setShowPredictions] = useState(false);
+
+  const goongApiKey = process.env.NEXT_PUBLIC_GOONG_API_KEY || 'f0qiwWG2eG9iYtk4pEL3AaeIMkzDNGrKNMCHwAoN';
+
+  // Load places directly from DB on mount
+  useEffect(() => {
+    fetch(`${BACKEND_URL}/places`, {
+      cache: 'no-store',
+      headers: { 'Cache-Control': 'no-cache' },
+    })
+      .then(res => res.json())
+      .then((data: any[]) => {
+        const mapped: DbPlace[] = data.map(p => ({
+          id: p.id,
+          name: p.nameEn || p.name,
+          nameEn: p.nameEn,
+          category: p.category || 'Place',
+          lat: p.lat,
+          lng: p.lng,
+        }));
+        setLocalPlaces(mapped);
+      })
+      .catch(err => console.error('Failed to load places from DB:', err));
+  }, []);
+
+  // Get user location on mount to center the map initially
+  useEffect(() => {
+    if (navigator.geolocation) {
+      navigator.geolocation.getCurrentPosition(
+        pos => {
+          setFormData(prev => ({
+            ...prev,
+            lat: pos.coords.latitude,
+            lng: pos.coords.longitude,
+          }));
+        },
+        err => console.warn('Geolocation error:', err)
+      );
+    }
+  }, []);
+
+  const handleSearchChange = async (val: string) => {
+    setFormData(prev => ({ ...prev, address: val }));
+    
+    if (val.trim().length < 2) {
+      setPredictions([]);
+      setShowPredictions(false);
+      return;
+    }
+
+    setSearching(true);
+    try {
+      // 1. Search local heritage places first
+      const query = val.toLowerCase();
+      const matchedLocal = localPlaces.filter(
+        p => p.name.toLowerCase().includes(query) || (p.category && p.category.toLowerCase().includes(query))
+      );
+
+      const localPredictions = matchedLocal.map(p => ({
+        place_id: p.id,
+        description: p.name,
+        isLocal: true,
+        landmark: p,
+      }));
+
+      // 2. Fetch external suggestions from Goong API
+      const res = await fetch(
+        `https://rsapi.goong.io/Place/AutoComplete?api_key=${goongApiKey}&input=${encodeURIComponent(val)}&location=21.0285,105.8542&limit=5`
+      );
+      const data = await res.json();
+      
+      const externalPredictions = (data.status === 'OK' && data.predictions) ? data.predictions : [];
+
+      // Combine: Put local highlights first
+      setPredictions([...localPredictions, ...externalPredictions]);
+      setShowPredictions(true);
+    } catch (err) {
+      console.error('Autocomplete search error:', err);
+    } finally {
+      setSearching(false);
+    }
+  };
+
+  const handleSelectPrediction = async (prediction: any) => {
+    setShowPredictions(false);
+
+    if (prediction.isLocal) {
+      // Local place matched! No need to hit Goong Place Detail API
+      const p = prediction.landmark;
+      setFormData(prev => ({
+        ...prev,
+        placeId: p.id,
+        address: translateAddressToEnglish(p.name),
+        lat: p.lat,
+        lng: p.lng,
+      }));
+      return;
+    }
+
+    // External Goong place chosen - reset placeId to empty string
+    setFormData(prev => ({ ...prev, placeId: '', address: translateAddressToEnglish(prediction.description) }));
+
+    try {
+      const res = await fetch(
+        `https://rsapi.goong.io/Place/Detail?api_key=${goongApiKey}&place_id=${prediction.place_id}`
+      );
+      const data = await res.json();
+      if (data.status === 'OK' && data.result) {
+        const { lat, lng } = data.result.geometry.location;
+        setFormData(prev => ({
+          ...prev,
+          lat: parseFloat(lat),
+          lng: parseFloat(lng),
+          address: translateAddressToEnglish(data.result.formatted_address || prediction.description),
+        }));
+      }
+    } catch (err) {
+      console.error('Goong Place Detail error:', err);
+    }
+  };
+
+  const handleMapLocationChange = (newLat: number, newLng: number) => {
+    // Pin dragged or map clicked -> reset placeId as it's a custom location selection
+    setFormData(prev => ({ ...prev, lat: newLat, lng: newLng, placeId: '' }));
+
+    // Softly fetch reverse geocode so we don't block the user but still provide beautiful address autofill
+    fetch(`https://rsapi.goong.io/Geocode?latlng=${newLat},${newLng}&api_key=${goongApiKey}`)
+      .then(res => res.json())
+      .then(data => {
+        if (data.results && data.results.length > 0) {
+          setFormData(prev => ({
+            ...prev,
+            address: translateAddressToEnglish(data.results[0].formatted_address),
+          }));
+        }
+      })
+      .catch(err => console.error('Goong Geocoding error:', err));
+  };
+
 
   const handleImageUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -201,16 +398,64 @@ export const CreateActivityDialog: React.FC<CreateActivityDialogProps> = ({ onCl
             </div>
 
             {/* ── Location ──────────────────────────────── */}
-            <div className="space-y-2">
+            <div className="space-y-2 relative">
               <label className="text-[10px] font-bold uppercase tracking-widest text-outline/60">Meeting Location</label>
-              <input
-                required
-                type="text"
-                placeholder="Where should everyone meet?"
-                className="w-full px-5 py-3.5 bg-white border border-outline/10 rounded-xl focus:ring-8 focus:ring-primary/5 focus:bg-white focus:border-primary/40 transition-all outline-none font-bold placeholder:text-on-surface-variant/40 text-sm shadow-inner"
-                value={formData.address}
-                onChange={e => setFormData({ ...formData, address: e.target.value })}
-              />
+              <div className="relative">
+                <input
+                  required
+                  type="text"
+                  placeholder="Search location or meeting point..."
+                  className="w-full px-5 py-3.5 bg-white border border-outline/10 rounded-xl focus:ring-8 focus:ring-primary/5 focus:bg-white focus:border-primary/40 transition-all outline-none font-bold placeholder:text-on-surface-variant/40 text-sm shadow-inner"
+                  value={formData.address}
+                  onChange={e => handleSearchChange(e.target.value)}
+                  onFocus={() => setShowPredictions(predictions.length > 0)}
+                />
+                {searching && (
+                  <div className="absolute right-4 top-1/2 -translate-y-1/2">
+                    <div className="w-4 h-4 border-2 border-primary/30 border-t-primary rounded-full animate-spin" />
+                  </div>
+                )}
+              </div>
+
+              {/* Predictions Dropdown */}
+              {showPredictions && predictions.length > 0 && (
+                <div className="absolute left-0 right-0 mt-1 bg-white border border-outline/10 rounded-2xl shadow-xl z-[130] overflow-hidden flex flex-col p-1.5 animate-in fade-in duration-200">
+                  {predictions.map((p, idx) => (
+                    <button
+                      key={p.place_id || idx}
+                      type="button"
+                      onClick={() => handleSelectPrediction(p)}
+                      className="flex items-center justify-between text-left px-4 py-2.5 rounded-xl hover:bg-secondary/40 transition-colors w-full"
+                    >
+                      <div className="flex flex-col min-w-0">
+                        <span className="text-xs font-bold text-on-surface">{p.structured_formatting?.main_text || p.description}</span>
+                        <span className="text-[9px] text-outline/60 font-medium truncate mt-0.5">
+                          {p.isLocal ? `${p.landmark?.category || 'HanoiGO Site'}` : (p.structured_formatting?.secondary_text || '')}
+                        </span>
+                      </div>
+                      {p.isLocal && (
+                        <span className="shrink-0 ml-2 px-2 py-0.5 rounded-full bg-primary/10 border border-primary/20 text-[8px] font-extrabold uppercase tracking-widest text-primary flex items-center gap-0.5 shadow-sm">
+                          <span className="material-symbols-outlined text-[10px] text-primary">grade</span>
+                          Highlight
+                        </span>
+                      )}
+                    </button>
+                  ))}
+                </div>
+              )}
+
+              {/* Mini Leaflet location picker map */}
+              <div className="mt-2">
+                <div className="flex items-center justify-between text-[9px] font-bold uppercase tracking-widest text-outline/50 px-1 mb-1">
+                  <span>Pinpoint Exact Location</span>
+                  <span>Drag pin to adjust</span>
+                </div>
+                <LocationPickerMap
+                  lat={formData.lat}
+                  lng={formData.lng}
+                  onChange={handleMapLocationChange}
+                />
+              </div>
             </div>
 
             {/* ── Category ──────────────────────────────── */}

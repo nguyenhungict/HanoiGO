@@ -224,6 +224,7 @@ export default function ActivitiesPage() {
                       activity={activity}
                       onClick={setSelectedActivity}
                       onChat={setChatActivity}
+                      onCancelSuccess={refreshAll}
                     />
                   ))
                 ) : (

@@ -49,6 +49,6 @@ export class UpdateUserDto {
 
   @ApiPropertyOptional({ example: 'https://...', description: 'Ảnh đại diện' })
   @IsOptional()
-  @IsUrl()
+  @IsString()
   avatarUrl?: string;
 }

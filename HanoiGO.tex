@@ -638,11 +638,22 @@ sau khi ghép nhóm.
 
 \begin{enumerate}
   \item \textbf{Tạo activity:} User điền tên hoạt động, thời gian, mô tả, số
-        người tối đa. Địa điểm có thể chọn từ dataset hoặc nhập tự do (kèm
-        toạ độ GPS).
-  \item \textbf{Hiển thị trên map:} Activity xuất hiện dưới dạng pin trên bản
-        đồ Leaflet. Các user khác click vào pin để xem chi tiết và gửi request
-        tham gia.
+        người tối đa. Địa điểm họp mặt được tìm kiếm thông qua cơ chế tìm kiếm lai ghép (\textit{hybrid search}):
+        hệ thống ưu tiên đối khớp và gợi ý các địa danh du lịch trọng điểm sẵn có trong cơ sở dữ liệu (65 địa danh)
+        kèm huy hiệu nổi bật (``Highlight''), đồng thời kết hợp \textbf{Goong Autocomplete API} để tìm kiếm các địa điểm
+        ngoài danh mục (quán cà phê, khách sạn, v.v.). Khi người dùng chọn gợi ý hoặc kéo thả ghim trên bản đồ thu nhỏ
+        (\textbf{LocationPickerMap}), hệ thống tự động liên kết với \texttt{place\_id} tương ứng trong cơ sở dữ liệu (nếu có),
+        đồng thời kích hoạt bộ chuẩn hoá và dịch địa chỉ sang Tiếng Anh không dấu (\texttt{translateAddressToEnglish}) giúp dữ liệu
+        luôn đồng bộ nhất quán.
+  \item \textbf{Hiển thị trên map:} Activity xuất hiện dưới dạng marker thông minh trên bản
+        đồ Leaflet. Trạng thái và màu sắc marker tự động thay đổi theo thời gian họp mặt (\texttt{scheduled\_at})
+        để người dùng dễ dàng lọc và tìm nhóm gần mình:
+        \begin{itemize}
+          \item \textbf{UPCOMING} (Chưa diễn ra): Marker màu xanh dương (\texttt{\#1e50a0}) tiêu chuẩn.
+          \item \textbf{STARTING} (Sắp bắt đầu trong 2 giờ): Marker màu vàng hổ phách (\texttt{\#f59e0b}) kèm badge hoạt họa nhấp nháy ``SOON''.
+          \item \textbf{ONGOING} (Đang diễn ra trong vòng 3 giờ từ lúc bắt đầu): Marker màu xanh lá cây (\texttt{\#16a34a}) kèm hiệu ứng quét sóng tròn (\textit{pulse animation}) và badge ``LIVE''.
+          \item \textbf{ENDED} (Đã kết thúc sau 3 giờ): Marker màu xám (\texttt{\#9ca3af}) mờ với độ trong suốt 50\%.
+        \end{itemize}
   \item \textbf{Duyệt thành viên:} Chủ activity nhận thông báo, xem profile
         người xin tham gia và duyệt hoặc từ chối.
   \item \textbf{Group chat:} Sau khi được duyệt, thành viên tự động vào group

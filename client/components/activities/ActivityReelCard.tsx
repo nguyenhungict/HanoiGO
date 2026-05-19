@@ -1,13 +1,13 @@
-'use client';
-
 import React, { useState } from 'react';
 import { useAuthStore } from '@/store/useAuthStore';
 import { Activity } from '@/types';
+import { cancelJoinRequestAction } from '@/lib/actions';
 
 interface ActivityReelCardProps {
   activity: Activity;
   onClick: (activity: Activity) => void;
   onChat?: (activity: Activity) => void;
+  onCancelSuccess?: () => void;
 }
 
 const CATEGORY_CONFIG: Record<string, { icon: string; label: string; color: string }> = {
@@ -28,9 +28,25 @@ function resolveImageUrl(url?: string | null): string | null {
   return `${BACKEND_URL}${cleanUrl}`;
 }
 
-export const ActivityReelCard: React.FC<ActivityReelCardProps> = ({ activity, onClick, onChat }) => {
+export const ActivityReelCard: React.FC<ActivityReelCardProps> = ({ activity, onClick, onChat, onCancelSuccess }) => {
   const [imgError, setImgError] = useState(false);
+  const [canceling, setCanceling] = useState(false);
   const { user } = useAuthStore();
+
+  const handleCancelClick = async (e: React.MouseEvent) => {
+    e.stopPropagation();
+    if (canceling) return;
+    
+    setCanceling(true);
+    const result = await cancelJoinRequestAction(activity.id);
+    setCanceling(false);
+    
+    if (result.success) {
+      onCancelSuccess?.();
+    } else {
+      console.error(result.error);
+    }
+  };
 
   const isHost = !!(user?.id && user.id === activity.hostId);
   const isMember = activity.myStatus === 'APPROVED' && !isHost;
@@ -211,10 +227,23 @@ export const ActivityReelCard: React.FC<ActivityReelCardProps> = ({ activity, on
               <span>Joined</span>
             </button>
           ) : hasRequested ? (
-            <div className="min-w-[120px] px-4 h-[34px] bg-secondary-container text-on-secondary/70 rounded-lg flex items-center justify-center border border-outline/10 text-[9px] font-black uppercase tracking-widest gap-1.5">
-              <span className="material-symbols-outlined text-[14px]">schedule</span>
-              <span>Pending</span>
-            </div>
+            <button
+              type="button"
+              onClick={handleCancelClick}
+              disabled={canceling}
+              className="group/btn min-w-[120px] px-4 h-[34px] flex items-center justify-center bg-amber-50 hover:bg-red-50 text-amber-600 hover:text-red-600 rounded-lg border border-amber-200/50 hover:border-red-200/50 text-[9px] font-black uppercase tracking-widest gap-1.5 transition-all duration-300 active:scale-95 disabled:opacity-50"
+            >
+              {canceling ? (
+                <div className="w-3.5 h-3.5 border-2 border-red-600/30 border-t-red-600 rounded-full animate-spin" />
+              ) : (
+                <>
+                  <span className="material-symbols-outlined text-[14px] group-hover/btn:hidden">schedule</span>
+                  <span className="material-symbols-outlined text-[14px] hidden group-hover/btn:inline">cancel</span>
+                  <span className="group-hover/btn:hidden">Pending</span>
+                  <span className="hidden group-hover/btn:inline">Cancel</span>
+                </>
+              )}
+            </button>
           ) : (
             <button
               onClick={(e) => { e.stopPropagation(); onClick(activity); }}

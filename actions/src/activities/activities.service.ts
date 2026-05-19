@@ -19,10 +19,11 @@ export class ActivitiesService {
   async create(userId: string, dto: CreateActivityDto) {
     try {
       const id = uuidv4();
+      const placeIdValue = dto.placeId || null;
       const activityResult = await this.prisma.$queryRaw<any[]>`
-        INSERT INTO "activities" (id, host_id, title, description, address, lat, lng, location, scheduled_at, max_members, status, category, image_url, created_at)
-        VALUES (${id}::uuid, ${userId}::uuid, ${dto.title}, ${dto.description}, ${dto.address}, ${dto.lat}, ${dto.lng}, ST_SetSRID(ST_MakePoint(${dto.lng}, ${dto.lat}), 4326), ${new Date(dto.scheduledAt)}, ${dto.maxMembers || 10}, 'OPEN', ${dto.category || 'Arts & Culture'}, ${dto.imageUrl || null}, now())
-        RETURNING id, title, description, address, lat, lng, scheduled_at as "scheduledAt", max_members as "maxMembers", status, category, image_url as "imageUrl", created_at as "createdAt";
+        INSERT INTO "activities" (id, host_id, place_id, title, description, address, lat, lng, location, scheduled_at, max_members, status, category, image_url, created_at)
+        VALUES (${id}::uuid, ${userId}::uuid, ${placeIdValue}::uuid, ${dto.title}, ${dto.description}, ${dto.address}, ${dto.lat}, ${dto.lng}, ST_SetSRID(ST_MakePoint(${dto.lng}, ${dto.lat}), 4326), ${new Date(dto.scheduledAt)}, ${dto.maxMembers || 10}, 'OPEN', ${dto.category || 'Arts & Culture'}, ${dto.imageUrl || null}, now())
+        RETURNING id, place_id as "placeId", title, description, address, lat, lng, scheduled_at as "scheduledAt", max_members as "maxMembers", status, category, image_url as "imageUrl", created_at as "createdAt";
       `;
 
       if (!activityResult || activityResult.length === 0) {
