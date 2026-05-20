@@ -31,33 +31,30 @@ export class AdminService {
 
   // ── User Growth (Last 30 days) ──────────────────────────────────────
   async getUserGrowth() {
-    const thirtyDaysAgo = new Date();
-    thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
-
-    const users = await this.prisma.user.findMany({
-      where: {
-        createdAt: { gte: thirtyDaysAgo },
-        role: Role.USER,
-      },
-      select: { createdAt: true },
-    });
-
-    // Group by date in JS since Prisma doesn't support grouping by date part easily across all DBs
-    const growthMap = new Map<string, number>();
+    const growth = await this.prisma.$queryRaw`
+      SELECT 
+        DATE(created_at) as date, 
+        COUNT(*)::int as count 
+      FROM users 
+      WHERE created_at >= NOW() - INTERVAL '30 days' AND role = 'USER'
+      GROUP BY DATE(created_at) 
+      ORDER BY DATE(created_at) ASC;
+    `;
 
     // Initialize map with all dates in the last 30 days to ensure zero counts are included
+    const growthMap = new Map<string, number>();
     for (let i = 0; i <= 30; i++) {
       const date = new Date();
       date.setDate(date.getDate() - i);
       growthMap.set(date.toISOString().split('T')[0], 0);
     }
 
-    users.forEach((u) => {
-      const dateKey = u.createdAt.toISOString().split('T')[0];
-      if (growthMap.has(dateKey)) {
-        growthMap.set(dateKey, (growthMap.get(dateKey) || 0) + 1);
-      }
-    });
+    if (Array.isArray(growth)) {
+      growth.forEach((row: any) => {
+        const dateKey = row.date instanceof Date ? row.date.toISOString().split('T')[0] : String(row.date);
+        growthMap.set(dateKey, row.count);
+      });
+    }
 
     return Array.from(growthMap.entries())
       .map(([date, count]) => ({ date, count }))

@@ -618,6 +618,10 @@ unscheduled: []   <-- tat ca deu duoc xep lich
 \textbf{Giải quyết xung đột} & Chỉ nối điểm rớt lịch vào \textit{cuối ngày}. Gán cứng 10 phút di chuyển. & \textbf{Gap Insertion} quét mọi khoảng trống trong ngày, dùng thời gian thực tế. \\
 \addlinespace
 \textbf{Dự phòng Rate Limit} & Thử lại 1 lần, chờ 3 giây cố định. & \textbf{Exponential Backoff} 3 lần (1s $\to$ 2s $\to$ 4s). \\
+\addlinespace
+\textbf{Chèn kẽ stop} & Gọi \texttt{calculateVisitWindow} thiếu thời gian di chuyển và đệm đỗ xe (mặc định 0), gây sai lệch khi chèn stop vào khoảng trống. & Truyền đầy đủ thời gian di chuyển thực tế từ stop liền trước và \texttt{PARKING\_BUFFER\_MIN} vào hàm \texttt{calculateVisitWindow}. \\
+\addlinespace
+\textbf{Định tuyến ngày đóng} & Chuyển địa điểm đóng sang ngày khác mà không kiểm tra sức chứa tối đa của ngày đích. & Kiểm tra dung lượng ngày đích có nhỏ hơn \texttt{MAX\_PLACES\_PER\_DAY} (5 địa điểm) trước khi tiến hành hoán đổi cụm. \\
 \bottomrule
 \end{tabular}
 \end{table}

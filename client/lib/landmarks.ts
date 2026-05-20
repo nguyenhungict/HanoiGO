@@ -1,5 +1,3 @@
-import landmarksData from '@/public/data/landmarks.json';
-
 export interface Landmark {
   id: string;
   name: string;
@@ -21,7 +19,7 @@ export type PlaceStory = {
 };
 
 // Default static data for fallback
-export const staticLandmarks = landmarksData.map(l => ({ ...l, gallery: [] })) as Landmark[];
+export const staticLandmarks: Landmark[] = [];
 
 // API fetch function
 export async function fetchLandmarks(): Promise<Landmark[]> {
@@ -34,7 +32,8 @@ export async function fetchLandmarks(): Promise<Landmark[]> {
     });
     
     if (!response.ok) throw new Error('Failed to fetch from API');
-    const data = await response.json();
+    const responseData = await response.json();
+    const data = Array.isArray(responseData) ? responseData : (responseData.places || []);
     
     // Highly reliable Unsplash static placeholders
     const getPlaceholder = (category: string) => {

@@ -585,6 +585,8 @@ export class TripPlannerService {
         endTimeMin,
         lunchStart,
         lunchEnd,
+        travelFromPrevSec / 60,
+        PARKING_BUFFER_MIN,
       );
       if (!window) continue;
 

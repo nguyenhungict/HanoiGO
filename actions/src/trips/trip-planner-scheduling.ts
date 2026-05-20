@@ -1,4 +1,4 @@
-import { DAY_NAMES, PARKING_BUFFER_MIN } from './trip-planner.constants';
+import { DAY_NAMES, MAX_PLACES_PER_DAY, PARKING_BUFFER_MIN } from './trip-planner.constants';
 import { haversine } from './trip-planner-geo';
 import type {
   DayItinerary,
@@ -284,6 +284,7 @@ export function postClusterOpenDaySwap(
       // Place is closed on this cluster's day → find a better cluster
       for (let target = 0; target < clusters.length; target++) {
         if (target === c) continue;
+        if (clusters[target].length >= MAX_PLACES_PER_DAY) continue;
         const targetDate = new Date(travelDate);
         targetDate.setDate(targetDate.getDate() + target);
         if (place.openDays.includes(targetDate.getDay())) {
