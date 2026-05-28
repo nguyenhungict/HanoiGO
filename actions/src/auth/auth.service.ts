@@ -30,7 +30,6 @@ export class AuthService {
       host: process.env.MAIL_HOST || 'smtp.gmail.com',
       port: 587,
       secure: false,
-      family: 4, // Ép dùng IPv4 — Render Free Tier không hỗ trợ IPv6
       auth: {
         user: process.env.MAIL_USER,
         pass: process.env.MAIL_PASSWORD,
