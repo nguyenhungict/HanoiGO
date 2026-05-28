@@ -206,14 +206,31 @@ export function kMeansClustering(
         if (bestTargetIdx === -1) break;
 
         // Validate: moving this place should not dramatically worsen the target cluster's spread.
-        // Only transfer if the place's distance to the target centroid is reasonable
-        // (within 3× the target cluster's current spread, or target cluster is empty).
+        // If worstPlace is too far from the best target, try to find ANY place in this cluster
+        // that is close enough to move — not just the furthest one.
         const targetSpread = clusterSpreadKm(clusters[bestTargetIdx]);
         const maxAllowedDist = Math.max(targetSpread * 3, 5); // at least 5km tolerance
         if (minDistToTarget > maxAllowedDist && clusters[bestTargetIdx].length > 0) {
-          // This place is too far from every other cluster — it's a geographic outlier.
-          // Leave it in the current over-full cluster rather than making another day worse.
-          break;
+          // worstPlace is too far — search for the place closest to the target instead
+          const targetCentroid = getCentroid(clusters[bestTargetIdx]);
+          let closestIdx = -1;
+          let closestDist = Infinity;
+          for (let i = 0; i < clusters[c].length; i++) {
+            const d = haversine(
+              clusters[c][i].lat,
+              clusters[c][i].lng,
+              targetCentroid.lat,
+              targetCentroid.lng,
+            );
+            if (d < closestDist && d <= maxAllowedDist) {
+              closestDist = d;
+              closestIdx = i;
+            }
+          }
+          if (closestIdx === -1) break; // no place in this cluster fits any target
+          clusters[bestTargetIdx].push(clusters[c].splice(closestIdx, 1)[0]);
+          rebalanced = true;
+          continue;
         }
 
         clusters[c].splice(worstPlaceIdx, 1);
