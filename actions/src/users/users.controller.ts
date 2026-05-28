@@ -1,4 +1,12 @@
-import { Controller, Get, Patch, Body, UseGuards, Req, NotFoundException } from '@nestjs/common';
+import {
+  Controller,
+  Get,
+  Patch,
+  Body,
+  UseGuards,
+  Req,
+  NotFoundException,
+} from '@nestjs/common';
 import { UsersService } from './users.service';
 import { UpdateUserDto } from './dto/update-user.dto';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
@@ -16,7 +24,7 @@ export class UsersController {
   async getProfile(@Req() req: any) {
     const user = await this.usersService.findById(req.user.id);
     if (!user) throw new NotFoundException('Không tìm thấy người dùng');
-    
+
     // Loại bỏ passwordHash trước khi trả về
     const { passwordHash, ...result } = user;
     return result;
@@ -27,8 +35,11 @@ export class UsersController {
   @ApiOperation({ summary: 'Cập nhật thông tin hồ sơ' })
   @Patch('profile')
   async updateProfile(@Req() req: any, @Body() updateUserDto: UpdateUserDto) {
-    const user = await this.usersService.updateProfile(req.user.id, updateUserDto);
-    
+    const user = await this.usersService.updateProfile(
+      req.user.id,
+      updateUserDto,
+    );
+
     const { passwordHash, ...result } = user;
     return result;
   }

@@ -25,6 +25,7 @@ const config: Config = {
         "on-background": "#261817",
         "surface": "#FCF8F2",
         "on-surface": "#261817",
+        "on-surface-variant": "#6C614E",
         "outline": "#8e706f",
         "outline-variant": "#e2bebc",
         "surface-container-lowest": "#ffffff",
@@ -54,6 +55,31 @@ const config: Config = {
         headline: ["Manrope", "sans-serif"],
         body: ["Manrope", "sans-serif"],
         label: ["Manrope", "sans-serif"],
+      },
+      keyframes: {
+        aurora: {
+          '0%, 100%': { transform: 'translate(0, 0) scale(1)' },
+          '33%': { transform: 'translate(10%, -10%) scale(1.1)' },
+          '66%': { transform: 'translate(-5%, 5%) scale(0.9)' },
+        },
+        float: {
+          '0%, 100%': { transform: 'translateY(0)' },
+          '50%': { transform: 'translateY(-5px)' },
+        },
+        'toast-progress': {
+          '0%': { width: '100%' },
+          '100%': { width: '0%' },
+        },
+        'slide-in-right': {
+          '0%': { transform: 'translateX(100%)', opacity: '0' },
+          '100%': { transform: 'translateX(0)', opacity: '1' },
+        },
+      },
+      animation: {
+        aurora: 'aurora 20s infinite linear',
+        float: 'float 3s ease-in-out infinite',
+        'toast-progress': 'toast-progress linear forwards',
+        'slide-in-right': 'slide-in-right 0.5s cubic-bezier(0.16, 1, 0.3, 1)',
       },
     },
   },

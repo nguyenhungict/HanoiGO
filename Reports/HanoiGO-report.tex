@@ -1,0 +1,469 @@
+\documentclass[a4paper,12pt]{report}
+
+% ===================================================
+% 1. PACKAGES & CONFIGURATION
+% ===================================================
+\usepackage[utf8]{inputenc}
+\usepackage[english]{babel} 
+\usepackage{geometry}      
+\usepackage{titlesec}       
+\usepackage{mathptmx}       
+\usepackage{float}          
+\usepackage[hidelinks]{hyperref}
+\usepackage{array}         
+\usepackage{caption}        
+\usepackage{indentfirst}    
+\usepackage{graphicx}
+\usepackage[section]{placeins}
+\usepackage{listings}
+\usepackage{xcolor}
+\usepackage{fancyhdr}
+
+% Page Margins (A4 Standard)
+\geometry{
+    top=2.5cm,
+    bottom=2.5cm,
+    left=3cm,
+    right=2cm
+}
+
+% Configure page numbering in bottom right
+\pagestyle{fancy}
+\fancyhf{} % Clear all headers and footers
+\fancyfoot[R]{\thepage} % Page number in bottom right
+\renewcommand{\headrulewidth}{0pt} % Remove header line
+\renewcommand{\footrulewidth}{0pt} % Remove footer line
+
+% Redefine 'plain' style for Chapter pages to match
+\fancypagestyle{plain}{
+  \fancyhf{}
+  \fancyfoot[R]{\thepage}
+  \renewcommand{\headrulewidth}{0pt}
+  \renewcommand{\footrulewidth}{0pt}
+}
+
+% Roman Numerals for Chapters (I, II, III...) like the sample
+\renewcommand{\thechapter}{\Roman{chapter}}
+\renewcommand{\thesection}{\arabic{section}}
+\renewcommand{\thesubsection}{\thesection.\arabic{subsection}}
+
+% Formatting Chapter Titles (e.g., Chapter I - Introduction)
+\titleformat{\chapter}[display]
+  {\normalfont\huge\bfseries\centering}
+  {\chaptertitlename\ \thechapter}{10pt}{\Huge}
+\titlespacing*{\chapter}{0pt}{-20pt}{30pt}
+
+% ===================================================
+% 2. STUDENT & PROJECT INFORMATION (EDIT HERE)
+% ===================================================
+\newcommand{\thesisTitle}{HanoiGO} % <--- Project Name
+\newcommand{\thesisSubtitle}{A Map-Centric Trip Planner for Hanoi}
+\newcommand{\studentName}{[Nguyen Hung]} % <--- Your Name
+\newcommand{\supervisorName}{[Assoc. Prof. Tran Giang Son]}  % <--- Supervisor Name
+\newcommand{\reportDate}{Hanoi, May 2026}         % <--- Date
+\setcounter{secnumdepth}{3}
+\begin{document}
+
+% ===================================================
+% 3. COVER PAGE
+% ===================================================
+\begin{titlepage}
+    \centering
+    
+    % --- LOGO ---
+    % Upload 'logo-usth.png' to Overleaf
+    \includegraphics[width=6cm]{logo-usth.png} 
+    
+    \vspace{1cm}
+    
+    % --- UNIVERSITY HEADER ---
+    {\large \textbf{UNIVERSITY OF SCIENCE AND TECHNOLOGY OF HANOI}}\\[0.3cm]
+    {\large \textbf{DEPARTMENT OF INFORMATION AND COMMUNICATION TECHNOLOGY}}\\[2.5cm]
+    
+    % --- PROJECT TITLE ---
+    {\Large \textbf{BACHELOR'S THESIS REPORT}}\\[0.5cm]
+    
+    % Đường kẻ trang trí
+    \rule{\linewidth}{0.5mm} \\[0.4cm]
+    {\Huge \bfseries HanoiGO}\\[0.4cm]
+    {\large \textbf{A Map-Centric Trip Planner for Hanoi}}\\[0.4cm]
+    \rule{\linewidth}{0.5mm} \\[1.5cm]
+    
+    % --- MEMBERS LIST (CENTERED & SMALLER) ---
+    {\large \textbf{Author:}}\\[0.5cm]
+    
+    % Điều chỉnh khoảng cách giữa Tên và ID cho thoáng
+    \setlength{\tabcolsep}{12pt} 
+    
+    % Bảng căn giữa tự động nhờ lệnh \centering ở đầu trang
+    {\normalsize % Cỡ chữ vừa phải (không quá to)
+    \begin{tabular}{l l} 
+        Nguyen Hung (ICT) & [Your Student ID] \\
+    \end{tabular}
+    }
+
+    \vfill % Đẩy phần dưới xuống đáy trang
+    
+    % --- SUPERVISOR ---
+    {\large \textbf{Supervisor:} Assoc. Prof. Tran Giang Son}\\[1.5cm]
+    
+    % --- DATE ---
+    {\normalsize \textbf{Hanoi, May 2026}}
+    
+\end{titlepage}
+
+% ===================================================
+% 4. ACKNOWLEDGMENT
+% ===================================================
+\thispagestyle{empty}
+\begin{center}
+    \Large \textbf{ACKNOWLEDGMENT}
+\end{center}
+
+\vspace{1cm}
+
+{
+\linespread{1.3}\selectfont
+\setlength{\parskip}{1em}
+\setlength{\parindent}{1.5em}
+
+I would like to thank my supervisor, Assoc. Prof. Tran Giang Son, for his support during the project. He provided useful comments and suggestions that helped me understand the problems more clearly. His guidance encouraged me to think more carefully and improve my work step by step. He was always willing to answer my questions and give helpful advice when I faced difficulties. Thanks to his support, I was able to enhance the overall quality of the project.
+
+\noindent Hanoi, May 2026
+}
+
+\vspace{3cm}
+
+\noindent \textbf{Supervisor’s signature}
+
+
+\newpage
+
+% ===================================================
+% 5. FRONT MATTER (TOC, LISTS)
+% ===================================================
+\pagenumbering{roman} % i, ii, iii...
+{
+\linespread{1.3}\selectfont
+\setlength{\parskip}{0.5em}
+
+\tableofcontents
+\addcontentsline{toc}{chapter}{TABLE OF CONTENTS}
+\newpage
+
+\listoffigures
+\addcontentsline{toc}{chapter}{LIST OF FIGURES}
+\newpage
+
+\listoftables
+\addcontentsline{toc}{chapter}{LIST OF TABLES}
+}
+\newpage
+% ===================================================
+% 6. MAIN CONTENT
+% ===================================================
+\pagenumbering{arabic} % 1, 2, 3...
+
+% --- CHAPTER I ---
+\chapter{INTRODUCTION}
+
+% Adjust spacing for Chapter I
+\setlength{\parindent}{0pt} % No paragraph indentation
+\setlength{\parskip}{1.2em} % Increase space between paragraphs
+\linespread{1.3}\selectfont % Increase line spacing within paragraphs
+\titlespacing*{\section}{0pt}{12pt}{4pt} % Reduce space after section headings
+
+\section{Context}
+
+Nowadays, more and more people travel abroad, and many of them use mobile phones or websites to plan their trips. According to Gretzel et al. \cite{gretzel2015smart}, using digital tools such as online maps and mobile apps can help tourists have a better travel experience. However, for foreign visitors who come to a big and crowded city like Hanoi \cite{vietnamtourism2024}, planning a trip on their own is often not easy, especially if they travel alone.
+
+There are already some well-known travel apps like Google Maps, TripAdvisor, or Booking.com. But these apps usually only help with finding directions between two places. They are not built for planning a full trip across many days or for finding key information like place opening hours, local cultural tips, or descriptions in English. Because this kind of information is often scattered across many websites and blog posts, tourists have to spend a lot of time searching for it by themselves \cite{buhalis2020smartness}.
+
+On top of that, solo travelers often have trouble finding other people to travel with, or splitting costs like taxi fares \cite{buhalis2019cocreation}. Most general social apps do not have a map feature, so it is hard to see if any group activity is happening nearby in real time. These issues make solo travel in Hanoi harder than it needs to be. There is a clear need for a simple and focused tool that puts maps, trip planning, and social features all in one place.
+
+Because of this, I decided to build HanoiGO, a web application designed for foreign tourists visiting Hanoi. It helps users plan their daily trips automatically, connect with other travelers nearby, and get helpful local information through an AI-powered assistant. The next section will explain in more detail why I decided to work on this project.
+
+\section{Motivation}
+
+The decision to undertake this project is driven by both practical travel navigation needs and technical aspirations.
+
+First, I want to help tourists plan their trips more easily. I noticed that it is hard to arrange a list of tourist spots into a clear schedule across multiple days, especially because some places in Hanoi have specific opening hours or close for lunch. To solve this, I designed a multi-day scheduling method. It first groups tourist spots into daily clusters using K-Means clustering, and then finds a convenient order to visit places on each day using a Greedy Nearest Neighbor method that respects time limits. This scheduling method uses real-time travel times from the Goong Maps API to minimize waiting and travel time.
+
+Second, I want to build a map-based feature that helps solo travelers meet other people. On most social networks, travel plans are shared only as text or photos, and there is no way to see where people are on a map. HanoiGO gives users a way to create and join group activities that are shown as dynamic markers on a live map. These markers change color and flash based on the activity's time status. When a user finds an interesting group activity, they can also copy the linked travel plan directly into their own account with a single click. This is done through a deep copy transaction in the database, which replicates all trip days and stops, and is much faster than re-creating the plan manually.
+
+From a technical side, this project is also a chance for me to learn and practice useful development skills. I plan to use Next.js and TypeScript to build a responsive user interface, NestJS to build the backend server with a modular structure, PostgreSQL with PostGIS to store and query spatial location data, and WebSocket connections with Redis Pub/Sub for real-time group chat.
+
+With these motivations in mind, I established clear objectives to guide the development process.
+
+\section{Objectives}
+
+The main goal of this project is to build a complete web application that helps foreign tourists in Hanoi plan their trips and connect with other travelers more easily. To reach this goal, I have set a list of both functional and technical objectives.
+
+In terms of features, I aim to do the following. First, I want to build a secure account system with email-based OTP verification so that only real users can access the platform. Second, I want to build a multi-day trip planner that automatically groups and sequences tourist spots into convenient daily plans using clustering and sequencing methods, taking into account real travel times, opening hours, and lunch breaks. Third, I aim to add a live map with dynamic status markers and a WebSocket-based group chat so travelers can easily find and communicate with other people nearby. Fourth, I plan to create a shared feed page with quick cloning features, allowing users to view, like, comment on, and instantly copy complete multi-day travel plans into their own account.
+
+On the technical side, my goals are as follows. First, I will build a secure authentication system using stateless JWT tokens stored in HttpOnly cookies to protect against XSS attacks, combined with a token version field on each user account to allow token invalidation when needed. Second, I will use NestJS for the backend and Next.js for the frontend to create a clear and well-organized application. Third, I will use PostgreSQL with PostGIS extensions to store spatial location data and perform proximity queries efficiently. Fourth, I will implement real-time messaging using WebSocket with Redis Pub/Sub so that group chat scales across multiple connections. Lastly, I will test and improve the scheduling algorithm to make sure it produces correct and useful results for a web application.
+
+By reaching these goals, I hope to build something useful for foreign tourists in Hanoi and also show that I can apply modern web development skills in a real-world project.
+
+% Reset spacing for subsequent chapters
+\setlength{\parindent}{15pt}
+\setlength{\parskip}{0em}
+\linespread{1}\selectfont
+
+% --- CHAPTER II ---
+\chapter{SYSTEM ANALYSIS}
+
+% Apply same spacing as Chapter I
+\setlength{\parindent}{0pt}
+\setlength{\parskip}{0.6em}
+\linespread{1.3}\selectfont
+\titlespacing*{\section}{0pt}{12pt}{4pt}
+
+\section{Overview}
+
+This chapter explains how the system works internally, showing the main features, the key modules, and how different components interact with each other. It describes how the ideas introduced in Chapter I are turned into a working web application.
+ 
+HanoiGO is designed for two types of users: Tourists and Administrators. Tourists use the platform to explore places in Hanoi, generate daily trip schedules automatically, join group activities on a live map, and get helpful tips from an AI assistant. Administrators manage user accounts and keep the platform running smoothly through a dedicated management panel.
+ 
+The system is built using a modern technology stack. The backend is developed with NestJS, and the frontend is built with Next.js. Location data is stored and queried using PostgreSQL with the PostGIS extension. Real-time group chat is handled through WebSocket connections supported by Redis Pub/Sub messaging. This architecture helps ensure the system can handle different types of data efficiently and deliver a smooth experience for users.
+
+\section{System Requirements}
+
+Overall, the HanoiGO application for helping foreign tourists plan and enjoy their trips in Hanoi has to satisfy the following main requirements:
+ 
+\begin{itemize}
+    \item For Tourists:
+    \begin{itemize}
+        \item Register and log in securely with email-based identity verification.
+        \item Browse and filter tourist places in Hanoi on an interactive map.
+        \item Generate multi-day trip schedules automatically based on selected places and travel preferences.
+        \item Create and join group activities displayed on the map.
+        \item Communicate with other travelers using real-time group chat.
+        \item Share and clone trip plans through a social feed.
+        \item Manage personal profiles and saved trip itineraries.
+        \item Report activities that violate platform guidelines.
+    \end{itemize}
+ 
+    \item For Administrators:
+    \begin{itemize}
+        \item View a dashboard showing platform statistics and system reports.
+        \item Manage user accounts, including searching, blocking, and deleting users.
+        \item Manage tourist place information and coordinates.
+        \item Review and resolve violation reports submitted by users.
+    \end{itemize}
+\end{itemize}
+
+\section{UML Diagrams}
+
+This section presents the Use Case diagrams to visualize the interactions between the actors and the system.
+
+\subsection{Use Case Diagram}
+
+\subsubsection{Tourist Use Case}
+
+Figure \ref{fig:usecase_tourist} shows how tourists interact with the HanoiGO system. They can perform operations across five core sub-systems: Authentication, Profile Management, Places Discovery, Trip Planning, and Activity Management. The main access points are directly connected to the Tourist actor, while specialized operations are connected via standard UML include and extend relationships. This structure allows tourists to easily transition from exploring places to planning schedules, hosting activities on the map, and communicating in group chats.
+
+\begin{figure}[H]
+    \centering
+    \includegraphics[width=1\linewidth]{user-usecase.drawio.pdf} 
+    \caption{Use Case Diagram for Tourist}
+    \label{fig:usecase_tourist}
+\end{figure}
+
+\newpage
+\begin{table}[H]
+\centering
+\small
+\renewcommand{\arraystretch}{1.1}
+\begin{tabular}{|c|p{4.5cm}|p{9cm}|}
+\hline
+\textbf{No.} & \textbf{Use Case} & \textbf{Description} \\ \hline
+1 & Login & Access the platform using credentials. \\ \hline
+2 & Register & Create an account, extending the Login process. \\ \hline
+3 & Manage Profile & Access personal profile management. \\ \hline
+4 & View Profile & View profile details, extending Manage Profile. \\ \hline
+5 & Update Profile & Edit user details and language, extending Manage Profile. \\ \hline
+6 & Change Password & Update account password, extending View Profile. \\ \hline
+7 & Browse Places & Explore cultural and historical landmarks. \\ \hline
+8 & View Place List & View list of registered places, included in Browse Places. \\ \hline
+9 & View Place Detail & See description and coordinates, extending Browse Places. \\ \hline
+10 & Like Places & Bookmark landmarks to basket, extending View Place List. \\ \hline
+11 & Plan Trip & Access itinerary planning and scheduling. \\ \hline
+12 & Configure Trip & Input dates and duration, included in Plan Trip. \\ \hline
+13 & Generate Trip & Calculate optimized daily routes, included in Configure Trip. \\ \hline
+14 & Save Trip & Save computed schedule to profile, extending Generate Trip. \\ \hline
+15 & View My Trips & Browse saved itineraries, extending Plan Trip. \\ \hline
+16 & Delete Trip & Permanently remove a saved trip, extending View My Trips. \\ \hline
+17 & Share Saved Trip & Start activity from saved trip, extending View My Trips. \\ \hline
+18 & Manage Activities & Access activity hosting and joining options. \\ \hline
+19 & Host Activity & Access hosting features, included in Manage Activities. \\ \hline
+20 & Create activity & Create a map-based activity, included in Host Activity. \\ \hline
+21 & Manage Join Requests & Approve or reject participant requests, extending Host Activity. \\ \hline
+22 & Join Activity & Request to join another group, extending Manage Activities. \\ \hline
+23 & Request to Join & Submit request to join, included in Join Activity. \\ \hline
+24 & Browse Activities & View active events on the map, extending Manage Activities. \\ \hline
+25 & Report Activities & Flag an activity for violations, extending Browse Activities. \\ \hline
+26 & Chat Group & Send real-time messages, extending Create activity and Join Activity. \\ \hline
+\end{tabular}
+\caption{Descriptions of Tourist Use Cases}
+\label{tab:tourist_use_cases}
+\end{table}
+
+\subsubsection{Admin Use Case}
+
+Figure \ref{fig:usecase_admin} outlines the administrative functions provided by the HanoiGO platform. The Admin actor manages the system through four main sub-systems: Dashboard, User Management, Place Management, and Report Management. The primary administrative features are directly linked to the Admin actor, while secondary actions are connected using standard UML include and extend relationships. This modular design helps the administrator monitor platform activities, moderate content, update landmark information, and maintain a safe community environment.
+
+\begin{figure}[H]
+    \centering
+    \includegraphics[width=1\linewidth]{admin-usecase.drawio.pdf} 
+    \caption{Use Case Diagram for Admin}
+    \label{fig:usecase_admin}
+\end{figure}
+
+\newpage
+\begin{table}[H]
+\centering
+\small
+\renewcommand{\arraystretch}{1.1}
+\begin{tabular}{|c|p{4.5cm}|p{9cm}|}
+\hline
+\textbf{No.} & \textbf{Use Case} & \textbf{Description} \\ \hline
+1 & View Dashboard & Access the administrative dashboard to monitor the platform. \\ \hline
+2 & View Statistics & Monitor user activity and system metrics, included in View Dashboard. \\ \hline
+3 & Manage Users & Access account management and user administration features. \\ \hline
+4 & View User List & Browse all registered accounts in the system, included in Manage Users. \\ \hline
+5 & Block User & Restrict platform access for accounts that violate guidelines, extending View User List. \\ \hline
+6 & Unblock User & Restore access for previously restricted user accounts, extending View User List. \\ \hline
+7 & Delete User & Permanently remove a user account from the database, extending View User List. \\ \hline
+8 & View User Detail & Inspect detailed profile information and activity logs of a user, extending Manage Users. \\ \hline
+9 & Create User & Add new user or administrator accounts manually, extending Manage Users. \\ \hline
+10 & Manage Places & Access landmark and geographical location management tools. \\ \hline
+11 & View Place List & Browse all registered tourist landmarks in Hanoi, included in Manage Places. \\ \hline
+12 & Update Place & Edit descriptions, categories, or opening hours of a place, extending View Place List. \\ \hline
+13 & Delete Place & Permanently remove a landmark entry from the database, extending View Place List. \\ \hline
+14 & Create Place & Add new landmarks with GPS coordinates and spatial data, extending Manage Places. \\ \hline
+15 & Manage Reports & Access system moderation and community safety tools. \\ \hline
+16 & Review Reports & Inspect complaints and violation flags submitted by users, included in Manage Reports. \\ \hline
+17 & Handle Reports & Resolve reported violations and take disciplinary actions, extending Review Reports. \\ \hline
+\end{tabular}
+\caption{Descriptions of Admin Use Cases}
+\label{tab:admin_use_cases}
+\end{table}
+
+\newpage
+% Reset spacing for Chapter III and subsequent sections
+\setlength{\parindent}{15pt}
+\setlength{\parskip}{0em}
+\linespread{1}\selectfont
+
+% --- CHAPTER III ---
+\chapter{METHODOLOGY}
+
+% Apply same spacing as Chapter II
+\setlength{\parindent}{0pt}
+\setlength{\parskip}{0.6em}
+\linespread{1.3}\selectfont
+\titlespacing*{\section}{0pt}{12pt}{4pt}
+
+This chapter describes the high-level architecture of HanoiGO, detailing the frontend navigation, modular NestJS backend structure, and the integration of PostgreSQL/PostGIS databases. It also formulates the mathematical logic and heuristics used for K-Means++ clustering and the Travelling Salesman Problem with Time Windows (TSPTW).
+
+\section{System Architecture}
+
+\section{Tools and Techniques}
+% Content to be added.
+
+\section{Backend and Database Design}
+% Content to be added.
+
+\newpage
+% Reset spacing for Chapter IV and subsequent sections
+\setlength{\parindent}{15pt}
+\setlength{\parskip}{0em}
+\linespread{1}\selectfont
+
+% --- CHAPTER IV ---
+\chapter{RESULTS AND DISCUSSIONS}
+
+% Apply same spacing as Chapter III
+\setlength{\parindent}{0pt}
+\setlength{\parskip}{0.6em}
+\linespread{1.3}\selectfont
+\titlespacing*{\section}{0pt}{12pt}{4pt}
+
+\section{System Results}
+This chapter will present the concrete outputs of the implemented HanoiGO platform, including web interface screenshots, API endpoint specifications, performance evaluation of the heuristic trip planner, and analysis of a user survey conducted to validate the platform's utility.
+
+\section{Performance Evaluation}
+% Content to be added.
+
+\section{Discussion and Limitations}
+% Content to be added.
+
+\newpage
+% Reset spacing for Chapter V and subsequent sections
+\setlength{\parindent}{15pt}
+\setlength{\parskip}{0em}
+\linespread{1}\selectfont
+
+% --- CHAPTER V ---
+\chapter{CONCLUSION AND FUTURE WORK}
+
+% Apply same spacing as Chapter IV
+\setlength{\parindent}{0pt}
+\setlength{\parskip}{0.6em}
+\linespread{1.3}\selectfont
+\titlespacing*{\section}{0pt}{12pt}{4pt}
+
+\section{Conclusion}
+This chapter will summarize the core academic and practical contributions of this thesis in developing HanoiGO.
+
+\section{Future Work}
+Future developments will be discussed, focusing on several areas of improvement and extension.
+
+First, an AI-powered conversational assistant will be integrated as a key next step. The planned assistant will use the Gemini 2.5 Flash model to support multiple interaction types through a single chat interface: answering general questions about Hanoi, recommending nearby places based on the user's current GPS location, and generating full trip itineraries through a guided conversation. When a user wants a trip plan, the assistant will collect required parameters such as number of days, travel date, and place categories across multiple chat turns before calling the trip planner automatically.
+
+Second, multi-modal public transit routing will be explored to complement the current motorbike-based travel time calculations from the Goong Maps API.
+
+Third, the geographic dataset will be expanded beyond Hanoi to cover other major cities in Vietnam, broadening the platform's usefulness for longer trips.
+
+\newpage
+% Reset spacing
+\setlength{\parindent}{15pt}
+\setlength{\parskip}{0em}
+\linespread{1}\selectfont
+
+% ===================================================
+% 7. REFERENCES
+% ===================================================
+\begin{thebibliography}{99}
+\addcontentsline{toc}{chapter}{References}
+\setlength{\itemsep}{0.8em} % Increase vertical spacing between references
+
+\bibitem{gretzel2015smart} U. Gretzel, M. Sigala, T.-H. Xiang, and C. Koo, "Smart tourism: foundations and developments," \textit{Electronic Markets}, vol. 25, no. 3, pp. 179--188, 2015.
+
+\bibitem{vietnamtourism2024} Vietnam National Authority of Tourism, "Annual Report on Vietnam Tourism Statistics," Ministry of Culture, Sports and Tourism, Hanoi, Vietnam, 2024.
+
+\bibitem{buhalis2020smartness} D. Buhalis, "Technology in tourism-from information communication technologies to smartness and ambient intelligence," \textit{Tourism Management}, vol. 80, p. 104113, 2020.
+
+\bibitem{buhalis2019cocreation} D. Buhalis and M. Sinarta, "Real-time co-creation and nowness service: lessons from tourism and hospitality," \textit{Journal of Travel and Tourism Marketing}, vol. 36, no. 5, pp. 563--582, 2019.
+
+\bibitem{ricci2011recommender} F. Ricci, L. Rokach, and B. Shapira, \textit{Introduction to Recommender Systems Handbook}. Boston, MA: Springer, 2011.
+
+\end{thebibliography}
+
+\newpage
+\vspace*{-20pt}
+\begin{center}
+\huge\bfseries Appendices
+\end{center}
+\vspace{10pt}
+\addcontentsline{toc}{chapter}{Appendices}
+
+\textbf{HanoiGO System Overview}
+\begin{figure}[H]
+    \centering
+    \caption{Conceptual overview of the HanoiGO map-centric architecture}
+    \label{fig:hanoigo_overview_app}
+\end{figure}
+
+\end{document}

@@ -1,0 +1,1223 @@
+\documentclass[a4paper,12pt]{report}
+
+% ===================================================
+% 1. PACKAGES & CONFIGURATION
+% ===================================================
+\usepackage[utf8]{inputenc}
+\usepackage[english]{babel} 
+\usepackage{geometry}      
+\usepackage{titlesec}       
+\usepackage{mathptmx}       
+\usepackage{float}          
+\usepackage[hidelinks]{hyperref}
+\usepackage{array}         
+\usepackage{caption}        
+\usepackage{indentfirst}    
+\usepackage{graphicx}
+\usepackage{float}
+\usepackage[section]{placeins}
+\usepackage{listings}
+\usepackage{xcolor}
+\usepackage{fancyhdr}
+
+% Page Margins (A4 Standard)
+\geometry{
+    top=2.5cm,
+    bottom=2.5cm,
+    left=3cm,
+    right=2cm
+}
+
+% Configure page numbering in bottom right
+\pagestyle{fancy}
+\fancyhf{} % Clear all headers and footers
+\fancyfoot[R]{\thepage} % Page number in bottom right
+\renewcommand{\headrulewidth}{0pt} % Remove header line
+\renewcommand{\footrulewidth}{0pt} % Remove footer line
+
+% Redefine 'plain' style for Chapter pages to match
+\fancypagestyle{plain}{
+  \fancyhf{}
+  \fancyfoot[R]{\thepage}
+  \renewcommand{\headrulewidth}{0pt}
+  \renewcommand{\footrulewidth}{0pt}
+}
+
+% Roman Numerals for Chapters (I, II, III...) like the sample
+\renewcommand{\thechapter}{\Roman{chapter}}
+\renewcommand{\thesection}{\arabic{section}}
+\renewcommand{\thesubsection}{\thesection.\arabic{subsection}}
+
+% Formatting Chapter Titles (e.g., Chapter I - Introduction)
+\titleformat{\chapter}[display]
+  {\normalfont\huge\bfseries\centering}
+  {\chaptertitlename\ \thechapter}{10pt}{\Huge}
+\titlespacing*{\chapter}{0pt}{-20pt}{30pt}
+
+% ===================================================
+% 2. STUDENT & PROJECT INFORMATION (EDIT HERE)
+% ===================================================
+\newcommand{\thesisTitle}{YOUR PROJECT NAME HERE} % <--- Project Name
+\newcommand{\studentName}{Student Name - ID123456} % <--- Your Name
+\newcommand{\supervisorName}{Dr. Supervisor Name}  % <--- Supervisor Name
+\newcommand{\reportDate}{Hanoi, June 2025}         % <--- Date
+\setcounter{secnumdepth}{3}
+\begin{document}
+
+% ===================================================
+% 3. COVER PAGE
+% ===================================================
+\begin{titlepage}
+    \centering
+    
+    % --- LOGO ---
+    % Upload 'download.png' (or logo.png) to Overleaf
+    \includegraphics[width=6cm]{download.png} 
+    
+    \vspace{1cm}
+    
+    % --- UNIVERSITY HEADER ---
+    {\large \textbf{UNIVERSITY OF SCIENCE AND TECHNOLOGY OF HANOI}}\\[0.3cm]
+    {\large \textbf{DEPARTMENT OF INFORMATION AND COMMUNICATION TECHNOLOGY}}\\[2.5cm]
+    
+    % --- PROJECT TITLE ---
+    {\Large \textbf{GROUP PROJECT REPORT}}\\[0.5cm]
+    
+    % Đường kẻ trang trí
+    \rule{\linewidth}{0.5mm} \\[0.4cm]
+    {\Huge \bfseries Study Buddy Match}\\[0.4cm]
+    \rule{\linewidth}{0.5mm} \\[1.5cm]
+    
+    % --- MEMBERS LIST (CENTERED & SMALLER) ---
+    {\large \textbf{Group 38:}}\\[0.5cm]
+    
+    % Điều chỉnh khoảng cách giữa Tên và ID cho thoáng
+    \setlength{\tabcolsep}{12pt} 
+    
+    % Bảng căn giữa tự động nhờ lệnh \centering ở đầu trang
+    {\normalsize % Cỡ chữ vừa phải (không quá to)
+    \begin{tabular}{l l} 
+        Nguyen Duy Hung (ICT) & 22BA13154 \\
+        Nguyen Thai Tu (CS)   & 22BA13312 \\
+        Nguyen Tien Duy (CS)  & 22BA13102 \\
+        Nguyen Minh Duc (DS)  & 22BA13080 \\
+        Lai Quang Huy (ICT)   & 22BA13161 \\
+        Dam Tuan Hung (ICT)   & 22BA13150 \\
+        Nguyen Tien Dung (ICT)& 22BA13087 \\
+    \end{tabular}
+    }
+
+    \vfill % Đẩy phần dưới xuống đáy trang
+    
+    % --- SUPERVISOR ---
+    {\large \textbf{Supervisor:} Assoc. Prof Tran Giang Son}\\[1.5cm]
+    
+    % --- DATE ---
+    {\normalsize \textbf{Hanoi, January 2026}}
+    
+\end{titlepage}
+
+% ===================================================
+% 4. ACKNOWLEDGMENT
+% ===================================================
+\thispagestyle{empty}
+\begin{center}
+    \Large \textbf{ACKNOWLEDGMENT}
+\end{center}
+
+\vspace{1cm}
+
+{
+\linespread{1.3}\selectfont
+\setlength{\parskip}{1em}
+\setlength{\parindent}{1.5em}
+
+We would like to thank our supervisor, Tran Giang Son, for his support during the project. He provided useful comments and suggestions that helped us understand the problems more clearly. His guidance encouraged us to think more carefully and improve our work step by step. He was always willing to answer our questions and give helpful advice when we faced difficulties. Thanks to his support, we were able to enhance the overall quality of the project.
+
+\noindent Hanoi, January 2026
+}
+
+\vspace{3cm}
+
+\noindent \textbf{Supervisor’s signature}
+
+
+\newpage
+
+% ===================================================
+% 5. FRONT MATTER (TOC, LISTS)
+% ===================================================
+\pagenumbering{roman} % i, ii, iii...
+{
+\linespread{1.3}\selectfont
+\setlength{\parskip}{0.5em}
+
+\tableofcontents
+\addcontentsline{toc}{chapter}{TABLE OF CONTENTS}
+\newpage
+
+\listoffigures
+\addcontentsline{toc}{chapter}{LIST OF FIGURES}
+\newpage
+
+\listoftables
+\addcontentsline{toc}{chapter}{LIST OF TABLES}
+}
+\newpage
+% ===================================================
+% 6. MAIN CONTENT
+% ===================================================
+\pagenumbering{arabic} % 1, 2, 3...
+
+% --- CHAPTER I ---
+\chapter{INTRODUCTION}
+
+% Adjust spacing for Chapter I
+\setlength{\parindent}{0pt} % No paragraph indentation
+\setlength{\parskip}{1.2em} % Increase space between paragraphs
+\linespread{1.3}\selectfont % Increase line spacing within paragraphs
+\titlespacing*{\section}{0pt}{12pt}{4pt} % Reduce space after section headings
+
+\section{Context}
+
+In today's educational environment, learning is gradually shifting from being a solitary activity to becoming more of a collaborative process. According to Johnson and Johnson \cite{johnson1999cooperative}, collaborative learning, where students work together to solve problems or discuss concepts, can lead to better retention rates, improved critical thinking skills, and higher academic motivation compared to individual study. For high school students who often face considerable pressure from standardized testing and university entrance exams \cite{ang2006academic}, having a reliable peer support network has become increasingly important.
+
+However, despite the availability of many social networking platforms such as Facebook, Instagram, or Discord, finding a suitable study partner remains quite challenging. General-purpose social networks are designed mainly for entertainment and socializing, which often makes them sources of distraction rather than productivity \cite{kirschner2010facebook}. Moreover, finding a peer who matches specific criteria like studying the same subjects, sharing similar academic goals, or having a compatible schedule is a time-consuming and inefficient process when done manually.
+
+Geographical barriers also limit students to forming study groups only with their immediate classmates. This limitation restricts their exposure to diverse learning methods and perspectives that peers from other schools or regions could offer. As a result, there is a clear need for a specialized digital platform that bridges this gap by combining the connectivity of social networks with the focused tools of an educational management system.
+
+In this context, our team proposes the development of Study Buddy Match, a comprehensive web-based application designed to connect high school students based on academic compatibility, fostering a safe and effective remote study environment. The following section explains what motivated us to pursue this project.
+
+\section{Motivation}
+
+The decision to undertake this project is driven by both practical educational needs and technical aspirations.
+
+First, we want to solve the matching problem in education. We observed that students often struggle to find help for specific subjects, especially when they don't know who to ask or where to look. By applying a matching algorithm similar to recommendation systems used in modern applications \cite{ricci2011recommender}, we aim to make the process of finding a study partner much easier. This way, a student looking for help in Physics can quickly find another student who excels in Physics or wants to study it at the same time.
+
+Secondly, we want to create a distraction-free environment for studying. Unlike mainstream messaging apps where study chats get mixed with entertainment content, Study Buddy Match provides a dedicated workspace. This environment includes essential tools that general platforms don't have, such as document sharing and real-time communication features specifically designed for academic collaboration.
+
+From a technical perspective, this project gives our development team a good opportunity to learn and apply advanced web technologies. Specifically, we want to use NestJS to build a scalable and secure backend architecture, implement real-time communication systems using WebSockets for instant messaging and signaling for video calls, integrate file processing capabilities to handle document uploads and resource sharing, and explore data security practices to protect the privacy of young users, particularly high school students.
+
+With these motivations in mind, we established clear objectives to guide the development process.
+
+\section{Objectives}
+
+The primary objective of this project is to develop a fully functional web application that facilitates peer learning among high school students. To achieve this, we have defined both functional and technical goals that guide our development process.
+
+From a functional perspective, our main objectives are as follows. First, we want to develop an intelligent matching system that connects students based on academic compatibility, including shared subjects, compatible study schedules, and similar learning styles. Second, we aim to implement instant messaging and video calling features to enable real-time communication and remote collaboration between matched study partners. Third, we plan to create a collaborative library where students can upload, access, and download study materials to support each other's learning. Finally, we want to build a progressive moderation system that maintains community safety through automated warnings and temporary bans for policy violations.
+
+From a technical perspective, our objectives include several key components. First, we plan to implement JWT-based authentication to protect user data and ensure secure access control. Second, we aim to design a modular backend using NestJS that can handle growing user numbers and feature expansion. Third, we want to utilize multiple database technologies, specifically PostgreSQL and MongoDB, optimized for different data types and access patterns (known as polyglot persistence). Lastly, we aim to ensure fast response times and smooth real-time interactions through efficient caching and WebSocket connections.
+
+By achieving these objectives, we hope to create a platform that not only addresses the practical challenges students face in finding study partners but also demonstrates good practices in modern web application development.
+
+% Reset spacing for subsequent chapters
+\setlength{\parindent}{15pt}
+\setlength{\parskip}{0em}
+\linespread{1}\selectfont
+
+% --- CHAPTER II ---
+\chapter{SYSTEM ANALYSIS}
+
+% Apply same spacing as Chapter I
+\setlength{\parindent}{0pt}
+\setlength{\parskip}{0.6em}
+\linespread{1.3}\selectfont
+\titlespacing*{\section}{0pt}{12pt}{4pt}
+
+\section{Overview}
+
+This chapter explains how the system works internally, showing the main architectural patterns, key features, and how different components interact with each other. It describes how we turned the theoretical ideas from Chapter I into a working web application.
+
+Study Buddy Match is designed for two types of users: Students and Administrators. Students use the platform to find study partners through an intelligent matching algorithm, communicate with them via real-time chat and video calls, and share study resources. Administrators manage user accounts and enforce community safety through a progressive moderation system.
+
+The system is built using a modern technology stack. We use NestJS for the backend, Next.js for the frontend, and a polyglot persistence strategy that combines PostgreSQL and MongoDB. This architecture helps ensure the system can scale well, perform efficiently, and maintain data consistency across all features.
+
+\section{System Requirements}
+
+Overall, our application for connecting high school students to find study partners has to satisfy the following main requirements:
+
+\begin{itemize}
+    \item For Students:
+    \begin{itemize}
+        \item Register and login with email verification.
+        \item Edit profile information and configure study preferences.
+        \item View potential study partners based on compatibility scores.
+        \item Use swipe actions to accept or decline matches.
+        \item Send real-time text messages with matched partners.
+        \item Initiate video calls for study sessions.
+        \item Upload and download study materials from shared library.
+    \end{itemize}
+    
+    \item For Administrators:
+    \begin{itemize}
+        \item View dashboard with user statistics and platform analytics.
+        \item Ban or unban users who violate community rules.
+        \item Review and handle user reports.
+        \item Manage violation keywords for content filtering.
+    \end{itemize}
+\end{itemize}
+\section{UML Diagram}
+
+This section presents the Use Case diagrams to visualize the interactions between the actors and the system.
+
+\subsection{Use Case Diagram}
+
+\subsubsection{Student Use Case}
+
+Figure \ref{fig:usecase_student} shows how students interact with the Study Buddy Match system. They can log in securely to set up their profiles and configure study tags. The core feature allows them to find partners by viewing details and using swipe actions, then connect via chat or video calls. Additionally, students can share their resources, review, and download other students' resources.
+
+\begin{figure}[H]
+    \centering
+    \includegraphics[width=0.8\linewidth]{usecase_student.pdf} 
+    \caption{Use Case Diagram for Student}
+    \label{fig:usecase_student}
+\end{figure}
+
+\begin{table}[H]
+\centering
+\begin{tabular}{|c|p{5cm}|p{8cm}|}
+\hline
+\textbf{No.} & \textbf{Use Case} & \textbf{Description} \\ \hline
+1 & Login & Access accounts using credentials. \\ \hline
+2 & Register & Create an account. \\ \hline
+3 & Manage Profile & View and edit personal information. \\ \hline
+4 & View Match List & Display a list of students who have matched. \\ \hline
+5 & Update Profile & Change personal details or study interests. \\ \hline
+6 & Check account status & See if account is active or banned. \\ \hline
+7 & Unmatch Student & Remove a connection with a partner. \\ \hline
+8 & Browse Student & Look through potential partners. \\ \hline
+9 & Swipe & Like or skip potential partners to find match. \\ \hline
+10 & View Student Detail & Display information of a partner. \\ \hline
+11 & Setup Study Preferences & Configure criteria for finding partners. \\ \hline
+12 & Report Student & Flag accounts to admin. \\ \hline
+13 & Chat with Partner & Messaging interface for matched partners. \\ \hline
+14 & Make Video Call & Initiate live audio and video call with partner. \\ \hline
+15 & Report Message & Flag messages in chat. \\ \hline
+16 & Share screen & Display screen during video call. \\ \hline
+17 & Manage Document & Share and organize resources. \\ \hline
+18 & CRUD Document & Create, read, update, delete resources. \\ \hline
+19 & Report Document & Flag shared resources. \\ \hline
+\end{tabular}
+\caption{Descriptions of Student Use Cases}
+\label{tab:student_use_cases}
+\end{table}
+
+\subsubsection{Admin Use Case}
+
+Figure \ref{fig:usecase_admin} outlines the administrative functions for system management. Admins can monitor system health through a dashboard displaying user statistics and report analytics. They have the authority to manage the user base by banning violators, moderate content by reviewing reports, and proactively maintain safety by managing violation keywords and deleting inappropriate resources.
+
+\begin{figure}[H]
+    \centering
+    \includegraphics[width=1\linewidth]{usecase_admin.pdf} 
+    \caption{Use Case Diagram for Admin}
+    \label{fig:usecase_admin}
+\end{figure}
+
+\begin{table}[H]
+\centering
+\begin{tabular}{|c|p{5cm}|p{9cm}|}
+\hline
+\textbf{No.} & \textbf{Use Case} & \textbf{Description} \\ \hline
+1 & View Dashboard & Provides overview of activity. \\ \hline
+2 & View Student Statistics & Displays data and charts about users. \\ \hline
+3 & View Report Analytics & Shows data on reports. \\ \hline
+4 & Manage Users & Oversee and control user accounts. \\ \hline
+5 & View Student List & Displays directory of users. \\ \hline
+6 & Block Student & Restrict access for violators. \\ \hline
+7 & Unblock Student & Restore access to restricted accounts. \\ \hline
+8 & Manage System Moderation & Provides tools for maintaining a safe environment. \\ \hline
+9 & Manage Keywords & Update the blacklist of forbidden words. \\ \hline
+10 & Review Reports & Examine complaints submitted by users. \\ \hline
+11 & Hide restricted keyword & Hide inappropriate keywords automatically. \\ \hline
+12 & Handle Report & Take action based on complaints. \\ \hline
+13 & Manage Document & Oversees the study materials shared. \\ \hline
+14 & Review Document & Check the quality and safety of resources. \\ \hline
+15 & Delete Document & Remove inappropriate resources. \\ \hline
+\end{tabular}
+\caption{Descriptions of Admin Use Cases}
+\label{tab:admin_use_cases}
+\end{table}
+
+\subsection{Sequence Diagrams}
+
+This subsection shows sequence diagrams that explain step-by-step interactions in the Study Buddy Match system. They illustrate how components work together for key functions like user authentication, buddy matching, and integrated communication systems.
+
+\begin{figure}[H]
+    \centering
+    \includegraphics[width=0.75\textwidth]{authentication_diagram.pdf}
+    \caption{Sequence diagram for Login flow}
+    \label{fig:login_flow}
+\end{figure}
+
+Figure \ref{fig:login_flow} shows the basic steps of the login process in the system. First, the user enters their email and password, which are then sent to the backend for verification. The backend checks the database to see if the account information is correct. If the login fails, an error message is displayed; however, if it is successful, a security token is created. Finally, the user is saved into the system and redirected to the main dashboard.
+
+\begin{figure}[H]
+    \centering
+    \includegraphics[width=0.85\textwidth]{matching_diagram.pdf}
+    \caption{Sequence diagram for Matching flow}
+    \label{fig:matching_flow}
+\end{figure}
+
+Figure \ref{fig:matching_flow} illustrates the automated process of finding and matching study partners. When a user opens the matching page, the system retrieves their profile and a list of previously swiped users from the database to ensure no duplicates. This data is then sent to a specialized Matching Server, which uses filters to rank and return the most suitable candidates. Once the user decides to "swipe right" on a candidate, the Backend API creates a swipe record. If the system detects a mutual interest between two users, it automatically creates a new match and a conversation entry in the database, then notifies the user with a "Match Found" notification.
+
+\begin{figure}[H]
+    \centering
+    \includegraphics[width=0.75\textwidth]{chat_diagram.pdf}
+    \caption{Sequence diagram for Basic Chat flow}
+    \label{fig:basic_chat_flow}
+\end{figure}
+
+Figure \ref{fig:basic_chat_flow} illustrates the basic text messaging process. When a user sends a message, the Web Application transmits the data to the Chat Server, which identifies the Conversation and creates a new entry in the Message table using the roomId. The system then triggers the Notification Service to notify the recipient. This flow ensures that basic communication is reliably stored and delivered within the matched pair.
+
+\begin{figure}[H]
+    \centering
+    \includegraphics[width=0.65\textwidth]{video.pdf}
+    \caption{Sequence diagram for Video Call flow}
+    \label{fig:videocall_flow}
+\end{figure}
+
+Figure \ref{fig:videocall_flow} illustrates the end-to-end video call process using WebRTC. The communication begins with User A sending a call-request to the Signaling Server, which then notifies User B. Upon acceptance, both parties initiate a WebRTC handshake by exchanging SDP signals (Offer/Answer) and ICE candidates through the server. This setup phase enables a direct peer-to-peer (P2P) connection for high-quality video and audio streaming. The session is terminated when either user sends a call-ended notification, or fails if the recipient is busy or offline.
+
+\begin{figure}[H]
+    \centering
+    \includegraphics[width=0.85\textwidth]{resource_sharing_diagram.pdf}
+    \caption{Sequence diagram for Resource Sharing flow}
+    \label{fig:resource_sharing_flow}
+\end{figure}
+
+Figure \ref{fig:resource_sharing_flow} illustrates how students share study materials. Users can browse available resources through the frontend, which retrieves the list from the backend API and PostgreSQL database. When uploading a file, the system validates the file type and size, saves it to the file system, and creates a resource record in the database. For downloads, the backend finds the resource metadata, reads the file from storage, and streams it back to the user's browser.
+
+
+
+
+% --- CHAPTER III ---
+% Reset spacing for Chapter III and subsequent sections
+\setlength{\parindent}{15pt}
+\setlength{\parskip}{0em}
+\linespread{1}\selectfont
+
+% Apply same spacing as Chapter II
+\setlength{\parindent}{0pt}
+\setlength{\parskip}{0.6em}
+\linespread{1.3}\selectfont
+\titlespacing*{\section}{0pt}{12pt}{4pt}
+
+\chapter{METHODOLOGY}
+\section{System Architecture}
+
+This section presents the system architecture and data flow to give an overview of how the platform is designed.
+
+\begin{figure}[H]
+    \centering
+    \includegraphics[width=\linewidth]{SystemArchitecture.pdf}
+    \caption{System Architecture Diagram}
+    \label{fig:sys_arch}
+\end{figure}
+
+Figure \ref{fig:sys_arch} presents the system architecture, which is designed in a client–server model. The system includes three main layers: Client Layer, Core Backend, and Data Layer.
+
+The Client Layer is the web interface used by students. It is built with Next.js and TypeScript to ensure stable performance. This layer communicates with the backend using HTTP for normal actions and WebSocket for real-time features such as chat and video calls.
+
+The Core Backend is responsible for handling the main functions of the system. It manages user authentication using JWT and Passport. The backend includes several modules, such as user management, admin functions, user matching, and notification handling. Prisma ORM is used to interact with the database, while Socket.io supports real-time communication.
+
+The Data Layer stores system data in two databases. PostgreSQL is used for structured data like user accounts and matching information. MongoDB is used to store chat messages because it is more suitable for flexible data formats. This design helps the system work efficiently with different types of data.
+
+
+\section{Tools and Techniques}
+
+This section describes the main development tools and approaches we used to build the platform. We focused on tools that help with team collaboration and real-time features.
+
+\subsection{Development Tools}
+
+We used Visual Studio Code as our main code editor because it works well with TypeScript and has useful extensions for our project. For version control, we used Git with GitHub to manage our code. We follow a branching strategy with three main branches: main for production code, dev for testing new features, and separate feature branches for each task. Before merging any code, team members review each other's work through pull requests to catch bugs and share knowledge.
+
+Docker helps us run the same database versions on everyone's computers. Instead of installing PostgreSQL and MongoDB directly, we use Docker containers that start with a simple command. This solves the problem where code works on one person's computer but not on another's.
+
+For the database, we use Prisma to define our schema and handle migrations. When we need to change the database structure, we update the schema file and Prisma generates the necessary SQL commands automatically. This keeps the database consistent across the team.
+
+\subsection{Frontend Techniques}
+
+Our frontend is built with Next.js, which provides a good structure for organizing pages and components. We use the App Router feature to handle different routes and loading states. The framework separates Server Components that render on the server from Client Components that handle user interactions, which helps pages load faster.
+
+For real-time features like chat and notifications, we use Socket.io Client to connect to the backend through WebSockets. This allows instant updates without refreshing the page. We also use React Hooks to manage component state and side effects, with custom hooks like useAuth for authentication and useSocket for WebSocket connections.
+
+We designed the interface to work on different screen sizes using Tailwind CSS. The responsive design ensures that the web application adapts smoothly to various devices, from desktop computers to tablets and smartphones.
+
+\subsection{Backend Techniques}
+
+The backend is built with NestJS, which organizes code into modules for different features like authentication, chat, and matching. Each module contains controllers that handle requests and services that contain the business logic.
+
+For authentication, we use JWT tokens. When users log in, the server creates a token that identifies them. This token is sent with every request so the server knows who the user is without asking for the password again. Tokens expire after 7 days for security.
+
+WebSocket connections are handled through NestJS gateways. When users connect, we verify their identity using their JWT token. For chat functionality, users join rooms based on their conversation ID, so messages only go to the right people.
+
+File uploads for study materials use Multer middleware, which validates file types and sizes before saving them. We only allow PDFs and images up to 50MB to prevent abuse.
+
+\section{Backend Development}
+\subsection{Authentication}
+
+The system utilizes JSON Web Tokens (JWT) to manage user identity and access control. Upon a successful login, a token containing the user's ID, email, and role (USER or ADMIN) is generated. For security purposes, these tokens are digitally signed and valid for 7 days. They are primarily stored in browser cookies, with a backup in localStorage for WebSocket stability. While public routes like registration are accessible to all, private features such as Chat and Matching are restricted through role-based access control (RBAC).
+
+To ensure data integrity, passwords are encrypted using the bcrypt hashing algorithm, making them irreversible even if the database is compromised. Additionally, a security lockout policy is implemented: accounts are temporarily disabled for 5 minutes after 5 consecutive failed login attempts to prevent brute-force attacks.
+
+The password rules are shown in the table below:
+
+\begin{table}[H]
+\centering
+\begin{tabular}{|p{4cm}|p{9cm}|}
+\hline
+\textbf{Rule} & \textbf{Description} \\
+\hline
+Minimum length & At least 8 characters \\
+\hline
+Uppercase letter & Must include A--Z \\
+\hline
+Lowercase letter & Must include a--z \\
+\hline
+Number & Must include 0--9 \\
+\hline
+Special character & Must include symbols like !@\#\$\%\^{}\&* \\
+\hline
+\end{tabular}
+\caption{Password Requirements}
+\label{tab:password_rules}
+\end{table}
+
+These requirements ensure that passwords are complex enough to resist common attacks. If a password doesn't meet all the rules, the system shows an error message and asks the user to create a stronger password.
+
+
+
+\subsection{Matching System}
+
+The matching system is the core feature of Study Buddy Match. It uses the Gower Distance algorithm to find compatible study partners based on subjects, grade, study days, and study times.
+
+The matching system processes four distinct features with mixed data types: Subjects (categorical), Grade (ordinal), and Study Days/Times (set-based). Since traditional metrics like Euclidean distance are ineffective for this variety of data, we utilize the Gower Distance algorithm. This method calculates a weighted average of differences across these specific features to accurately determine user compatibility:
+
+\[
+D_{\text{Gower}}(i, j) = \frac{\sum_{k=1}^{p} w_k d_k(i, j)}{\sum_{k=1}^{p} w_k}
+\]
+
+where:
+\begin{itemize}
+    \item $p$: Total number of features (4 features)
+    \item $w_k$: Weight assigned to the $k$-th feature
+    \item $d_k(i,j)$: Individual distance between user $i$ and user $j$ for feature $k$
+\end{itemize}
+
+
+For Categorical data (Subjects): We apply a binary logic. The distance is 0 if the subjects are identical, and 1 otherwise:
+
+\[
+d_k = \left\{
+\begin{array}{ll}
+0, & \text{if } x_{ik} = x_{jk} \\
+1, & \text{if } x_{ik} \neq x_{jk}
+\end{array}
+\right.
+\]
+
+For Ordinal data (Grade): The difference is calculated numerically and normalized by the total range ($R$) to ensure the value stays between 0 and 1:
+
+\[
+d_k = \frac{|x_{ik} - x_{jk}|}{R}
+\]
+
+For Set-based data (Days, Times): We utilize the Jaccard Distance to measure the dissimilarity between schedules. A lower distance indicates a higher overlap in free time:
+
+\[
+d_k = 1 - \frac{|A \cap B|}{|A \cup B|}
+\]
+
+where $A$ and $B$ represent the set of available time slots for user $i$ and user $j$ respectively.
+
+To improve matching quality, we assign different weights to each feature based on student priorities. According to our survey of 128 high school students (detailed in Section IV.1.1), the following weights are applied: Grade (35\%) and Subject (34\%) receive the highest priority to ensure academic compatibility, while Study Days (20\%) and Times (10\%) serve as secondary scheduling criteria.
+
+% --- Bắt đầu phần Compatibility Score ---
+
+\noindent Since users prefer an intuitive metric over a raw distance score, the system converts the Gower distance into a \textbf{compatibility percentage} using the following formula:
+
+\[
+    S_{compatibility} = (1 - D_{Gower}) \times 100\%
+\]
+
+\noindent \textbf{Interpretation of Results:}
+\begin{itemize}
+    \item \textbf{Above 80\%:} Indicates an excellent match with high academic and schedule alignment.
+    \item \textbf{50\% - 79\%:} Represents a moderate match, implying potential suitability despite minor differences.
+    \item \textbf{Below 50\%:} Suggests low compatibility, meaning the users have significantly different schedules or academic needs.
+\end{itemize}
+
+% --- Bắt đầu phần Table Encoding ---
+% Lưu ý: Cần package \usepackage{array} hoặc \usepackage{booktabs} nếu muốn kẻ bảng đẹp hơn, 
+% nhưng code dưới đây dùng bảng tiêu chuẩn để ít lỗi nhất.
+
+\begin{table}[h!]
+\centering
+\caption{Feature Encoding Techniques}
+\label{tab:feature_encoding}
+\renewcommand{\arraystretch}{1.3} % Tăng chiều cao dòng cho dễ đọc
+\begin{tabular}{|p{2cm}|p{2.5cm}|p{5cm}|p{4cm}|}
+\hline
+\textbf{Feature} & \textbf{Raw Input} & \textbf{Numerical Representation} & \textbf{Encoding Technique} \\ \hline
+Subject & ``Math'' & [1, 0, 0, 0, 0, 0] & One-Hot Encoding \\ \hline
+Grade & ``Grade 11'' & 0.5 (Normalized) & Integer Mapping \& Normalization \\ \hline
+Days & ``Mon, Wed'' & [1, 0, 1, 0, 0, 0, 0] & Multi-Hot Encoding \\ \hline
+Times & ``Morning'' & [1, 0, 0, 0] & Multi-Hot Encoding \\ \hline
+\end{tabular}
+\end{table}
+
+% --- Bắt đầu phần Optimization ---
+
+\noindent To \textbf{optimize performance}, the system implements a \textbf{two-stage matching process}:
+
+\begin{enumerate}
+    \item \textbf{Pre-filtering Stage:} The system first filters users by subject match. For example, if a user is studying Math, only other Math students are considered. This significantly reduces the number of candidates before distance calculations.
+    \item \textbf{Distance Calculation Stage:} The Gower Distance is then calculated only for this filtered group, ranking them from most to least compatible.
+\end{enumerate}
+
+\noindent This approach ensures that heavy calculations are only performed on relevant candidates, keeping the matching process fast even as the user base grows.
+
+\subsection{Real-time Chat}
+
+To facilitate instant communication between matched students, the platform utilizes WebSocket technology powered by Socket.io within the NestJS framework. Instead of traditional page reloads, the system assigns users to a private room based on their conversation ID, ensuring a seamless and direct connection.
+
+The messaging architecture is designed for both speed and reliability. When a message is sent, the backend simultaneously broadcasts it to the recipient in real-time and stores it in the database. This approach guarantees that while communication is instantaneous, the full chat history is preserved for future reference. The backend processing flow is illustrated in the figure below:
+
+\begin{figure}[H]
+\centering
+\includegraphics[width=0.8\textwidth]{chat_flowchart.pdf}
+\caption{Real-time Chat Process}
+\label{fig:chat-flowchart}
+\end{figure}
+
+
+The system uses two different databases for data management. PostgreSQL is responsible for storing user information, match relationships, and conversation metadata. MongoDB is used to store chat messages because it supports flexible schemas and can handle frequent write operations efficiently. Each chat message includes basic fields such as the sender identifier, conversation identifier, message content, and timestamp.
+
+The main Socket.io events used in the chat system are summarized in the table below:
+
+\begin{table}[H]
+\centering
+\label{tab:chat-events}
+\begin{tabular}{|p{3.5cm}|p{3cm}|p{7.5cm}|}
+\hline
+\textbf{Event Name} & \textbf{Direction} & \textbf{Description} \\
+\hline
+joinRoom & Client $\rightarrow$ Server & User joins a chat room based on the conversation ID. \\
+\hline
+sendMessage & Client $\rightarrow$ Server & Sends a message from the client to the backend server. \\
+\hline
+receiveMessage & Server $\rightarrow$ Client & Delivers a new message to users in the same chat room. \\
+\hline
+loadMessages & Server $\rightarrow$ Client & Sends recent messages when the chat is opened. \\
+\hline
+typing / stopTyping & Client $\rightarrow$ Server & Indicates whether a user is typing a message. \\
+\hline
+messagesRead & Server $\rightarrow$ Client & Updates message status after being read. \\
+\hline
+\end{tabular}
+\caption{Socket.io Chat Events}
+\label{tab:socket_events}
+\end{table}
+
+These events support the core functionalities required for real-time communication.
+
+\subsection{Video Call Service}
+
+The video calling service is built to support real-time online classes between two students who are paired by the system. The system uses WebRTC to allow audio and video to be sent directly between two web browsers. This direct connection helps reduce delay and keeps the call quality stable, while also lowering the workload of the backend compared to sending media through a central server.
+
+Before a call can start, the two users do not have information about each other’s connection or media settings. For this reason, the backend works as a signaling server to help set up the connection. It is responsible for user authentication, creating and managing call rooms, and forwarding connection messages between the two users. After the direct connection is established, the backend no longer takes part in the video or audio transmission.
+
+During the setup process, the two users exchange basic connection information such as SDP and ICE candidates. This information helps both sides agree on how the audio and video should be transmitted so that the call can start smoothly.
+
+\begin{table}[H]
+\centering
+\begin{tabular}{|p{3cm}|p{10cm}|}
+\hline
+\textbf{Information} & \textbf{Description} \\
+\hline
+Media Type & Video, audio, or both \\
+\hline
+Supported Codec & H.264, VP8, VP9 (video); Opus, G.711 (audio) \\
+\hline
+Resolution & 720p, 1080p, etc. \\
+\hline
+Bandwidth & Desired transmission rate \\
+\hline
+\end{tabular}
+\caption{SDP Information Components}
+\label{tab:sdp_info}
+\end{table}
+
+The SDP messages are exchanged between the two users using the Offer–Answer model. The person making the call sends an Offer with their media settings, and the receiver replies with a compatible Answer. The backend's only job is to forward these messages; it doesn't look at the content.
+
+After SDP, the system uses ICE (Interactive Connectivity Establishment) to solve complex network problems (like getting past firewalls or dealing with NAT). Each device finds and collects several different ICE candidates—these are possible network addresses they can use to connect. WebRTC automatically tests all the candidates to find the best, most optimal connection path for the smoothest call.
+
+\begin{table}[H]
+\centering
+\begin{tabular}{|p{3cm}|p{5cm}|p{6cm}|}
+\hline
+\textbf{Candidate Type} & \textbf{Description} & \textbf{Performance} \\
+\hline
+Host & Local network address & Best - Lowest latency, direct local connection \\
+\hline
+Server Reflexive & Public IP address (via STUN) & Good - Slightly higher latency due to NAT traversal \\
+\hline
+Relay & Relay server address (TURN) & Highest latency, all traffic routed through server \\
+\hline
+\end{tabular}
+\caption{ICE Candidate Types and Performance}
+\label{tab:ice_candidates}
+\end{table}
+
+The entire process of exchanging SDP and ICE happens inside a Room. Each Room can only have the two people participating in the call. This method is great because it keeps all the sensitive setup information for each call separate, avoiding any mix-ups and keeping things private. Once both people have all the necessary information and successfully create their direct peer-to-peer connection, the video and audio streams are sent straight between the two clients, completely bypassing the backend server.
+
+To stop a user from getting called when they are already on a line, the backend has a busy status feature to manage the call state. The system keeps a record of who is currently busy on a call. If someone tries to call a user who is busy, the backend will automatically reject the request and send back a "busy" status. As soon as the current call ends or if a connection breaks, this busy status is immediately cleared.
+
+\begin{table}[H]
+\centering
+\begin{tabular}{|p{4cm}|p{4cm}|p{6.5cm}|}
+\hline
+\textbf{Event} & \textbf{Condition} & \textbf{Action} \\
+\hline
+Send call request & Receiver is busy & Return busy status \\
+\hline
+Send call request & Receiver is available & Forward the call request \\
+\hline
+Accept call & Both sides confirm & Mark both users as busy \\
+\hline
+End call / Disconnect & Tab closed or network lost & Release status and send notification \\
+\hline
+\end{tabular}
+\caption{Call Status Management}
+\label{tab:call_request}
+\end{table}
+
+Since our video call service uses the WebRTC design combined with a signaling server, it can offer low delay (latency) and is very good at scaling up. It also works very well with our existing chat and student-matching features. The detailed logic of handling a call lifecycle, from initiation to termination, is visualised in the flowchart below:
+
+\begin{figure}[H]
+    \centering
+    \includegraphics[width=0.85\textwidth]{video_flowchart.pdf}
+    \caption{Video Call Flow}
+    \label{fig:video_flowchart_app}
+\end{figure}
+
+This diagram shows how the system handles different scenarios such as busy signals, rejected calls, or successful WebRTC connections. This entire setup allows the Study Buddy Match platform to effectively support all real-time online study activities.
+
+\subsubsection{ICE Candidate Latency in Practice}
+
+During testing, we measured the average connection latency for each ICE candidate type to better understand how they perform under real network conditions. The results are summarized in Table~\ref{tab:ice_latency}.
+
+\begin{table}[H]
+\centering
+\begin{tabular}{|p{3cm}|p{4cm}|p{6.5cm}|}
+\hline
+\textbf{Candidate Type} & \textbf{Average Latency} & \textbf{When It Applies} \\
+\hline
+Host & $\sim$25 ms & Both users on the same local network \\
+\hline
+Server Reflexive & $\sim$85 ms & Users on different networks, connected via STUN \\
+\hline
+Relay & $\sim$230 ms & Direct connection blocked; traffic routed via TURN \\
+\hline
+\end{tabular}
+\caption{Measured Latency by ICE Candidate Type}
+\label{tab:ice_latency}
+\end{table}
+
+Host candidates gave the best results, which makes sense since the data never leaves the local network. Direct internet connections were also fast enough for smooth video at around 85 ms, as both users can still connect directly over the Internet without routing traffic through a middle server. The Relay path was noticeably slower, as expected, because every packet has to travel through an external relay before reaching the other user.
+
+That said, the Relay candidate is not just a fallback of last resort — it is a mandatory part of the system. Some users sit behind strict firewalls or are on symmetric NAT networks that block all direct peer-to-peer traffic outright. In those cases, neither Host nor direct internet connections will work, and without a TURN server, the call simply cannot start. To handle this, we use a distributed TURN network, which helps keep relay latency as low as possible by routing traffic through a nearby server rather than a single fixed point. The browser handles candidate selection automatically, so most users end up on a direct connection without even knowing the fallback exists.
+
+
+\subsection{Moderation System}
+
+This system includes two main parts: a word filter that works automatically and a manual banning process managed by administrators.
+
+For the word filter, we created a list of "blacklisted" words in our database. When a student sends a message or updates their profile, the backend checks the text against this list. If the system finds a bad word, it automatically replaces it with stars (***). 
+
+However, some users might try to "trick" the system by using symbols or spaces, such as writing "b@d" instead of "bad." To solve this, we used regex patterns to find these common variations. Because sometimes the system might accidentally flag normal words, the admin can review the flagged messages instead of just blocking everything immediately.
+
+If a user continues to break the rules, admin can choose to ban them. When this happens, the backend follows several steps to ensure the user can no longer use the app:
+
+\begin{table}[H]
+\centering
+\begin{tabular}{|p{1cm}|p{3.5cm}|p{9.5cm}|}
+\hline
+\textbf{Step} & \textbf{Action} & \textbf{Description} \\
+\hline
+1 & Database Status & Change the user status to "banned" and save the reason and time info. \\
+\hline
+2 & Token Check & Cancel the user's login token (JWT) so they cannot make new requests. \\
+\hline
+3 & Disconnect Socket & Immediately cut the real-time connection from the server. \\
+\hline
+4 & Clear Activities & Remove the user from any active chat rooms or video calls. \\
+\hline
+5 & Notifications & Send a message to other students in the same chat to tell them the user is gone. \\
+\hline
+\end{tabular}
+\caption{Steps for Banning a User}
+\label{tab:ban_process}
+\end{table}
+
+For safety, only users with an "ADMIN" role can access these banning features. Every ban action is saved in our logs so we know who banned whom and why. This helps prevent mistakes and ensures that the platform remains a healthy environment for studying.
+
+\subsection{Resource Sharing}
+
+File Upload and Data Management: The system utilizes a RESTful API integrated with Multer middleware to streamline file uploads. Every file undergoes a validation process to ensure it is present in the request and does not exceed the 10MB size limit.
+
+Storage: Once validated, files are saved to a dedicated server directory, while metadata (title, subject, grade level, etc.) and ownership details are indexed in PostgreSQL for efficient management.
+
+Optimized Download Mechanism : To provide a seamless user experience, the backend implements file streaming. Instead of loading entire files into memory, the system creates a read stream directly to the browser. By dynamically setting the Content-Type and Content-Disposition headers, the system ensures that files are delivered efficiently and triggered correctly as downloads.
+
+Security and Content Moderation: We prioritize data integrity and community safety through two main layers:
+
+Ownership-based Access Control: A strict security check ensures that only the original uploader has the authority to delete a resource. Any unauthorized deletion requests are intercepted and blocked with a ForbiddenException.
+
+Moderation Workflow: To maintain a high-quality library, resources are filtered by status. Only materials marked as "PUBLISHED" are visible to the community. This allows administrators to hide inappropriate content instantly without losing the underlying data.
+
+\section{Frontend Development}
+
+\subsection{Navigation Diagram}
+
+\begin{figure}[H]
+    \centering
+    \makebox[\textwidth][c]{\includegraphics[width=1.2\linewidth]{frontend_architecture.pdf}}
+    \caption{Frontend Navigation and Page Structure}
+    \label{fig:frontend_navigation}
+\end{figure}
+
+Figure \ref{fig:frontend_navigation} shows how different screens in our application are linked together. When users first arrive, they can go through the login or signup pages to reach the main dashboard. From the home page, students can easily navigate to the matching area, chat with buddies, or share study materials. We also included separate pages for administrators to monitor the system operations. This map helps the team understand the user journey and ensures all features are easy to access.
+
+\subsection{UI Design System}
+
+Next.js was chosen for its support for Server-Side Rendering (SSR) and Server Components, which helps reduce the amount of JavaScript that needs to be downloaded by the browser. As a result, the website can render initial content faster, improving the user experience even on low-end devices or slow networks. In addition, Next.js’s file-system-based routing provides a clear project structure and a good separation between logic and UI. This makes development faster and helps the system scale more easily as it grows.
+
+Tailwind CSS was selected because of its utility-first approach, which allows styles to be written directly inside JSX without managing multiple separate CSS files. This significantly speeds up UI development. In terms of performance, Tailwind only generates the CSS classes that are actually used, keeping the stylesheet lightweight and helping pages load faster.
+
+\subsection{Authentication and Matching Interface}
+
+The login and signup pages were kept simple; only basic information is required in the forms. When users enter a wrong email or a short password, an error message will appear. This allows users to fix the problem without trying many times. To make the process more convenient, the system saves a login token so users do not need to log in again every time they open the browser.
+
+For the matching part, we created a swipe feature. Instead of using a big animation library which might make the app heavy, we handled the swipe movement using React events. This solution is simpler; it helps the web run more smoothly. 
+
+The profile cards show basic information, like name, school, grade, and the images. We use colored tags for subjects so that users can easily see shared interests. A "Like" or "Nope" label will appear when swiping to show the result.
+
+
+\subsection{Chat Interface and State Management}
+
+The chat interface is where students spend most of their time talking to their new study buddies. We made it look like a standard chat app with a list of conversations on the left and the chat window on the right. To make it feel fast, messages appear instantly without the page reloading. We also added small features like "typing..." indicators so users know when the other person is writing.
+
+Since internet connections can be unstable, we use unique IDs for every message to make sure they don't appear twice. Students can also react to messages with emojis, edit their mistakes, or pin important information like a meeting time or a link to a document. There is also a "clear chat" button if a user wants to hide old messages for their own privacy.
+
+\subsection{Video Call Interface and Media Management}
+
+For the video call screen, we wanted to keep it clean so students can focus on their study. When a call starts, the app asks for permission to use the camera and microphone. We added a small preview window so users can check their hair or background before the other person sees them. To save internet data, students can easily turn their camera or mic on and off using buttons at the bottom of the screen.
+
+While studying, users can also share their screen if they want to show a presentation or a homework problem. We designed the interface to show the video in a "picture-in-picture" layout, so if a student needs to check their notes in another tab, they can still see their partner in a small floating box. When the call is over, we make sure to turn off all hardware to protect the user's privacy.
+
+\subsection{Admin Dashboard and Moderation UI}
+
+The Admin Dashboard uses Recharts to show charts and basic statistics, since it works well with React and Typescript. It allows charts to resize based on screen size, so that the dashboard can be viewed on different devices.
+
+The summary cards at the top show pending/resolved reports, daily violations, and the number of active users. We use line chart for user growth, bar chart for violation types, pie chart for report status, and area chart for subject popularity.
+
+The data is refreshed automatically every 30 seconds to keep the dashboard up to date. The Moderation Queue can list reports with badges for status and type of violation. When review a report, admin can see detail and violation history, then choose actions to handle the report. After an action is submitted, the report list will be updated.
+
+\subsection{Resource Sharing}
+
+The Resource Library provides a streamlined, two-tier navigation system designed for high usability. The interface consists of a Subject Selection view, featuring a responsive grid of subjects, and a Subject-Specific view that allows for granular filtering by grade level. Each resource card provides comprehensive metadata, including author avatars, descriptions, and file specifications.
+
+\begin{itemize}
+    \item \textbf{Upload Workflow:} Users interact with a validated form that enforces a 10MB limit client-side. Data is transmitted via FormData to the /api/resource endpoint.
+    \item \textbf{Download Mechanism:} The system employs the browser's Fetch API to process blob responses. This approach enables the frontend to track download progress and provide meaningful error messages during failures.
+    \item \textbf{Safety \& Responsiveness:} To prevent accidental data loss, deletion requires a confirmation via a dedicated dialog. The entire module follows responsive design principles, ensuring a seamless transition between multi-column desktop layouts and single-column mobile views.
+\end{itemize}
+
+\section{Database Design}
+
+The system is organized into four main parts: identity, chat, video, and admin. These parts work together to help students study safely and effectively.
+
+\subsection{User Identity and Matching Data Structure}
+
+The database is designed to optimize both security and matching accuracy. Instead of a single complex table, we organized the schema into three logical clusters:
+
+\begin{itemize}
+    \item \textbf{Core Identity \& Security (users, profiles, roles):} \\
+    We separate authentication data from public information to enhance privacy. The users table manages login credentials and account status (including ban\_count for moderation), while the profiles table stores public details like school, bio, and achievements. This ensures that sensitive account data remains isolated from the matching display.
+
+    \item \textbf{Standardized Preference Tags (tag\_subjects, tag\_levels, tag\_styles):} \\
+    To avoid data inconsistency caused by free-text inputs, the system utilizes standardized dictionary tables. Tables such as tag\_subjects and tag\_learning\_goals provide a uniform vocabulary. This structure allows the matching algorithm to compare student preferences accurately and efficiently.
+
+    \item \textbf{Availability Logic (user\_study\_slots):} \\
+    Scheduling is a critical factor for finding a study partner. The user\_study\_slots table acts as a bridge, linking users to specific tag\_study\_days and tag\_study\_times. This relationship allows the system to filter candidates not just by subject, but by their actual shared availability.
+\end{itemize}
+
+\begin{figure}[H]
+    \centering
+    \includegraphics[width=0.9\linewidth]{matchingdb.png} 
+    \caption{Database Cluster: User Identity and Matching Tags}
+    \label{fig:db_identity}
+\end{figure}
+
+\subsection{Real-time Chat Architecture}
+
+To support smooth communication between study partners, the chat system is organized into three main parts:
+
+\begin{itemize}
+    \item \textbf{Conversation Hub (conversations):} \\
+    This table acts as a container for every chat session initiated by a match. It stores metadata such as last\_message\_at and last\_message\_id. This design allows the system to instantly load the user's inbox list without scanning the entire message history, which improves performance.
+
+    \item \textbf{Message Processing (messages):} \\
+    This table manages the core messaging logic. It supports modern features like threading (via reply\_to\_id) and read status tracking (read\_at). Also, the call\_id field integrates video call logs directly into the chat timeline, creating a unified user experience.
+
+    \item \textbf{Resource Management (attachments):} \\
+    To ensure the database remains lightweight, file data is separated from the main message table. The attachments table stores metadata for shared study materials (e.g., PDFs, images) using fields like file\_url and file\_mime. This structure prevents heavy file attributes from slowing down the retrieval of text messages.
+\end{itemize}
+
+
+\begin{figure}[H]
+    \centering
+    \includegraphics[width=0.9\linewidth]{chatdb.png} 
+    \caption{Database Cluster: Real-time Messaging Architecture}
+    \label{fig:db_chat}
+\end{figure}
+
+\subsection{Video Call Integration}
+
+The video calling feature is centrally managed by the calls table, which ensures reliable connectivity through three key mechanisms:
+
+\begin{itemize}
+    \item \textbf{Session Lifecycle (calls):} \\
+    This table tracks the entire call process by recording the caller\_id, recipient\_id, and current status. It handles specific scenarios like rejected or missed calls using the ended\_by\_id field, ensuring the user interface shows the correct state.
+
+    \item \textbf{Duration Tracking (timestamps):} \\
+    To maintain an accurate history, the system computes the exact call length using the accepted\_at and ended\_at timestamps. This provides essential data for both user logs and system analytics.
+
+    \item \textbf{Chat Integration (conversation\_id):} \\
+    Every video session is strictly linked to a specific chat thread via the conversation\_id. This design allows call logs (e.g., ``Missed Call'') to appear directly within the messaging timeline, ensuring a unified user experience.
+\end{itemize}
+
+ 
+
+\begin{figure}[H]
+    \centering
+    \includegraphics[width=0.9\linewidth]{videodb.png} 
+    \caption{Database Cluster: Video Call Integration}
+    \label{fig:db_videocall}
+\end{figure}
+
+\subsection{Community and Safety Architecture}
+
+To create a safe and collaborative learning environment, the database uses a dual-structure approach that handles both resource sharing and user protection:
+
+\begin{itemize}
+    \item \textbf{Academic Resource Sharing (resources):} \\
+    This table manages the distribution of study materials to support peer-to-peer learning. By categorizing content using subject and grade fields, the system ensures that uploaded documents (referenced via file\_url) are easily searchable and relevant to the user's curriculum.
+
+    \item \textbf{Incident Reporting \& Automated Filtering (moderations, violation\_keywords):} \\
+    User safety is enforced through both manual and automated methods. The moderations table acts as the main registry for user reports, tracking the reporter\_id, target\_id, and the reason for the complaint. The violation\_keywords table also works with the chat system to automatically detect and flag inappropriate words in real-time.
+
+    \item \textbf{Administrative Accountability (moderation\_logs):} \\
+    To ensure transparency in rule enforcement, every disciplinary action is permanently recorded. The moderation\_logs table links specific administrative decisions (via admin\_id) to detailed notes. This structure creates an audit trail, ensuring that all warnings or bans are justified and traceable.
+\end{itemize}
+ 
+
+\begin{figure}[H]
+    \centering
+    \includegraphics[width=0.9\linewidth]{admindb.png} 
+    \caption{Database Cluster: Community and Moderation}
+    \label{fig:admindb}
+\end{figure}
+
+
+% --- CHAPTER IV ---
+\chapter{RESULTS AND DISCUSSIONS}
+
+\section{Results}
+
+After the development phase, the Study Buddy Match system was implemented with the main features required for the project. The platform supports user interaction, matching, and communication for study purposes. The key implemented functionalities are summarized below:
+
+\begin{itemize}
+    \item \textbf{Authentication System:} Users are able to register and log in using their email and password. The system uses token-based authentication to manage user sessions.
+    
+    \item \textbf{User Profile Management:} Users can create and update their profiles, including personal information, academic details, and study preferences. This information is later used for the matching process.
+    
+    \item \textbf{Matching System:} The system matches users based on multiple factors such as grade, subject, and study preferences. The goal is to help users find suitable study partners within the platform.
+    
+    \item \textbf{Real-time Chat:} The platform provides a real-time chat feature that allows matched users to exchange messages during their study sessions. Basic chat functionalities such as message delivery and read status are supported.
+    
+    \item \textbf{Video Calling:} Users can make video calls to communicate directly with their study partners. This feature supports real-time audio and video communication during study sessions.
+    
+    \item \textbf{Resource Sharing:} Users can upload and share study materials such as documents and images with other users. Access to shared resources is managed by the system.
+    
+    \item \textbf{Moderation System:} The system includes basic moderation features to handle inappropriate content. Users can be restricted if they repeatedly violate platform rules.
+    
+    \item \textbf{Admin Dashboard:} An admin interface is provided for managing users, reviewing reports, and monitoring system activity.
+\end{itemize}
+
+\subsection{User Survey and Weight Assignment}
+
+To determine the relative importance of each matching feature, we conducted a survey involving 128 high school students (Grades 10--12). Participants were required to evaluate four criteria using a 5-point Likert scale, ranging from 1 (``Not Important'') to 5 (``Very Important''). The core question posed to respondents was: ``How significant are the following factors when choosing a study partner?''
+
+\begin{table}[H]
+\centering
+\caption{Survey Response Distribution (128 students)}
+\label{tab:survey_results}
+\begin{tabular}{|l|c|c|c|c|c|}
+\hline
+\textbf{Criteria} & \textbf{Score 1} & \textbf{Score 2} & \textbf{Score 3} & \textbf{Score 4} & \textbf{Score 5} \\ 
+\hline
+Grade   & 0  & 3  & 8  & 23 & 94 \\ 
+\hline
+Subject & 0  & 3  & 9  & 35 & 81 \\ 
+\hline
+Days    & 16 & 40 & 53 & 18 & 1  \\ 
+\hline
+Times   & 88 & 34 & 5  & 0  & 1  \\ 
+\hline
+\end{tabular}
+\end{table}
+
+\begin{figure}[H]
+    \centering
+    \includegraphics[width=1\textwidth]{survey.pdf}
+    \caption{Visual representation of survey response distribution}
+    \label{fig:survey_distribution}
+\end{figure}
+
+The data shows clear patterns. Grade and Subject received mostly high scores (4 and 5), meaning students strongly value academic compatibility. Days received mixed scores, with most responses at the middle level (Score 3). Times received mostly low scores (1 and 2), suggesting that time slots are the least important factor when finding study partners.
+
+To convert these ratings into weights for the matching algorithm, we calculated a total importance score for each factor. Each response is multiplied by its score value, then all results are added together:
+
+\begin{itemize}
+    \item Grade Score: $1 \times 0 + 2 \times 3 + 3 \times 8 + 4 \times 23 + 5 \times 94 = 592$
+    \item Subject Score: $1 \times 0 + 2 \times 3 + 3 \times 9 + 4 \times 35 + 5 \times 81 = 578$
+    \item Days Score: $1 \times 16 + 2 \times 40 + 3 \times 53 + 4 \times 18 + 5 \times 1 = 332$
+    \item Times Score: $1 \times 88 + 2 \times 34 + 3 \times 5 + 4 \times 0 + 5 \times 1 = 176$
+\end{itemize}
+
+The total score across all factors is $592 + 578 + 332 + 176 = 1678$. We then calculate the weight for each factor by dividing its score by the total:
+
+\begin{itemize}
+    \item Grade weight: $592 \div 1678 = 0.353 \approx 35\%$
+    \item Subject weight: $578 \div 1678 = 0.345 \approx 34\%$
+    \item Days weight: $332 \div 1678 = 0.198 \approx 20\%$
+    \item Times weight: $176 \div 1678 = 0.105 \approx 10\%$
+\end{itemize}
+
+\begin{figure}[H]
+    \centering
+    \includegraphics[width=1\textwidth]{piechart.png}
+    \caption{Visual distribution of feature weights based on survey results}
+    \label{fig:weight_piechart}
+\end{figure}
+
+These weights directly reflect what students told us through the survey. Academic compatibility (Grade and Subject) received a combined weight of 69\%, while scheduling factors (Days and Times) received 30\%. This means the matching algorithm will prioritize finding students with similar academic backgrounds over those with similar schedules. The Gower Distance algorithm is well-suited for this because it can apply different weights to different types of data, ensuring that matches are based on what students actually care about.
+
+\subsection{API Endpoints}
+
+The backend exposes RESTful API endpoints for all major features:
+
+\textbf{Authentication:}
+\begin{itemize}
+    \item POST /api/auth/signup - Register new account
+    \item POST /api/auth/signin - Login to account
+    \item POST /api/auth/logout - Logout and revoke token
+    \item GET /api/auth/me - Get current user info
+\end{itemize}
+
+\textbf{User Management:}
+\begin{itemize}
+    \item GET /api/users/profile/:id - Get user profile
+    \item PATCH /api/users/profile - Update own profile
+    \item GET /api/users/search - Search users
+    \item POST /api/users/ban/:id - Ban user (admin only)
+\end{itemize}
+
+\textbf{Matching \& Swipes:}
+\begin{itemize}
+    \item GET /api/swipes/candidates - Get match candidates
+    \item POST /api/swipes/like - Like a user
+    \item POST /api/swipes/pass - Pass on a user
+    \item GET /api/matches - Get all matches
+    \item DELETE /api/matches/:id - Unmatch
+\end{itemize}
+
+\textbf{Messaging:}
+\begin{itemize}
+    \item GET /api/conversations - Get all conversations
+    \item GET /api/conversations/:id - Get conversation details
+    \item POST /api/messages - Send message
+    \item GET /api/messages/:convId - Get conversation messages
+    \item PATCH /api/messages/:id/react - Add reaction to message
+\end{itemize}
+
+\textbf{Video Calls:}
+\begin{itemize}
+    \item POST /api/calls/initiate - Start video call
+    \item POST /api/calls/end - End video call
+    \item GET /api/calls/history - Get call history
+\end{itemize}
+
+\textbf{Resources:}
+\begin{itemize}
+    \item POST /api/upload - Upload file
+    \item GET /api/resource/:id - Download file
+    \item DELETE /api/resource/:id - Delete file
+\end{itemize}
+
+\textbf{Moderation:}
+\begin{itemize}
+    \item GET /api/reports - Get all reports (admin)
+    \item POST /api/reports - Report content
+    \item PATCH /api/reports/:id/resolve - Resolve report (admin)
+    \item GET /api/moderation/blacklist - Get keyword blacklist
+    \item POST /api/moderation/blacklist - Add keyword (admin)
+\end{itemize}
+
+\textbf{Notifications:}
+\begin{itemize}
+    \item GET /api/notifications - Get user notifications
+    \item PATCH /api/notifications/:id/read - Mark as read
+    \item DELETE /api/notifications/:id - Delete notification
+\end{itemize}
+
+\textbf{Admin:}
+\begin{itemize}
+    \item GET /api/admin/users - Get all users
+    \item GET /api/admin/stats - Get system statistics
+    \item GET /api/admin/reports - Get moderation reports
+\end{itemize}
+
+\subsection{Web Dashboard Screenshots}
+
+The following screenshots demonstrate the main user interface features of the Study Buddy Match platform:
+
+\begin{figure}[H]
+    \centering
+    \includegraphics[width=0.9\linewidth]{ui_login.jpg}
+    \caption{Login Page}
+    \label{fig:ui_login}
+\end{figure}
+
+\begin{figure}[H]
+    \centering
+    \includegraphics[width=0.9\linewidth]{ui_matching.jpg}
+    \caption{Matching Interface with Swipe Cards}
+    \label{fig:ui_matching}
+\end{figure}
+
+\begin{figure}[H]
+    \centering
+    \includegraphics[width=0.9\linewidth]{ui_chat.jpg}
+    \caption{Real-time Chat Interface}
+    \label{fig:ui_chat}
+\end{figure}
+
+\begin{figure}[H]
+    \centering
+    \includegraphics[width=0.9\linewidth]{ui_videocall.png}
+    \caption{Video Call Interface}
+    \label{fig:ui_videocall}
+\end{figure}
+
+\begin{figure}[H]
+    \centering
+    \includegraphics[width=0.9\linewidth]{ui_profile.jpg}
+    \caption{User Profile Page}
+    \label{fig:ui_profile}
+\end{figure}
+
+\begin{figure}[H]
+    \centering
+    \includegraphics[width=0.9\linewidth]{ui_resource.jpg}
+    \caption{Resource Sharing Interface}
+    \label{fig:ui_resource}
+\end{figure}
+
+\begin{figure}[H]
+    \centering
+    \includegraphics[width=0.9\linewidth]{ui_admin.jpg}
+    \caption{Admin Dashboard}
+    \label{fig:ui_admin}
+\end{figure}
+
+\section{Discussion}
+
+Despite being implemented completely, the project has some challenges and limitations that we encountered during development.
+
+The matching algorithm is rule-based with fixed weights and cannot learn from user behavior. It's limited to only 4 criteria (grade, subject, days, times) and doesn't consider factors like learning style compatibility or personality matching.
+
+WebRTC video calls required significant effort to achieve 95\% success rate. We had to implement STUN/TURN fallback servers to handle NAT traversal issues. The system currently only supports 1-on-1 calls without group call functionality.
+
+The platform is web-only without a native mobile app, which limits offline functionality and push notifications. We also deployed on a single server without load balancing or auto-scaling, which could become a bottleneck as the user base grows.
+
+Finally, time constraints prevented us from implementing more advanced features like AI-powered study recommendations, gamification elements, or integration with learning management systems. However, the core functionality works well and successfully demonstrates a viable platform for connecting students with compatible study partners.
+
+% --- CHAPTER V ---
+\chapter{CONCLUSION AND FUTURE WORK}
+
+\section{Conclusion}
+
+In conclusion, we have successfully achieved the objectives of the Study Buddy Match platform. The main goal was to help high school students find study partners who match their academic needs and schedules. Students can create accounts, use the swipe interface to find compatible partners, then chat in real-time, make video calls, and share study materials.
+
+The platform includes user authentication, a matching algorithm using Gower Distance, real-time chat with WebSocket, video calls with WebRTC, resource sharing, and a moderation system. During development, we faced challenges with matching speed and video call connectivity, but solved them through database optimization and TURN relay servers. The final system achieves good performance with matching in 150-200ms and 95\% video call success rate.
+
+This project taught us teamwork, problem-solving, and modern web technologies. Study Buddy Match demonstrates that technology can effectively help students find compatible study partners.
+
+\section{Future Work}
+
+To improve this application further, several enhancements could be made. First, native mobile apps would provide better user experience. Second, machine learning could improve the matching algorithm. Third, scalability improvements like load balancing and Redis caching are needed for handling more users. Fourth, video calls could support group sessions and screen sharing. Fifth, resource sharing needs better organization and collaborative editing. Finally, a built-in scheduling system would help students coordinate study times more easily.
+
+If developed further, this platform could become a widely used tool for helping students connect with compatible study partners.
+
+% ===================================================
+% 7. REFERENCES
+% ===================================================
+\begin{thebibliography}{99}
+\addcontentsline{toc}{chapter}{References}
+
+% Academic References for Introduction
+\bibitem{johnson1999cooperative} D. W. Johnson and R. T. Johnson, "Making cooperative learning work," \textit{Theory Into Practice}, vol. 38, no. 2, pp. 67--73, 1999.
+
+\bibitem{ang2006academic} R. P. Ang and V. S. Huan, "Academic expectations stress inventory: Development, factor analysis, reliability, and validity," \textit{Educational and Psychological Measurement}, vol. 66, no. 3, pp. 522--539, 2006.
+
+\bibitem{kirschner2010facebook} P. A. Kirschner and A. C. Karpinski, "Facebook and academic performance," \textit{Computers in Human Behavior}, vol. 26, no. 6, pp. 1237--1245, 2010.
+
+\bibitem{ricci2011recommender} F. Ricci, L. Rokach, and B. Shapira, \textit{Introduction to Recommender Systems Handbook}. Boston, MA: Springer, 2011.
+
+% Technical Documentation References
+\bibitem{ref1} NestJS Documentation, “Gateways,” NestJS. [Online]. Available: https://docs.nestjs.com. [Accessed: Jun. 12, 2025].
+
+\bibitem{ref2} Prisma, “Prisma Client,” Prisma.io. [Online]. Available: https://www.prisma.io/docs. [Accessed: Jun. 12, 2025].
+
+\bibitem{ref3} Supabase, “Database,” Supabase Docs. [Online].
+
+\end{thebibliography}
+\newpage
+\vspace*{-20pt}
+\begin{center}
+\huge\bfseries Appendices
+\end{center}
+\vspace{10pt}
+    \addcontentsline{toc}{chapter}{Appendices}
+
+\textbf{Report and Moderation Flow}
+\begin{figure}[H]
+    \centering
+    \includegraphics[width=0.75\textwidth]{report_moderation_diagram.pdf}
+    \caption{Sequence diagram for Report and Moderation flow}
+    \label{fig:report_moderation_flow_app}
+\end{figure}
+
+\newpage
+\textbf{Matching Flowchart}
+\begin{figure}[H]
+    \centering
+    \includegraphics[width=0.9\textwidth]{matching_flowchart.pdf}
+    \caption{Process flow for the student matching algorithm}
+    \label{fig:matching_flowchart_app}
+\end{figure}
+
+\end{document}

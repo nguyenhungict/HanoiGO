@@ -49,39 +49,132 @@ export class AuthService {
       throw new ConflictException('Email đã được sử dụng');
     }
 
-    const existingUsername = await this.usersService.findOneByUsername(username);
+    const existingUsername =
+      await this.usersService.findOneByUsername(username);
     if (existingUsername) {
       throw new ConflictException('Tên người dùng đã được sử dụng');
     }
 
     try {
       const hashedPassword = await bcrypt.hash(password, 12);
+      const otpCode = Math.floor(100000 + Math.random() * 900000).toString();
+      const otpExpiresAt = new Date(Date.now() + 10 * 60 * 1000); // 10 minutes
 
-      const user = await this.usersService.create({
+      await this.usersService.create({
         email,
         username,
         passwordHash: hashedPassword,
+        status: UserStatus.PENDING,
+        otpCode,
+        otpExpiresAt,
       });
 
-      const tokens = await this.generateTokens(
-        user.id,
-        user.username,
-        user.role,
-        user.tokenVersion,
-      );
+      await this.sendOtpEmail(email, username, otpCode);
 
-      const { passwordHash, ...result } = user;
       return {
-        user: result,
-        ...tokens,
+        message: 'Mã xác thực đã được gửi đến email của bạn.',
+        email,
       };
     } catch (error) {
+      console.error('Registration error:', error);
       throw new InternalServerErrorException('Lỗi hệ thống khi đăng ký');
     }
   }
 
-  async verifyEmail(token: string) {
-    return { message: 'Verify email functionality not implemented yet' };
+  async verifyOtp(email: string, otp: string) {
+    const user = await this.usersService.findOneByEmail(email);
+    if (!user) {
+      throw new NotFoundException('Không tìm thấy người dùng');
+    }
+
+    if (user.status === UserStatus.ACTIVE) {
+      throw new BadRequestException('Tài khoản đã được xác thực');
+    }
+
+    if (!user.otpCode || user.otpCode !== otp) {
+      throw new BadRequestException('Mã xác thực không chính xác');
+    }
+
+    if (!user.otpExpiresAt || user.otpExpiresAt < new Date()) {
+      throw new BadRequestException('Mã xác thực đã hết hạn');
+    }
+
+    // Update user to ACTIVE and clear OTP
+    const updatedUser = await this.prisma.user.update({
+      where: { id: user.id },
+      data: {
+        status: UserStatus.ACTIVE,
+        otpCode: null,
+        otpExpiresAt: null,
+      },
+    });
+
+    const tokens = await this.generateTokens(
+      updatedUser.id,
+      updatedUser.username,
+      updatedUser.role,
+      updatedUser.tokenVersion,
+    );
+
+    const { passwordHash, ...result } = updatedUser;
+    return {
+      user: result,
+      ...tokens,
+    };
+  }
+
+  async resendOtp(email: string) {
+    const user = await this.usersService.findOneByEmail(email);
+    if (!user) {
+      throw new NotFoundException('Không tìm thấy người dùng');
+    }
+
+    if (user.status === UserStatus.ACTIVE) {
+      throw new BadRequestException('Tài khoản đã được xác thực');
+    }
+
+    const otpCode = Math.floor(100000 + Math.random() * 900000).toString();
+    const otpExpiresAt = new Date(Date.now() + 10 * 60 * 1000);
+
+    await this.prisma.user.update({
+      where: { id: user.id },
+      data: {
+        otpCode,
+        otpExpiresAt,
+      },
+    });
+
+    await this.sendOtpEmail(email, user.username, otpCode);
+
+    return { message: 'Mã xác thực mới đã được gửi.' };
+  }
+
+  private async sendOtpEmail(email: string, username: string, otpCode: string) {
+    await this.transporter.sendMail({
+      from: process.env.MAIL_FROM || '"HanoiGO" <noreply@hanoigo.com>',
+      to: email,
+      subject: '🛡️ HanoiGO - Xác thực tài khoản',
+      html: `
+        <div style="font-family: 'Segoe UI', Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 40px 20px; background-color: #ffffff; border-radius: 12px; box-shadow: 0 4px 12px rgba(0,0,0,0.05);">
+          <div style="text-align: center; margin-bottom: 32px;">
+            <h1 style="color: #FF5A5F; margin: 0; font-size: 28px; letter-spacing: -0.5px;">HanoiGO</h1>
+            <p style="color: #666; font-size: 14px;">The Modern Archivist</p>
+          </div>
+          <div style="border-top: 1px solid #eee; padding-top: 32px;">
+            <p style="color: #333; font-size: 16px;">Xin chào <strong>${username}</strong>,</p>
+            <p style="color: #666; font-size: 15px; line-height: 1.6;">Cảm ơn bạn đã đăng ký HanoiGO. Để hoàn tất việc thiết lập tài khoản, vui lòng sử dụng mã xác thực bên dưới:</p>
+            <div style="background-color: #f8f9fa; border-radius: 8px; padding: 24px; text-align: center; margin: 32px 0;">
+              <span style="font-family: 'Courier New', Courier, monospace; font-size: 36px; font-weight: bold; letter-spacing: 8px; color: #333;">${otpCode}</span>
+            </div>
+            <p style="color: #999; font-size: 13px; text-align: center;">Mã này sẽ hết hiệu lực sau <strong>10 phút</strong>.</p>
+            <p style="color: #666; font-size: 15px; line-height: 1.6; margin-top: 32px;">Nếu bạn không thực hiện yêu cầu này, vui lòng bỏ qua email này hoặc liên hệ với bộ phận hỗ trợ của chúng tôi.</p>
+          </div>
+          <div style="margin-top: 48px; padding-top: 24px; border-top: 1px solid #eee; text-align: center;">
+            <p style="color: #ccc; font-size: 12px;">© 2024 HanoiGO Team. All rights reserved.</p>
+          </div>
+        </div>
+      `,
+    });
   }
 
   // ============================================================
@@ -90,8 +183,7 @@ export class AuthService {
 
   async login(loginDto: any) {
     const { email, password } = loginDto;
-    
-    // Tìm user theo email HOẶC username
+
     let user = await this.usersService.findOneByEmail(email);
     if (!user) {
       user = await this.usersService.findOneByUsername(email);
@@ -107,7 +199,13 @@ export class AuthService {
     }
 
     if (user.status === UserStatus.BANNED) {
-      throw new ForbiddenException('This account has been banned');
+      throw new ForbiddenException('Tài khoản của bạn đã bị khóa.');
+    }
+
+    if (user.status === UserStatus.PENDING) {
+      throw new ForbiddenException(
+        'Vui lòng xác thực email của bạn trước khi đăng nhập.',
+      );
     }
 
     const tokens = await this.generateTokens(
@@ -129,22 +227,19 @@ export class AuthService {
   // ============================================================
 
   async forgotPassword(email: string) {
-    // 1. Tìm user theo email
     const user = await this.usersService.findOneByEmail(email);
     if (!user) {
-      // Trả về thành công giả để tránh lộ email có tồn tại hay không (bảo mật)
-      return { message: 'Nếu email tồn tại, bạn sẽ nhận được link đặt lại mật khẩu.' };
+      return {
+        message: 'Nếu email tồn tại, bạn sẽ nhận được link đặt lại mật khẩu.',
+      };
     }
 
-    // 2. Tạo JWT reset token — ký bằng (JWT_SECRET + passwordHash)
-    //    → Khi user đổi mật khẩu, passwordHash thay đổi → token cũ tự hết hiệu lực
     const resetSecret = this.getResetSecret(user.passwordHash);
     const resetToken = await this.jwtService.signAsync(
       { sub: user.id, purpose: 'reset-password' },
       { secret: resetSecret, expiresIn: '15m' },
     );
 
-    // 3. Gửi email
     const resetUrl = `${process.env.CLIENT_URL || 'http://localhost:3000'}/reset-password?token=${resetToken}`;
 
     await this.transporter.sendMail({
@@ -170,11 +265,12 @@ export class AuthService {
       `,
     });
 
-    return { message: 'Nếu email tồn tại, bạn sẽ nhận được link đặt lại mật khẩu.' };
+    return {
+      message: 'Nếu email tồn tại, bạn sẽ nhận được link đặt lại mật khẩu.',
+    };
   }
 
   async resetPassword(token: string, newPassword: string) {
-    // 1. Decode token để lấy userId (chưa verify)
     let payload: any;
     try {
       payload = this.jwtService.decode(token);
@@ -186,15 +282,13 @@ export class AuthService {
       throw new BadRequestException('Token không hợp lệ');
     }
 
-    // 2. Lấy user hiện tại để tạo lại secret
-    const user = await this.prisma.user.findUnique({ where: { id: payload.sub } });
+    const user = await this.prisma.user.findUnique({
+      where: { id: payload.sub },
+    });
     if (!user) {
       throw new BadRequestException('Token không hợp lệ');
     }
 
-    // 3. Verify token bằng (JWT_SECRET + passwordHash hiện tại)
-    //    Nếu user đã đổi mật khẩu → passwordHash khác → secret khác → verify thất bại
-    //    → Token chỉ dùng được 1 lần (one-time use miễn phí)
     const resetSecret = this.getResetSecret(user.passwordHash);
     try {
       await this.jwtService.verifyAsync(token, { secret: resetSecret });
@@ -202,7 +296,6 @@ export class AuthService {
       throw new BadRequestException('Token đã hết hạn hoặc đã được sử dụng.');
     }
 
-    // 4. Hash mật khẩu mới và cập nhật user
     const hashedPassword = await bcrypt.hash(newPassword, 12);
     await this.prisma.user.update({
       where: { id: user.id },
@@ -212,15 +305,14 @@ export class AuthService {
     return { message: 'Mật khẩu đã được cập nhật thành công.' };
   }
 
-  // Tạo secret riêng cho reset token: JWT_SECRET + passwordHash
-  // → Khi passwordHash thay đổi, tất cả token cũ tự động hết hiệu lực
   private getResetSecret(passwordHash: string): string {
-    const jwtSecret = this.configService.get<string>('JWT_SECRET') || 'secretKey';
+    const jwtSecret =
+      this.configService.get<string>('JWT_SECRET') || 'secretKey';
     return `${jwtSecret}:${passwordHash}`;
   }
 
   // ============================================================
-  // HELPERS & OTHER STUBS
+  // HELPERS
   // ============================================================
 
   async generateTokens(

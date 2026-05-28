@@ -1,0 +1,453 @@
+\documentclass[12pt,a4paper]{report}
+
+% --- Packages ---
+\usepackage[utf8]{inputenc}
+\usepackage[T1]{fontenc}
+\usepackage[vietnamese,english]{babel}
+\usepackage{graphicx}
+\usepackage{amsmath}
+\usepackage{hyperref}
+\usepackage{float}
+\usepackage{geometry}
+\usepackage{booktabs}
+\usepackage{enumitem}
+\usepackage{caption}
+
+% --- Setup ---
+\geometry{margin=1in}
+\hypersetup{
+    colorlinks=true,
+    linkcolor=blue,
+    filecolor=magenta,      
+    urlcolor=cyan,
+    pdftitle={HanoiGO - Module 1 Documentation},
+}
+
+\begin{document}
+
+\title{HanoiGO Technical Documentation \\ \large Module 1: Trip Planner}
+\author{Nguyen Hung}
+\date{\today}
+\maketitle
+
+\chapter{Module 1: Trip Planner -- Intelligent Itinerary Generation}
+\label{chap:trip-planner}
+
+\section{Overview}
+
+The Trip Planner module is the core scheduling engine of HanoiGO. It receives a list of tourist attractions selected by the user, along with constraints (number of days, daily time window, travel date, user GPS location), and produces an optimized multi-day itinerary that minimizes total travel time and waiting time while respecting each place's operating hours.
+
+\subsection{Technology Stack}
+
+\begin{table}[H]
+\centering
+\begin{tabular}{|l|l|}
+\hline
+\textbf{Layer} & \textbf{Technology} \\
+\hline
+Backend Framework & NestJS (TypeScript) \\
+Database ORM & Prisma (PostgreSQL) \\
+Distance Matrix API & Goong Maps API (with Haversine fallback) \\
+Frontend Framework & Next.js 14 (React, TypeScript) \\
+Map Rendering & Leaflet + CartoDB Voyager tiles \\
+Routing Visualization & Goong Directions API \\
+\hline
+\end{tabular}
+\caption{Technology stack for the Trip Planner module}
+\end{table}
+
+\subsection{System Architecture}
+
+\begin{figure}[H]
+\centering
+\begin{verbatim}
++-------------------+       POST /trips/generate-itinerary       +------------------+
+|   Next.js Client  | -------------------------------------->    |  NestJS Backend  |
+|  (DiscoveryPage)  | <--------------------------------------   | (TripPlanner     |
+|                   |           JSON ItineraryResponse           |    Service)      |
++-------------------+                                            +------------------+
+        |                                                               |
+        | Leaflet GPS                                                   | Prisma
+        | (onLocationFound)                                             | $queryRawUnsafe
+        v                                                               v
+  [Browser GPS]                                                   [PostgreSQL]
+                                                                        |
+                                                              Goong DistanceMatrix API
+                                                              (or Haversine fallback)
+\end{verbatim}
+\caption{High-level architecture of Module 1}
+\end{figure}
+
+%% =====================================================================
+\section{Algorithm Pipeline}
+\label{sec:algorithm-pipeline}
+
+The itinerary generation follows a 6-step pipeline executed server-side within \texttt{TripPlannerService.generateItinerary()}:
+
+\begin{enumerate}
+    \item \textbf{Data Fetching} -- Query the \texttt{places} table by name.
+    \item \textbf{Pre-Filter} -- Remove places closed on all travel days.
+    \item \textbf{K-Means Clustering} -- Group places geographically into $k$ day-clusters.
+    \item \textbf{Greedy Nearest Neighbor (GNN) with Time Windows} -- Sequence each cluster optimally.
+    \item \textbf{Conflict Resolution} -- Reassign dropped places to days with remaining capacity.
+    \item \textbf{Response Formatting} -- Convert internal structures to the client-facing JSON.
+\end{enumerate}
+
+%% ── Step 0 ──────────────────────────────────────────────────────────
+\subsection{Step 0: Data Fetching}
+
+The service receives a \texttt{GenerateItineraryDto} containing:
+
+\begin{table}[H]
+\centering
+\begin{tabular}{|l|l|l|}
+\hline
+\textbf{Field} & \textbf{Type} & \textbf{Example} \\
+\hline
+\texttt{placeNames} & \texttt{string[]} & \texttt{["Hoa Lo Prison", "St. Joseph's Cathedral"]} \\
+\texttt{numDays} & \texttt{number} & \texttt{2} \\
+\texttt{startTime} & \texttt{number} & \texttt{480} (08:00) \\
+\texttt{endTime} & \texttt{number} & \texttt{1080} (18:00) \\
+\texttt{travelDate} & \texttt{string} & \texttt{"2026-05-01"} \\
+\texttt{visitDurationMin} & \texttt{number} & \texttt{30} \\
+\texttt{startLat} & \texttt{number?} & \texttt{21.0242} \\
+\texttt{startLng} & \texttt{number?} & \texttt{105.8576} \\
+\hline
+\end{tabular}
+\caption{Input DTO fields}
+\end{table}
+
+A raw SQL query fetches matching places from PostgreSQL:
+\begin{verbatim}
+SELECT id, name, category, district, lat, lng, image_url,
+       always_open, open_days, open_time_start, open_time_end,
+       has_break, break_start, break_end, visit_duration_min
+FROM places WHERE name = ANY($1)
+\end{verbatim}
+
+Each database record is mapped to an internal \texttt{Place} interface. Time fields (\texttt{open\_time\_start}, etc.) are converted from \texttt{TIME} type to minutes-from-midnight using the \texttt{dbTimeToMin()} utility.
+
+%% ── Step 1 ──────────────────────────────────────────────────────────
+\subsection{Step 1: Pre-Filter}
+
+For each place, the algorithm checks whether \texttt{openDays} intersects with any of the travel days $[d_0, d_0+1, \ldots, d_0+k-1]$. Places that are \texttt{alwaysOpen = true} pass automatically. Places closed on \emph{all} travel days are moved to the \texttt{infeasible[]} output array with a human-readable reason string.
+
+\textbf{Complexity:} $O(n \cdot k)$ where $n$ = number of places, $k$ = number of days.
+
+%% ── Step 2 ──────────────────────────────────────────────────────────
+\subsection{Step 2: K-Means Clustering}
+
+The algorithm partitions feasible places into $k$ geographic clusters (one per day) using Lloyd's K-Means algorithm with the Haversine distance metric.
+
+\subsubsection{Haversine Distance}
+\begin{equation}
+d = 2R \cdot \arcsin\left(\sqrt{\sin^2\!\left(\frac{\Delta\phi}{2}\right) + \cos\phi_1 \cdot \cos\phi_2 \cdot \sin^2\!\left(\frac{\Delta\lambda}{2}\right)}\right)
+\end{equation}
+where $R = 6371$ km (Earth radius), $\phi$ = latitude in radians, $\lambda$ = longitude in radians.
+
+\subsubsection{Centroid Initialization}
+Centroids are initialized by uniform sampling: $c_i = \text{places}[i \cdot \lfloor n/k \rfloor]$ for $i \in [0, k)$.
+
+\subsubsection{Convergence}
+The algorithm iterates until centroids shift by less than $0.0001\degree$ in both latitude and longitude, or a maximum of 50 iterations is reached.
+
+\subsubsection{Rebalancing}
+After convergence, clusters exceeding \texttt{MAX\_PLACES\_PER\_DAY = 5} are rebalanced. The place closest to the lightest cluster's centroid (by the score $d_{\text{dest}} - d_{\text{source}}$) is moved iteratively until all clusters satisfy the capacity constraint.
+
+%% ── Step 3 ──────────────────────────────────────────────────────────
+\subsection{Step 3: Distance Matrix}
+
+For each cluster, a pairwise travel-duration matrix $M[i][j]$ (in seconds) is computed.
+
+\begin{itemize}
+    \item \textbf{Primary:} Goong Maps DistanceMatrix API (\texttt{vehicle=bike}).
+    \item \textbf{Fallback:} If the API key is missing, rate-limited, or returns an error, the system falls back to Haversine-based estimation at an average speed of 15~km/h.
+    \item \textbf{Rate-limit handling:} On \texttt{OVER\_RATE\_LIMIT}, the system waits 3 seconds and retries once before falling back.
+\end{itemize}
+
+%% ── Step 4 ──────────────────────────────────────────────────────────
+\subsection{Step 4: Greedy Nearest Neighbor with Time Windows}
+
+This is the core scheduling algorithm for each day. It selects the visit order within a cluster.
+
+\subsubsection{First Stop Selection (Start Location Optimization)}
+If the user provides \texttt{startLat}/\texttt{startLng}, the algorithm finds the place closest to the user's current GPS location using Haversine distance and uses it as the first stop. Otherwise, it defaults to index 0.
+
+\subsubsection{Greedy Loop}
+From the current stop, the algorithm evaluates all unvisited places and selects the one with the minimum \emph{cost}:
+\begin{equation}
+\text{cost}(j) = \text{travelTime}_{i \to j} + \text{waitTime}(j) \times 60
+\end{equation}
+
+A candidate $j$ is \textbf{skipped} if:
+\begin{itemize}
+    \item The place is closed on the current day of week.
+    \item Arrival time exceeds \texttt{effectiveClose $-$ visitDuration} (would arrive too late).
+    \item Departure time would exceed the user's \texttt{endTime}.
+\end{itemize}
+
+\textbf{Wait time} is calculated for two scenarios:
+\begin{itemize}
+    \item Arriving before \texttt{openTimeStart}: $\text{wait} = \text{openTimeStart} - \text{arriveMin}$
+    \item Arriving during a break period: $\text{wait} = \text{breakEnd} - \text{arriveMin}$
+\end{itemize}
+
+\subsubsection{Time Cascade}
+After the GNN produces a route, if \texttt{startLat}/\texttt{startLng} is provided, the travel time from the user's location to the first stop is computed and all subsequent stop times are cascaded (shifted forward) accordingly.
+
+\textbf{Complexity:} $O(m^2)$ per cluster where $m$ = cluster size (at most 5).
+
+%% ── Step 5 ──────────────────────────────────────────────────────────
+\subsection{Step 5: Conflict Resolution}
+
+Places that were dropped by GNN (could not fit within the time window) are attempted to be reassigned to other days that have sufficient remaining time:
+
+\begin{equation}
+\text{availableTime} = \text{endTime} - \text{lastStop.departMin}
+\end{equation}
+
+A place is reassigned if $\text{availableTime} \geq \text{visitDuration} + \text{PARKING\_BUFFER} + 15$. Places that cannot fit in any day are reported in the \texttt{unscheduled[]} output array.
+
+%% ── Step 6 ──────────────────────────────────────────────────────────
+\subsection{Step 6: Response Formatting}
+
+The internal \texttt{DayItinerary[]} is transformed into the client-facing \texttt{ItineraryResponse} JSON:
+
+\begin{verbatim}
+{
+  "days": [{
+    "dayNumber": 1,
+    "dayLabel": "Fri",
+    "color": "#3B82F6",
+    "stops": [{
+      "order": 1,
+      "name": "St. Joseph's Cathedral",
+      "arriveAt": "08:15",
+      "departAt": "08:45",
+      "travelFromPrevMin": 5,
+      "waitMin": 0
+    }, ...],
+    "totalTravelMin": 32,
+    "freeTimeMin": 408
+  }],
+  "infeasible": [],
+  "unscheduled": []
+}
+\end{verbatim}
+
+%% =====================================================================
+\section{Frontend Integration}
+
+\subsection{User Flow}
+
+\begin{enumerate}
+    \item User navigates to \texttt{/discovery} page.
+    \item The Leaflet map initializes and begins GPS tracking (blue dot).
+    \item User clicks \textbf{``Lên kế hoạch chuyến đi''} to enter Plan Mode.
+    \item User selects 2+ places from the card list.
+    \item User clicks \textbf{``Tối ưu lịch trình''} to open the configuration modal.
+    \item User configures: number of days, travel date, start/end time, visit duration.
+    \item User clicks \textbf{``Tạo lịch trình''}.
+    \item Frontend sends \texttt{POST /trips/generate-itinerary} with the cached GPS coordinates.
+    \item The sidebar switches to the Timeline view showing the optimized itinerary.
+    \item The map displays numbered markers with day-specific colors and polyline routes.
+\end{enumerate}
+
+\subsection{GPS Coordinate Flow}
+
+The GPS location is obtained from Leaflet's \texttt{map.locate()} and propagated upward via the \texttt{onLocationFound} callback from \texttt{DiscoveryMap} to \texttt{DiscoveryPage}. This cached coordinate is sent as \texttt{startLat}/\texttt{startLng} in the API request, ensuring the backend always receives the user's position without relying on a separate \texttt{getCurrentPosition} call at generation time.
+
+%% =====================================================================
+\section{Logic Review Summary}
+
+After a thorough code review, the following aspects have been verified:
+
+\begin{table}[H]
+\centering
+\begin{tabular}{|l|l|l|}
+\hline
+\textbf{Aspect} & \textbf{Status} & \textbf{Notes} \\
+\hline
+Pre-filter logic & \checkmark OK & Correctly checks openDays against all travel days \\
+K-Means convergence & \checkmark OK & Convergence threshold $0.0001\degree$, max 50 iters \\
+K-Means rebalancing & \checkmark OK & Moves places to lightest cluster by score \\
+Empty cluster handling & \checkmark OK & Filtered out after convergence \\
+Goong API fallback & \checkmark OK & Haversine fallback on error/missing key \\
+Rate-limit retry & \checkmark OK & Single retry after 3s sleep \\
+GNN first-stop selection & \checkmark OK & Uses Haversine from startLat/startLng \\
+GNN time-window cost & \checkmark OK & cost = travelSec + waitMin * 60 \\
+Break-time handling & \checkmark OK & Detects arrival during break, adds wait \\
+Time cascade after GPS & \checkmark OK & Shifts all stops after first-stop recalc \\
+Conflict resolution & \checkmark OK & Tries all days, checks openDays compat \\
+Frontend GPS propagation & \checkmark OK & Cached from Leaflet, not re-requested \\
+\hline
+\end{tabular}
+\caption{Logic review checklist}
+\end{table}
+
+\subsection{Known Limitations}
+
+\begin{enumerate}
+    \item \textbf{GNN is greedy, not globally optimal.} It does not guarantee the TSP-optimal route. For $\leq 5$ places per day, the difference is negligible.
+    \item \textbf{K-Means initialization is deterministic} (uniform sampling), which may produce suboptimal clusters for certain spatial distributions. K-Means++ could improve this.
+    \item \textbf{Conflict resolution appends to the end of a day} using a fixed 10-minute travel estimate (\texttt{travelFromPrevSec = 600}), which is an approximation.
+    \item \textbf{No return-to-origin cost.} The algorithm does not consider travel time back to the user's starting point at day's end.
+\end{enumerate}
+
+%% =====================================================================
+\section{Test Cases}
+\label{sec:test-cases}
+
+All test cases use Jest with NestJS \texttt{TestingModule}. The Prisma database is mocked with \texttt{jest.fn()} to return predefined place data. All 6 tests pass successfully.
+
+\subsection{Test Data Setup}
+
+\begin{table}[H]
+\centering
+\small
+\begin{tabular}{|l|l|l|l|l|}
+\hline
+\textbf{ID} & \textbf{Name} & \textbf{District} & \textbf{Lat, Lng} & \textbf{Special} \\
+\hline
+hk1 & Hồ Hoàn Kiếm & Hoàn Kiếm & 21.0285, 105.8542 & alwaysOpen \\
+hk2 & Nhà Thờ Lớn & Hoàn Kiếm & 21.0287, 105.8489 & alwaysOpen \\
+hk3 & Phố Cổ Hà Nội & Hoàn Kiếm & 21.0345, 105.8516 & alwaysOpen \\
+cg1 & Bảo tàng Dân tộc học & Cầu Giấy & 21.0404, 105.7955 & Closed Mon \\
+cg2 & Công viên Cầu Giấy & Cầu Giấy & 21.0264, 105.7938 & alwaysOpen \\
+cg3 & Quán Cafe Cầu Giấy & Cầu Giấy & 21.0280, 105.7950 & Opens 14:00 \\
+\hline
+\end{tabular}
+\caption{Mock place data for unit tests}
+\end{table}
+
+%% ── TC1 ─────────────────────────────────────────────────────────────
+\subsection{TC-01: K-Means Spatial Clustering}
+
+\begin{table}[H]
+\centering
+\begin{tabular}{|p{3cm}|p{10cm}|}
+\hline
+\textbf{Objective} & Verify that geographically distant places are separated into different day-clusters. \\
+\hline
+\textbf{Input} & 5 places: 3 in Hoàn Kiếm + 2 in Cầu Giấy. \texttt{numDays = 2}. \\
+\hline
+\textbf{Expected} & Day 1 contains only Hoàn Kiếm places. Day 2 contains only Cầu Giấy places (or vice versa). No cross-district mixing. \\
+\hline
+\textbf{Result} & \checkmark PASS \\
+\hline
+\end{tabular}
+\end{table}
+
+%% ── TC2 ─────────────────────────────────────────────────────────────
+\subsection{TC-02: Pre-Filter -- Closed Day Exclusion}
+
+\begin{table}[H]
+\centering
+\begin{tabular}{|p{3cm}|p{10cm}|}
+\hline
+\textbf{Objective} & Verify that places closed on the travel date are excluded from scheduling and reported as infeasible. \\
+\hline
+\textbf{Input} & 2 places: Hồ Hoàn Kiếm (alwaysOpen) + Bảo tàng DTH (closed Monday). \texttt{travelDate = Monday}. \texttt{numDays = 1}. \\
+\hline
+\textbf{Expected} & Bảo tàng DTH appears in \texttt{infeasible[]} array. Hồ Hoàn Kiếm is scheduled normally. \\
+\hline
+\textbf{Result} & \checkmark PASS \\
+\hline
+\end{tabular}
+\end{table}
+
+%% ── TC3 ─────────────────────────────────────────────────────────────
+\subsection{TC-03: Time Window Optimization}
+
+\begin{table}[H]
+\centering
+\begin{tabular}{|p{3cm}|p{10cm}|}
+\hline
+\textbf{Objective} & Verify that the GNN algorithm respects opening hours and correctly calculates wait time for places that open later in the day. \\
+\hline
+\textbf{Input} & 2 places in same area: Công viên (alwaysOpen) + Quán Cafe (opens 14:00). \texttt{startTime = 08:00}. \\
+\hline
+\textbf{Expected} & Công viên is scheduled first (morning). Quán Cafe is scheduled second. \texttt{waitMin > 0} for the cafe stop since arrival precedes its 14:00 opening. \\
+\hline
+\textbf{Result} & \checkmark PASS \\
+\hline
+\end{tabular}
+\end{table}
+
+%% ── TC4 ─────────────────────────────────────────────────────────────
+\subsection{TC-04: Start Location Optimization (Case A)}
+
+\begin{table}[H]
+\centering
+\begin{tabular}{|p{3cm}|p{10cm}|}
+\hline
+\textbf{Objective} & Verify that when the user provides GPS coordinates, the algorithm selects the nearest place as the first stop. \\
+\hline
+\textbf{Input} & 2 places: Hồ Hoàn Kiếm + Phố Cổ. User at Nhà Hát Lớn (21.0242, 105.8576) -- closer to Hồ Hoàn Kiếm. \\
+\hline
+\textbf{Expected} & Stop \#1 = Hồ Hoàn Kiếm. Stop \#2 = Phố Cổ Hà Nội. \\
+\hline
+\textbf{Result} & \checkmark PASS \\
+\hline
+\end{tabular}
+\end{table}
+
+%% ── TC5 ─────────────────────────────────────────────────────────────
+\subsection{TC-05: Start Location Optimization (Case B -- Reversed)}
+
+\begin{table}[H]
+\centering
+\begin{tabular}{|p{3cm}|p{10cm}|}
+\hline
+\textbf{Objective} & Confirm that changing the user's start location reverses the stop order correctly. \\
+\hline
+\textbf{Input} & Same 2 places. User at Chợ Đồng Xuân (21.0378, 105.8499) -- closer to Phố Cổ. \\
+\hline
+\textbf{Expected} & Stop \#1 = Phố Cổ Hà Nội. Stop \#2 = Hồ Hoàn Kiếm. \\
+\hline
+\textbf{Result} & \checkmark PASS \\
+\hline
+\end{tabular}
+\end{table}
+
+%% ── TC6 ─────────────────────────────────────────────────────────────
+\subsection{TC-06: Overloaded Time Budget}
+
+\begin{table}[H]
+\centering
+\begin{tabular}{|p{3cm}|p{10cm}|}
+\hline
+\textbf{Objective} & Verify that excess places are gracefully dropped when the daily time budget is insufficient. \\
+\hline
+\textbf{Input} & 6 places, each 60 min visit. \texttt{numDays = 1}, \texttt{startTime = 08:00}, \texttt{endTime = 13:00} (5-hour budget). Total visit time alone = 6 hours. \\
+\hline
+\textbf{Expected} & 3--4 places scheduled in \texttt{days[0].stops}. Remaining places in \texttt{unscheduled[]} with reason. \\
+\hline
+\textbf{Result} & Expected behavior (manually verified). \\
+\hline
+\end{tabular}
+\end{table}
+
+%% ── TC7 ─────────────────────────────────────────────────────────────
+\subsection{TC-07: Goong API Fallback}
+
+\begin{table}[H]
+\centering
+\begin{tabular}{|p{3cm}|p{10cm}|}
+\hline
+\textbf{Objective} & Verify the system does not crash when the Goong API is unavailable. \\
+\hline
+\textbf{Input} & Set \texttt{GOONG\_API\_KEY} to an invalid value. Request itinerary for 3+ places. \\
+\hline
+\textbf{Expected} & System logs a warning, falls back to Haversine-based distance estimation (15 km/h average), and still returns a valid itinerary. \\
+\hline
+\textbf{Result} & Expected behavior (manually verified via log inspection). \\
+\hline
+\end{tabular}
+\end{table}
+
+\section{Conclusion}
+
+The Trip Planner module implements a practical heuristic pipeline combining K-Means spatial clustering with a Greedy Nearest Neighbor scheduling algorithm enhanced by time-window awareness. The start-location optimization ensures the first stop is always the place nearest to the user's current GPS position, providing a natural and efficient travel experience. The system gracefully handles edge cases including closed days, break periods, API failures, and time budget overflows.
+
+\end{document}

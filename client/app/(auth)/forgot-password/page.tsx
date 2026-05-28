@@ -39,12 +39,12 @@ export default function ForgotPasswordPage() {
 
       <main className="flex-grow pt-24 pb-12 px-6 flex items-center justify-center">
         <section className="w-full max-w-sm mx-auto animate-in fade-in slide-in-from-bottom-8 duration-700">
-          <div className="bg-white rounded-[2.5rem] p-12 border border-outline/10 shadow-2xl shadow-rose-900/5 relative overflow-hidden">
+          <div className="bg-white rounded-3xl p-8 border border-outline/10 shadow-2xl shadow-rose-900/5 relative overflow-hidden">
             <div className="absolute top-0 left-0 w-full h-2 bg-primary"></div>
             
-            <header className="mb-10 text-center">
-              <span className="text-primary font-black tracking-[0.4em] uppercase text-[10px] mb-4 block">Recovery</span>
-              <h1 className="text-4xl font-black text-on-surface tracking-tighter mb-4 leading-tight">Forgot password?</h1>
+            <header className="mb-8 text-center">
+              <span className="text-primary font-black tracking-[0.4em] uppercase text-[10px] mb-3 block">Recovery</span>
+              <h1 className="text-2xl font-black text-on-surface tracking-tight mb-3 leading-tight">Forgot password?</h1>
               <p className="text-outline font-medium text-xs leading-relaxed px-4">
                 Enter your email address to receive a secure recovery link.
               </p>
@@ -69,7 +69,7 @@ export default function ForgotPasswordPage() {
                 <div className="relative">
                   <span className="material-symbols-outlined absolute left-6 top-1/2 -translate-y-1/2 text-outline/30">mail</span>
                   <input 
-                    className="w-full bg-surface-container-low px-14 py-5 rounded-2xl text-on-surface placeholder:text-outline/40 border border-outline/10 focus:border-primary/50 focus:ring-4 focus:ring-primary/5 outline-none transition-all font-bold" 
+                    className="w-full bg-surface-container-low px-12 py-4 rounded-xl text-on-surface placeholder:text-outline/40 border border-outline/10 focus:border-primary/50 focus:ring-4 focus:ring-primary/5 outline-none transition-all font-bold text-sm" 
                     id="email" 
                     placeholder="name@example.com" 
                     type="email" 
@@ -82,7 +82,7 @@ export default function ForgotPasswordPage() {
 
               <button 
                 disabled={loading}
-                className="w-full bg-primary text-white py-6 rounded-[2rem] font-black text-[11px] uppercase tracking-[0.3em] shadow-2xl shadow-primary/20 hover:opacity-95 hover:scale-[1.02] active:scale-[0.98] transition-all disabled:opacity-50 disabled:active:scale-100" 
+                className="w-full bg-primary text-white py-4 rounded-2xl font-black text-[10px] uppercase tracking-[0.2em] shadow-2xl shadow-primary/20 hover:opacity-95 hover:scale-[1.02] active:scale-[0.98] transition-all disabled:opacity-50 disabled:active:scale-100" 
                 type="submit"
               >
                 {loading ? "Processing..." : "Send Link"}
@@ -109,6 +109,5 @@ export default function ForgotPasswordPage() {
         </div>
       </footer>
     </div>
-
   );
 }

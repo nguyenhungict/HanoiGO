@@ -20,14 +20,75 @@ interface Landmark {
 // Map icon categories to material icons
 const getCategoryIcon = (category: string) => {
   const cat = category.toLowerCase();
-  if (cat.includes('religious')) return 'temple_buddhist';
-  if (cat.includes('museum')) return 'museum';
-  if (cat.includes('market') || cat.includes('shopping')) return 'shopping_bag';
-  if (cat.includes('theater')) return 'theater_comedy';
-  if (cat.includes('park') || cat.includes('water')) return 'park';
-  if (cat.includes('historic')) return 'account_balance';
+  
+  if (cat.includes('nature')) return 'park';
+  if (cat.includes('art')) return 'museum';
+  if (cat.includes('heritage') || cat.includes('historic')) return 'account_balance';
+  if (cat.includes('spiritual') || cat.includes('temple')) return 'temple_buddhist';
+  if (cat.includes('eat') || cat.includes('shop')) return 'restaurant';
+  if (cat.includes('sightseeing')) return 'location_on';
+  
   return 'location_on';
 };
+
+// Map categories to distinct colors for better UI distinction
+const getCategoryColor = (category: string) => {
+  const cat = category.toLowerCase();
+  
+  if (cat.includes('nature')) return '#43A047'; // Green
+  if (cat.includes('art')) return '#3F51B5'; // Indigo
+  if (cat.includes('heritage')) return '#607D8B'; // Blue Grey
+  if (cat.includes('spiritual')) return '#FF9800'; // Orange
+  if (cat.includes('eat') || cat.includes('shop')) return '#F44336'; // Red
+  if (cat.includes('sightseeing')) return '#0288D1'; // Light Blue
+    
+  return '#607D8B'; // Default
+};
+
+// Tạo icon tùy chỉnh sử dụng HTML và Tailwind
+const createCustomIcon = (landmark: Landmark, showLabel: boolean, isFocused: boolean = false) => {
+  const iconName = getCategoryIcon(landmark.category);
+  const color = getCategoryColor(landmark.category);
+  
+  return L.divIcon({
+    className: 'custom-landmark-marker',
+    html: `
+      <div class="relative group w-7 h-7">
+        <!-- Pulse Effect for Focus -->
+        ${isFocused ? `
+          <div class="absolute inset-0 rounded-xl animate-ping opacity-40 z-0" style="background-color: ${color}"></div>
+          <div class="absolute -inset-2 border-2 rounded-xl opacity-20 z-0 animate-pulse" style="border-color: ${color}"></div>
+        ` : ''}
+
+        <div class="w-7 h-7 rounded-xl shadow-xl border-2 border-white flex items-center justify-center z-10 overflow-hidden transform transition-all duration-700 ${isFocused ? 'scale-125 shadow-primary/40' : 'group-hover:scale-110'}" style="background-color: ${color}">
+           <span class="material-symbols-outlined text-white text-[14px]">${iconName}</span>
+        </div>
+        <div class="absolute -inset-1 border-2 rounded-xl scale-0 group-hover:scale-100 transition-transform duration-500 z-0 opacity-40" style="border-color: ${color}"></div>
+        
+        <div class="absolute left-full ml-3 top-1/2 -translate-y-1/2 flex flex-col pointer-events-none transition-all duration-700 ${showLabel || isFocused ? 'opacity-100 translate-x-0' : 'opacity-0 -translate-x-4 group-hover:opacity-100 group-hover:translate-x-0'}">
+          <div class="bg-background/95 backdrop-blur-xl px-4 py-2 rounded-2xl shadow-[0_8px_30px_rgba(0,0,0,0.12)] border border-outline/10">
+            <div class="text-[11px] font-black text-on-surface leading-tight whitespace-nowrap tracking-tight">${landmark.name}</div>
+            <div class="text-[8px] font-black uppercase tracking-[0.2em] mt-0.5 whitespace-nowrap" style="color: ${color}">${landmark.category}</div>
+          </div>
+        </div>
+      </div>
+    `,
+    iconSize: [28, 28],
+    iconAnchor: [14, 14],
+    popupAnchor: [0, -20],
+  });
+};
+
+// Component to track map instance
+function MapInstanceTracker({ setMap }: { setMap: (map: L.Map) => void }) {
+  const map = useMap();
+  useEffect(() => {
+    if (map) {
+      setMap(map);
+    }
+  }, [map, setMap]);
+  return null;
+}
 
 // Component to track zoom level
 function ZoomTracker({ setZoom }: { setZoom: (z: number) => void }) {
@@ -116,38 +177,6 @@ const decodePolyline = (encoded: string): [number, number][] => {
   return coordinates;
 };
 
-// Tạo icon tùy chỉnh sử dụng HTML và Tailwind
-const createCustomIcon = (landmark: Landmark, showLabel: boolean) => {
-  const iconName = getCategoryIcon(landmark.category);
-  
-  const isFood = landmark.category.toLowerCase().includes('food') || landmark.category.toLowerCase().includes('cafe');
-  const bgColor = isFood ? 'bg-[#004D40]' : 'bg-[#1A1A1A]';
-  
-  return L.divIcon({
-    className: 'custom-landmark-marker',
-    html: `
-      <div class="flex items-center group">
-        <div class="relative flex items-center justify-center">
-          <div class="w-8 h-8 rounded-full ${bgColor} shadow-lg border border-white/20 flex items-center justify-center z-10 overflow-hidden transform group-hover:scale-110 transition-all duration-300">
-             <span class="material-symbols-outlined text-white text-[16px]">${iconName}</span>
-          </div>
-          <div class="absolute -inset-1 border-2 border-primary/40 rounded-full scale-0 group-hover:scale-100 transition-transform duration-300 z-0"></div>
-        </div>
-        
-        <div class="ml-2 flex flex-col pointer-events-none transition-all duration-300 ${showLabel ? 'opacity-100 translate-x-0' : 'opacity-0 -translate-x-2 group-hover:opacity-100 group-hover:translate-x-0'}">
-          <div class="bg-white/95 backdrop-blur-sm px-2.5 py-1 rounded-md shadow-[0_2px_10px_rgba(0,0,0,0.1)] border border-outline/5">
-            <div class="text-[11px] font-black text-on-surface leading-tight whitespace-nowrap">${landmark.name}</div>
-            <div class="text-[9px] font-bold text-outline uppercase tracking-wider whitespace-nowrap">${landmark.category}</div>
-          </div>
-        </div>
-      </div>
-    `,
-    iconSize: [160, 40],
-    iconAnchor: [16, 16],
-    popupAnchor: [0, -20],
-  });
-};
-
 // Itinerary marker interface (passed from parent)
 interface ItineraryMarkerData {
   placeId: string;
@@ -163,6 +192,13 @@ interface ItineraryMarkerData {
 
 interface DiscoveryMapProps {
   itineraryMarkers?: ItineraryMarkerData[];
+  onLocationFound?: (pos: [number, number]) => void;
+  showLandmarks?: boolean;
+  focusLocation?: [number, number] | null;
+  focusedLandmarkId?: string | null;
+  aiMarkers?: { id: string; name: string; lat: number; lng: number; category: string; distanceKm?: number }[];
+  selectedCategory?: string;
+  isSidebarOpen?: boolean;
 }
 
 // Create numbered itinerary marker icon
@@ -183,11 +219,57 @@ const createItineraryIcon = (order: number, color: string) => {
   });
 };
 
-export default function DiscoveryMap({ itineraryMarkers = [] }: DiscoveryMapProps) {
+import { fetchLandmarks } from '@/lib/landmarks';
+
+export default function DiscoveryMap({ 
+  itineraryMarkers = [], 
+  onLocationFound, 
+  showLandmarks = true,
+  focusLocation = null,
+  focusedLandmarkId = null,
+  aiMarkers = [],
+  selectedCategory = 'all',
+  isSidebarOpen = true,
+}: DiscoveryMapProps) {
   const [landmarks, setLandmarks] = useState<Landmark[]>([]);
   const [zoomLevel, setZoomLevel] = useState(13);
   const [userLocation, setUserLocation] = useState<[number, number] | null>(null);
   const [mapInstance, setMapInstance] = useState<L.Map | null>(null);
+
+  // === Focus Logic ===
+  useEffect(() => {
+    if (mapInstance && focusLocation) {
+      mapInstance.flyTo(focusLocation, 17, {
+        duration: 1.5,
+        easeLinearity: 0.25
+      });
+    }
+  }, [focusLocation, mapInstance]);
+
+  useEffect(() => {
+    if (mapInstance) {
+      const interval = setInterval(() => {
+        mapInstance.invalidateSize();
+      }, 100);
+      
+      const timeout = setTimeout(() => {
+        clearInterval(interval);
+        mapInstance.invalidateSize();
+      }, 850);
+
+      return () => {
+        clearInterval(interval);
+        clearTimeout(timeout);
+      };
+    }
+  }, [isSidebarOpen, mapInstance]);
+
+  // Update parent when location is found
+  useEffect(() => {
+    if (userLocation && onLocationFound) {
+      onLocationFound(userLocation);
+    }
+  }, [userLocation, onLocationFound]);
 
   // === Routing States ===
   const [activeRoute, setActiveRoute] = useState<[number, number][] | null>(null);
@@ -197,13 +279,69 @@ export default function DiscoveryMap({ itineraryMarkers = [] }: DiscoveryMapProp
   const [isRoutingLoading, setIsRoutingLoading] = useState(false);
   const lastFetchedRouteRef = React.useRef<string | null>(null);
 
+  // === Drag and Minimize States ===
+  const [isRoutePanelMinimized, setIsRoutePanelMinimized] = useState(false);
+  const [dragOffset, setDragOffset] = useState({ x: 0, y: 0 });
+  const [isDragging, setIsDragging] = useState(false);
+  const [dragStart, setDragStart] = useState({ x: 0, y: 0 });
+
+  // Reset drag offset when destination changes
+  useEffect(() => {
+    setDragOffset({ x: 0, y: 0 });
+  }, [routingDestination]);
+
+  const handlePointerDown = (e: React.PointerEvent<HTMLDivElement>) => {
+    const target = e.target as HTMLElement;
+    // Don't drag when clicking buttons
+    if (target.closest('button')) return;
+    
+    setIsDragging(true);
+    setDragStart({
+      x: e.clientX - dragOffset.x,
+      y: e.clientY - dragOffset.y
+    });
+    
+    const dragHandle = target.closest('.drag-handle');
+    if (dragHandle) {
+      try {
+        dragHandle.setPointerCapture(e.pointerId);
+      } catch (err) {
+        console.warn("Set pointer capture failed:", err);
+      }
+    }
+  };
+
+  const handlePointerMove = (e: React.PointerEvent<HTMLDivElement>) => {
+    if (!isDragging) return;
+    setDragOffset({
+      x: e.clientX - dragStart.x,
+      y: e.clientY - dragStart.y
+    });
+  };
+
+  const handlePointerUp = (e: React.PointerEvent<HTMLDivElement>) => {
+    if (isDragging) {
+      setIsDragging(false);
+      const target = e.target as HTMLElement;
+      const dragHandle = target.closest('.drag-handle');
+      if (dragHandle) {
+        try {
+          dragHandle.releasePointerCapture(e.pointerId);
+        } catch (err) {
+          console.warn("Release pointer capture failed:", err);
+        }
+      }
+    }
+  };
+
   const hasItinerary = itineraryMarkers.length > 0;
 
   useEffect(() => {
-    fetch('/data/landmarks.json')
-      .then(res => res.json())
-      .then(data => setLandmarks(data))
-      .catch(err => console.error("Could not load landmarks data", err));
+    async function loadData() {
+      const data = await fetchLandmarks();
+      setLandmarks(data);
+    }
+    loadData();
   }, []);
 
   // === Routing Effect (Goong API) ===
@@ -277,6 +415,8 @@ export default function DiscoveryMap({ itineraryMarkers = [] }: DiscoveryMapProp
     setRoutingDestination(null);
     setActiveRoute(null);
     setRouteDetails(null);
+    setIsRoutePanelMinimized(false);
+    setDragOffset({ x: 0, y: 0 });
   };
 
   const handleCenterOnUser = () => {
@@ -285,7 +425,7 @@ export default function DiscoveryMap({ itineraryMarkers = [] }: DiscoveryMapProp
     }
   };
 
-  const showLabels = zoomLevel >= 15;
+  const showLabels = zoomLevel >= 16;
 
   // Fit map to itinerary markers when they appear
   React.useEffect(() => {
@@ -296,96 +436,203 @@ export default function DiscoveryMap({ itineraryMarkers = [] }: DiscoveryMapProp
     }
   }, [mapInstance, itineraryMarkers]);
 
+  // Auto-zoom map to AI recommended markers
+  React.useEffect(() => {
+    if (mapInstance && aiMarkers.length > 0) {
+      const points: [number, number][] = aiMarkers.map(m => [m.lat, m.lng]);
+      const bounds = L.latLngBounds(points);
+      mapInstance.flyToBounds(bounds, { padding: [80, 80], duration: 1.5 });
+    }
+  }, [mapInstance, aiMarkers]);
+
+  // Auto-zoom map to filtered landmarks when selectedCategory changes
+  React.useEffect(() => {
+    if (mapInstance && selectedCategory && selectedCategory !== 'all') {
+      const filtered = landmarks.filter(l => {
+        const cat = l.category.toLowerCase();
+        if (selectedCategory === 'heritage') return cat.includes('heritage') || cat.includes('historic');
+        if (selectedCategory === 'spiritual') return cat.includes('spiritual') || cat.includes('temple');
+        if (selectedCategory === 'nature') return cat.includes('nature') || cat.includes('outdoor');
+        if (selectedCategory === 'art') return cat.includes('art') || cat.includes('museum') || cat.includes('theater');
+        if (selectedCategory === 'eat') return cat.includes('eat') || cat.includes('shop') || cat.includes('food');
+        if (selectedCategory === 'sightseeing') return cat.includes('sightseeing') || cat.includes('tourist') || cat.includes('attraction');
+        return cat.includes(selectedCategory);
+      });
+      
+      if (filtered.length > 0) {
+        const points: [number, number][] = filtered.map(l => [l.lat, l.lng]);
+        const bounds = L.latLngBounds(points);
+        mapInstance.flyToBounds(bounds, { padding: [60, 60], duration: 1.2 });
+      }
+    }
+  }, [mapInstance, selectedCategory, landmarks]);
+
   return (
-    <div className="w-full h-full relative z-0">
+    <div className="w-full h-full relative z-0 font-body">
       <style>{`
-        .leaflet-popup-content-wrapper { padding: 0; border-radius: 1.5rem; overflow: hidden; background: transparent; box-shadow: none; }
-        .leaflet-popup-content { margin: 0; width: auto !important; }
+        .leaflet-container {
+          font-family: inherit !important;
+        }
+        .leaflet-popup-content-wrapper { padding: 0; border-radius: 2rem; overflow: hidden; background: transparent; box-shadow: none; }
+        .leaflet-popup-content { margin: 0; width: auto !important; font-family: inherit !important; }
         .leaflet-popup-tip-container { display: none; }
-        .custom-landmark-marker { background: none !important; border: none !important; }
+        .custom-landmark-marker { background: none !important; border: none !important; font-family: inherit !important; }
         .user-location-marker { background: none !important; border: none !important; }
         .itinerary-marker { background: none !important; border: none !important; }
       `}</style>
       
       {/* Routing Panel Overlay */}
-      {routingDestination && (
-        <div className="absolute top-6 left-1/2 -translate-x-1/2 z-[1000] w-[90%] max-w-sm bg-white rounded-3xl shadow-2xl border border-outline/10 overflow-hidden animate-in fade-in slide-in-from-top-4 duration-300">
-          <div className="p-3 px-4 flex items-center justify-between border-b border-outline/5 bg-slate-50/50">
-            <div className="flex items-center gap-3">
-               <div className="w-9 h-9 rounded-full bg-primary/10 flex items-center justify-center text-primary">
-                  <span className="material-symbols-outlined text-[20px]">{getCategoryIcon(routingDestination.category)}</span>
+      {routingDestination && !isRoutePanelMinimized && (
+        <div 
+          style={{
+            transform: `translate(${dragOffset.x}px, ${dragOffset.y}px) translateX(-50%)`,
+            left: '50%',
+          }}
+          className="absolute top-8 z-[1000] w-[92%] max-w-sm bg-background/80 backdrop-blur-2xl rounded-[32px] shadow-2xl border border-white/40 overflow-hidden animate-in fade-in slide-in-from-top-6 duration-500 touch-none"
+        >
+          <div 
+            className="p-4 px-5 flex items-center justify-between border-b border-outline/5 bg-white/20 drag-handle cursor-grab active:cursor-grabbing select-none"
+            onPointerDown={handlePointerDown}
+            onPointerMove={handlePointerMove}
+            onPointerUp={handlePointerUp}
+          >
+            <div className="flex items-center gap-3 pointer-events-none">
+               <div className="w-10 h-10 rounded-2xl bg-primary/10 flex items-center justify-center text-primary shadow-inner">
+                  <span className="material-symbols-outlined text-[22px]">{getCategoryIcon(routingDestination.category)}</span>
                </div>
                <div className="flex flex-col">
-                  <span className="text-[9px] font-black text-primary uppercase tracking-wider">Đường đến</span>
-                  <span className="text-sm font-bold text-on-surface line-clamp-1 max-w-[200px]">{routingDestination.name}</span>
+                  <span className="text-[9px] font-black text-primary uppercase tracking-[0.2em]">Đường đến</span>
+                  <span className="text-[15px] font-extrabold text-on-surface line-clamp-1 max-w-[180px] tracking-tight">{routingDestination.name}</span>
+               </div>
+               <div className="flex flex-col gap-0.5 ml-2 opacity-30">
+                  <div className="w-4 h-0.5 bg-outline rounded-full"></div>
+                  <div className="w-4 h-0.5 bg-outline rounded-full"></div>
                </div>
             </div>
-            <button onClick={handleCancelRouting} className="w-8 h-8 flex items-center justify-center rounded-full bg-outline/5 hover:bg-outline/20 text-outline active:scale-95 transition-all">
-              <span className="material-symbols-outlined text-[18px]">close</span>
+            <button 
+              onClick={() => setIsRoutePanelMinimized(true)} 
+              className="w-9 h-9 flex items-center justify-center rounded-full bg-on-surface/5 hover:bg-on-surface/10 text-on-surface transition-all active:scale-90 z-10"
+              title="Ẩn bảng chi tiết"
+            >
+              <span className="material-symbols-outlined text-[20px]">close</span>
             </button>
           </div>
           
-          <div className="p-4 bg-white flex flex-col gap-3">
-            <div className="flex bg-slate-100 p-1 rounded-2xl w-full">
+          <div className="p-5 bg-transparent flex flex-col gap-4">
+            <div className="flex bg-on-surface/5 p-1.5 rounded-2xl w-full backdrop-blur-md">
                <button 
                   onClick={() => setTransportMode('driving')}
-                  className={`flex-1 py-1.5 flex items-center justify-center gap-2 rounded-xl text-[12px] font-bold transition-all ${transportMode === 'driving' ? 'bg-white text-primary shadow-sm' : 'text-outline hover:bg-slate-200/50'}`}
+                  className={`flex-1 py-2 flex items-center justify-center gap-2.5 rounded-xl text-[12px] font-black uppercase tracking-wider transition-all ${transportMode === 'driving' ? 'bg-white text-primary shadow-md' : 'text-on-surface/60 hover:text-on-surface'}`}
                >
-                 <span className="material-symbols-outlined text-[16px]">two_wheeler</span>
+                 <span className="material-symbols-outlined text-[18px]">two_wheeler</span>
                  Xe máy
                </button>
                <button 
                   onClick={() => setTransportMode('foot')}
-                  className={`flex-1 py-1.5 flex items-center justify-center gap-2 rounded-xl text-[12px] font-bold transition-all ${transportMode === 'foot' ? 'bg-white text-primary shadow-sm' : 'text-outline hover:bg-slate-200/50'}`}
+                  className={`flex-1 py-2 flex items-center justify-center gap-2.5 rounded-xl text-[12px] font-black uppercase tracking-wider transition-all ${transportMode === 'foot' ? 'bg-white text-primary shadow-md' : 'text-on-surface/60 hover:text-on-surface'}`}
                >
-                 <span className="material-symbols-outlined text-[16px]">directions_walk</span>
+                 <span className="material-symbols-outlined text-[18px]">directions_walk</span>
                  Đi bộ
                </button>
             </div>
             
             {isRoutingLoading ? (
-               <div className="flex justify-center items-center py-2 h-12">
-                  <div className="w-5 h-5 border-2 border-primary/30 border-t-primary rounded-full animate-spin"></div>
+               <div className="flex justify-center items-center py-4 h-14">
+                  <div className="w-6 h-6 border-3 border-primary/20 border-t-primary rounded-full animate-spin"></div>
                </div>
             ) : routeDetails ? (
-               <div className="flex items-center justify-center gap-8 py-1">
-                  <div className="flex flex-col items-center">
-                     <span className="text-2xl font-black text-on-surface tracking-tighter tabular-nums">{routeDetails.duration}</span>
-                     <span className="text-[9px] font-bold text-outline uppercase tracking-widest mt-0.5">Thời gian</span>
-                  </div>
-                  <div className="w-px h-8 bg-outline/10"></div>
-                  <div className="flex flex-col items-center">
-                     <span className="text-2xl font-black text-on-surface tracking-tighter tabular-nums">{routeDetails.distance}</span>
-                     <span className="text-[9px] font-bold text-outline uppercase tracking-widest mt-0.5">Quãng đường</span>
-                  </div>
+               <div className="flex flex-col gap-3">
+                 <div className="flex items-center justify-center gap-10 py-2">
+                    <div className="flex flex-col items-center">
+                       <span className="text-3xl font-black text-on-surface tracking-tighter tabular-nums">{routeDetails.duration}</span>
+                       <span className="text-[10px] font-black text-outline uppercase tracking-[0.2em] mt-1 opacity-60">Thời gian</span>
+                    </div>
+                    <div className="w-px h-10 bg-outline/10"></div>
+                    <div className="flex flex-col items-center">
+                       <span className="text-3xl font-black text-on-surface tracking-tighter tabular-nums">{routeDetails.distance}</span>
+                       <span className="text-[10px] font-black text-outline uppercase tracking-[0.2em] mt-1 opacity-60">Quãng đường</span>
+                    </div>
+                 </div>
+                 
+                 <button 
+                    onClick={handleCancelRouting}
+                    className="w-full mt-2 text-center text-[10px] font-black text-red-500 uppercase tracking-widest hover:bg-red-500 hover:text-white transition-all py-3 bg-red-500/10 rounded-2xl active:scale-95"
+                 >
+                   Hủy chỉ đường
+                 </button>
                </div>
             ) : (
-               <div className="text-center py-2 text-xs font-medium text-outline">Không tìm được đường đi phù hợp</div>
+               <div className="flex flex-col gap-3">
+                 <div className="text-center py-3 text-xs font-bold text-outline uppercase tracking-widest opacity-60">Không tìm được đường đi</div>
+                 <button 
+                    onClick={handleCancelRouting}
+                    className="w-full mt-2 text-center text-[10px] font-black text-red-500 uppercase tracking-widest hover:bg-red-500 hover:text-white transition-all py-3 bg-red-500/10 rounded-2xl active:scale-95"
+                 >
+                   Hủy chỉ đường
+                 </button>
+               </div>
             )}
           </div>
         </div>
       )}
+
+      {/* Mini Status Bar (Minimized Routing Panel) */}
+      {routingDestination && isRoutePanelMinimized && (
+        <div className="absolute top-1/2 -translate-y-1/2 right-6 z-[1000] bg-background/90 backdrop-blur-2xl px-5 py-2.5 rounded-full shadow-2xl border border-white/40 flex items-center gap-4 animate-in fade-in slide-in-from-right-4 duration-300">
+          <div className="flex items-center gap-2">
+            <span className="material-symbols-outlined text-primary text-lg">
+              {transportMode === 'driving' ? 'two_wheeler' : 'directions_walk'}
+            </span>
+            <div className="flex items-center gap-1.5">
+              <span className="text-[10px] font-black text-primary uppercase tracking-[0.1em] line-clamp-1 max-w-[100px]">
+                {routingDestination.name}
+              </span>
+              <span className="text-[12px] font-black text-on-surface whitespace-nowrap">
+                {isRoutingLoading ? '...' : routeDetails ? `${routeDetails.distance} • ${routeDetails.duration}` : 'N/A'}
+              </span>
+            </div>
+          </div>
+          <div className="w-px h-4 bg-outline/15"></div>
+          <div className="flex items-center gap-1.5">
+            <button 
+              onClick={() => setIsRoutePanelMinimized(false)}
+              className="w-7 h-7 flex items-center justify-center rounded-full bg-primary/10 text-primary hover:bg-primary/20 transition-all active:scale-90"
+              title="Hiện chi tiết"
+            >
+              <span className="material-symbols-outlined text-[16px]">open_in_full</span>
+            </button>
+            <button 
+              onClick={handleCancelRouting}
+              className="bg-red-500/10 text-red-500 hover:bg-red-500 hover:text-white px-3.5 py-1 rounded-full text-[10px] font-black uppercase tracking-wider transition-all active:scale-95 flex items-center gap-1"
+              title="Thoát chỉ đường"
+            >
+              Thoát
+            </button>
+          </div>
+        </div>
+      )}
       
-      {/* Location Control Button */}
       <button 
         onClick={handleCenterOnUser}
         disabled={!userLocation}
-        className={`absolute bottom-8 right-8 z-[1000] w-12 h-12 bg-white rounded-2xl shadow-2xl flex items-center justify-center border border-outline/10 hover:bg-slate-50 transition-all active:scale-95 group ${!userLocation && 'opacity-50 cursor-not-allowed'}`}
+        className={`absolute bottom-8 right-8 z-[1000] w-14 h-14 bg-background/90 backdrop-blur-xl rounded-[22px] shadow-[0_20px_50px_rgba(0,0,0,0.2)] flex items-center justify-center border border-white/50 hover:bg-white transition-all active:scale-90 group ${!userLocation && 'opacity-50 cursor-not-allowed'}`}
         title="Center on my location"
       >
-        <span className={`material-symbols-outlined text-2xl ${userLocation ? 'text-primary' : 'text-outline'} group-hover:scale-110 transition-transform`}>
+        <span className={`material-symbols-outlined text-3xl ${userLocation ? 'text-primary' : 'text-outline'} group-hover:scale-110 transition-all duration-500`}>
           my_location
         </span>
       </button>
 
       <MapContainer 
+        key="hanoigo-discovery-map"
         center={[21.0285, 105.8521]} 
         zoom={13} 
         scrollWheelZoom={true}
+        zoomControl={false}
         style={{ height: '100%', width: '100%' }}
         className="grayscale-[0.2] transition-all"
-        ref={setMapInstance}
       >
+        <MapInstanceTracker setMap={setMapInstance} />
         <ZoomTracker setZoom={setZoomLevel} />
         <LocationMarker setUserPos={setUserLocation} />
         
@@ -407,6 +654,39 @@ export default function DiscoveryMap({ itineraryMarkers = [] }: DiscoveryMapProp
            />
         )}
         
+        {/* AI-recommended place markers */}
+        {aiMarkers.map(m => {
+          const aiIcon = L.divIcon({
+            className: 'ai-marker',
+            html: `
+              <div style="position:relative;display:flex;align-items:center;justify-content:center;">
+                <div style="width:32px;height:32px;border-radius:50%;background:linear-gradient(135deg,#f59e0b,#ef4444);border:3px solid white;box-shadow:0 4px 16px rgba(239,68,68,0.5);display:flex;align-items:center;justify-content:center;">
+                  <span class="material-symbols-outlined" style="color:white;font-size:16px;">auto_awesome</span>
+                </div>
+                <div style="position:absolute;inset:0;border-radius:50%;background:rgba(239,68,68,0.3);animation:ping 1.5s ease-in-out infinite;"></div>
+              </div>
+            `,
+            iconSize: [32, 32],
+            iconAnchor: [16, 16],
+            popupAnchor: [0, -20],
+          });
+          return (
+            <Marker key={`ai-${m.id}`} position={[m.lat, m.lng]} icon={aiIcon}>
+              <Popup closeButton={false} offset={[0, -10]}>
+                <div className="bg-white rounded-2xl p-4 shadow-xl min-w-[180px] border border-orange-100">
+                  <div className="flex items-center gap-1.5 mb-1">
+                    <span className="material-symbols-outlined text-sm text-amber-500">auto_awesome</span>
+                    <span className="text-[9px] font-black uppercase tracking-widest text-amber-500">AI gợi ý</span>
+                  </div>
+                  <h3 className="font-black text-sm tracking-tight text-on-surface">{m.name}</h3>
+                  <p className="text-[10px] font-bold text-outline mt-0.5">{m.category}</p>
+                  {m.distanceKm && <p className="text-[10px] font-black text-primary mt-1">{m.distanceKm.toFixed(1)} km từ bạn</p>}
+                </div>
+              </Popup>
+            </Marker>
+          );
+        })}
+
         {/* Itinerary markers (numbered, colored per day) */}
         {itineraryMarkers.map(marker => (
           <Marker
@@ -428,45 +708,68 @@ export default function DiscoveryMap({ itineraryMarkers = [] }: DiscoveryMapProp
         ))}
 
         {/* Normal landmark markers (hidden when itinerary is active) */}
-        {!hasItinerary && landmarks.map(landmark => (
-            <Marker 
+        {showLandmarks && !hasItinerary && landmarks
+          .filter(l => {
+            if (!selectedCategory || selectedCategory === 'all') return true;
+            const cat = l.category.toLowerCase();
+            if (selectedCategory === 'heritage') return cat.includes('heritage') || cat.includes('historic');
+            if (selectedCategory === 'spiritual') return cat.includes('spiritual') || cat.includes('temple');
+            if (selectedCategory === 'nature') return cat.includes('nature') || cat.includes('outdoor');
+            if (selectedCategory === 'art') return cat.includes('art') || cat.includes('museum') || cat.includes('theater');
+            if (selectedCategory === 'eat') return cat.includes('eat') || cat.includes('shop') || cat.includes('food');
+            if (selectedCategory === 'sightseeing') return cat.includes('sightseeing') || cat.includes('tourist') || cat.includes('attraction');
+            return cat.includes(selectedCategory);
+          })
+          .map(landmark => {
+            const isFocused = focusedLandmarkId === landmark.id;
+            return (
+              <Marker 
                 key={landmark.id} 
                 position={[landmark.lat, landmark.lng]}
-                icon={createCustomIcon(landmark, showLabels)}
-            >
+                icon={createCustomIcon(landmark, showLabels, isFocused)}
+              >
                 <Popup closeButton={false} offset={[0, -10]}>
-                    <div className="w-72 p-0 flex flex-col rounded-3xl overflow-hidden shadow-2xl bg-white border border-outline/5">
-                        <div className="relative w-full h-40 bg-gray-100 overflow-hidden">
+                    <div className="w-80 p-0 flex flex-col rounded-[32px] overflow-hidden shadow-[0_20px_50px_rgba(0,0,0,0.3)] bg-background/95 backdrop-blur-2xl border border-white/20">
+                        <div className="relative w-full h-44 bg-surface-container overflow-hidden">
                             <img 
                                 src={landmark.image} 
                                 alt={landmark.name}
-                                className="object-cover w-full h-full hover:scale-110 transition-transform duration-700"
+                                referrerPolicy="no-referrer"
+                                className="object-cover w-full h-full hover:scale-110 transition-transform duration-1000 ease-out"
+                                onError={(e) => {
+                                  const target = e.target as HTMLImageElement;
+                                  if (target.src.includes('unsplash.com')) return;
+                                  target.src = 'https://images.unsplash.com/photo-1509030450996-93f25ef2030f?w=800&q=80';
+                                }}
                             />
-                            <div className="absolute top-4 right-4 bg-white/95 backdrop-blur shadow-xl text-primary px-3 py-1 rounded-full text-xs font-black flex items-center gap-1">
-                               <span className="material-symbols-outlined text-[14px]">star</span>
+                            <div className="absolute top-4 right-4 bg-background/90 backdrop-blur-md shadow-xl text-primary px-3.5 py-1.5 rounded-2xl text-xs font-black flex items-center gap-1.5 border border-white/20">
+                               <span className="material-symbols-outlined text-[16px] fill-1">star</span>
                                {landmark.rating}
                             </div>
                         </div>
-                        <div className="p-6 bg-white flex flex-col gap-2">
-                          <span className="text-[10px] font-black uppercase tracking-widest text-primary/60">
+                        <div className="p-7 flex flex-col gap-3">
+                          <span className="text-[10px] font-black uppercase tracking-[0.25em] text-primary/70">
                             {landmark.category}
                           </span>
-                          <h3 className="font-black text-xl tracking-tighter text-on-surface">{landmark.name}</h3>
-                          <p className="text-sm text-outline font-medium line-clamp-2 leading-relaxed mb-3">
+                          <h3 className="font-extrabold text-2xl tracking-tighter text-on-surface leading-tight">{landmark.name}</h3>
+                          <p className="text-[13px] text-on-surface/70 font-medium line-clamp-2 leading-relaxed mb-4">
                             {landmark.description || `Khám phá vẻ đẹp lịch sử và văn hóa tại ${landmark.name}, một trong những điểm đến không thể bỏ qua tại Hà Nội.`}
                           </p>
-                          <div className="flex gap-2">
+                          <div className="flex gap-3 mt-1">
                             <Link
                               href={`/places?place=${landmark.id}`}
-                              className="flex-1 rounded-2xl border border-primary/20 bg-white py-3 text-center text-[11px] font-black uppercase tracking-widest text-primary transition-all hover:bg-primary/5 active:scale-95"
+                              className="flex-1 rounded-2xl border border-outline/10 bg-white/50 py-3.5 text-center text-[10px] font-black uppercase tracking-[0.15em] text-on-surface/80 transition-all hover:bg-white hover:text-on-surface active:scale-95"
                             >
                               Detail
                             </Link>
                             <button 
-                              onClick={() => setRoutingDestination(landmark)}
-                              className="flex-[1.5] py-3 bg-primary text-white font-black text-[11px] uppercase tracking-widest rounded-2xl transition-all shadow-lg shadow-primary/20 hover:scale-[1.02] active:scale-95 flex items-center justify-center gap-1.5"
+                              onClick={() => {
+                                setRoutingDestination(landmark);
+                                setIsRoutePanelMinimized(false);
+                              }}
+                              className="flex-[1.5] py-3.5 bg-primary text-white font-black text-[10px] uppercase tracking-[0.15em] rounded-2xl transition-all shadow-xl shadow-primary/25 hover:scale-[1.03] active:scale-95 flex items-center justify-center gap-2"
                             >
-                              <span className="material-symbols-outlined text-[16px]">directions</span>
+                              <span className="material-symbols-outlined text-[18px]">directions</span>
                               Đường đi
                             </button>
                           </div>
@@ -474,7 +777,8 @@ export default function DiscoveryMap({ itineraryMarkers = [] }: DiscoveryMapProp
                     </div>
                 </Popup>
             </Marker>
-        ))}
+            );
+        })}
       </MapContainer>
     </div>
   );

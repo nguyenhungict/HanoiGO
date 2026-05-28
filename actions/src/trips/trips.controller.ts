@@ -1,6 +1,17 @@
-import { Controller, Post, Body } from '@nestjs/common';
+import {
+  Controller,
+  Post,
+  Body,
+  Get,
+  Delete,
+  Param,
+  UseGuards,
+  Request,
+} from '@nestjs/common';
+import { AuthGuard } from '@nestjs/passport';
 import { TripPlannerService } from './trip-planner.service';
-import type { GenerateItineraryDto } from './trip-planner.service';
+import type { GenerateItineraryDto } from './trip-planner.types';
+import { SaveTripDto } from './dto/save-trip.dto';
 
 @Controller('trips')
 export class TripsController {
@@ -9,5 +20,42 @@ export class TripsController {
   @Post('generate-itinerary')
   async generateItinerary(@Body() dto: GenerateItineraryDto) {
     return this.tripPlannerService.generateItinerary(dto);
+  }
+
+  @UseGuards(AuthGuard('jwt'))
+  @Post('save')
+  async saveTrip(
+    @Request() req: { user: { id: string } },
+    @Body() dto: SaveTripDto,
+  ) {
+    return this.tripPlannerService.saveTrip(req.user.id, dto);
+  }
+
+  @UseGuards(AuthGuard('jwt'))
+  @Get('my-trips')
+  async getMyTrips(@Request() req: { user: { id: string } }) {
+    return this.tripPlannerService.getUserTrips(req.user.id);
+  }
+
+  @UseGuards(AuthGuard('jwt'))
+  @Delete(':id')
+  async deleteTrip(
+    @Request() req: { user: { id: string } },
+    @Param('id') id: string,
+  ) {
+    return this.tripPlannerService.deleteTrip(req.user.id, id);
+  }
+
+  /**
+   * Clone a trip by its ID → creates an independent copy for the current user.
+   * POST /trips/clone/:id
+   */
+  @UseGuards(AuthGuard('jwt'))
+  @Post('clone/:id')
+  async cloneTrip(
+    @Request() req: { user: { id: string } },
+    @Param('id') id: string,
+  ) {
+    return this.tripPlannerService.cloneTrip(req.user.id, id);
   }
 }

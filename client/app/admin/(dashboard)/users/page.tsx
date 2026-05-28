@@ -5,33 +5,15 @@ import {
   getAdminUsersAction, 
   banUserAction, 
   unbanUserAction, 
-  getAdminUserDetailsAction 
+  getAdminUserDetailsAction,
+  createAdminUserAction,
+  deleteAdminUserAction,
+  resolveImageUrl
 } from '@/lib/actions';
+import { useNotification } from '@/hooks/use-notification';
+import { useConfirm } from '@/hooks/use-confirm';
 
-interface User {
-  id: string;
-  username: string;
-  email: string;
-  fullName: string | null;
-  avatarUrl: string | null;
-  role: string;
-  status: string;
-  createdAt: string;
-  _count: {
-    trips: number;
-  };
-}
-
-interface UserDetail extends User {
-  bio: string | null;
-  nationality: string | null;
-  languages: string[];
-  _count: {
-    trips: number;
-    reportsCreated: number;
-    reportsAgainst: number;
-  };
-}
+import { User, UserDetail } from '@/types';
 
 export default function UserManagement() {
   const [users, setUsers] = useState<User[]>([]);
@@ -41,6 +23,8 @@ export default function UserManagement() {
   const [search, setSearch] = useState('');
   const [statusFilter, setStatusFilter] = useState<string | undefined>(undefined);
   const [loading, setLoading] = useState(true);
+  const { show } = useNotification();
+  const { confirm: openConfirm } = useConfirm();
   
   // User selection for details
   const [selectedUser, setSelectedUser] = useState<UserDetail | null>(null);
@@ -79,24 +63,32 @@ export default function UserManagement() {
     setBanTargetId(null);
     if (res.success) {
       fetchUsers();
+      show({ type: 'success', title: 'User Banned', message: 'The operative access has been suspended.' });
       if (selectedUser && selectedUser.id === banTargetId) {
         setSelectedUser({ ...selectedUser, status: 'BANNED' });
       }
     } else {
-      alert(res.error || 'Failed to ban user');
+      show({ type: 'error', title: 'Ban Failed', message: res.error || 'Could not suspend user access.' });
     }
   };
 
   const handleUnban = async (userId: string) => {
-    if (!confirm('Are you sure you want to unban this user?')) return;
+    const isConfirmed = await openConfirm({
+      title: 'Reinstate Operative',
+      message: 'Are you sure you want to restore access for this user?',
+      confirmText: 'Restore Access',
+      type: 'success'
+    });
+    if (!isConfirmed) return;
     const res = await unbanUserAction(userId);
     if (res.success) {
       fetchUsers();
+      show({ type: 'success', title: 'Access Restored', message: 'The operative has been reinstated.' });
       if (selectedUser && selectedUser.id === userId) {
         setSelectedUser({ ...selectedUser, status: 'ACTIVE' });
       }
     } else {
-      alert(res.error || 'Failed to unban user');
+      show({ type: 'error', title: 'Restoration Failed', message: res.error || 'Could not restore user access.' });
     }
   };
 
@@ -110,20 +102,72 @@ export default function UserManagement() {
     setLoadingDetails(false);
   };
 
+  // Create User State
+  const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
+  const [createFormData, setCreateFormData] = useState({
+    username: '',
+    email: '',
+    password: '',
+    fullName: '',
+    role: 'USER'
+  });
+
+  const handleCreateUser = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setLoading(true);
+    const res = await createAdminUserAction(createFormData);
+    if (res.success) {
+      setIsCreateModalOpen(false);
+      setCreateFormData({ username: '', email: '', password: '', fullName: '', role: 'USER' });
+      fetchUsers();
+      show({ type: 'success', title: 'Operative Created', message: 'New identity has been registered in the system.' });
+    } else {
+      show({ type: 'error', title: 'Creation Failed', message: res.error || 'Could not register new operative.' });
+      setLoading(false);
+    }
+  };
+
+  const handleDeleteUser = async (userId: string) => {
+    const isConfirmed = await openConfirm({
+      title: 'Purge Identity',
+      message: 'CRITICAL: This will permanently erase the operative and all associated records. This action is irreversible.',
+      confirmText: 'Purge Record',
+      type: 'danger'
+    });
+    if (!isConfirmed) return;
+    setLoading(true);
+    const res = await deleteAdminUserAction(userId);
+    if (res.success) {
+      setIsModalOpen(false);
+      fetchUsers();
+      show({ type: 'success', title: 'User Purged', message: 'All record of the operative has been erased.' });
+    } else {
+      show({ type: 'error', title: 'Purge Failed', message: res.error || 'The system could not erase the record.' });
+      setLoading(false);
+    }
+  };
+
   return (
     <div className="space-y-12 animate-in fade-in slide-in-from-bottom-8 duration-1000">
       {/* Header */}
-      <div className="flex flex-col md:flex-row md:items-end justify-between gap-8 py-4">
+      <div className="flex flex-col md:flex-row md:items-end justify-between gap-6 py-2">
         <div>
-          <span className="text-[10px] font-black text-primary uppercase tracking-[0.3em] mb-2 block">Moderation Panel</span>
-          <h1 className="text-5xl font-black tracking-tighter text-on-surface leading-none">User Repository</h1>
+          <span className="text-[8px] font-bold text-primary/80 uppercase tracking-[0.4em] mb-1 block">Moderation Panel</span>
+          <h1 className="text-xl font-bold tracking-tighter text-on-surface leading-none">User Repository</h1>
         </div>
+        <button 
+          onClick={() => setIsCreateModalOpen(true)}
+          className="h-10 px-6 bg-primary text-white rounded-xl text-[9px] font-bold uppercase tracking-widest transition-all active:scale-95 flex items-center gap-2"
+        >
+          <span className="material-symbols-outlined text-base">person_add</span>
+          New Operative
+        </button>
       </div>
 
       {/* Main Table Container */}
-      <div className="bg-white rounded-[3rem] border border-outline/5 p-12 shadow-[0_8px_30px_rgb(0,0,0,0.02)]">
+      <div className="bg-white rounded-3xl border border-outline/5 p-8 shadow-[0_8px_30px_rgb(0,0,0,0.02)]">
         {/* Filters */}
-        <div className="flex flex-col md:flex-row md:items-center justify-between gap-6 mb-12">
+        <div className="flex flex-col md:flex-row md:items-center justify-between gap-6 mb-8">
           <div className="flex items-center gap-4">
             <div className="relative group">
                <span className="material-symbols-outlined absolute left-4 top-1/2 -translate-y-1/2 text-outline group-focus-within:text-primary transition-colors">search</span>
@@ -138,7 +182,7 @@ export default function UserManagement() {
             <select 
               value={statusFilter || ''}
               onChange={(e) => setStatusFilter(e.target.value || undefined)}
-              className="h-12 px-4 bg-background rounded-2xl border border-transparent text-[10px] font-black uppercase tracking-widest text-outline outline-none"
+              className="h-12 px-4 bg-background rounded-2xl border border-transparent text-[10px] font-bold uppercase tracking-widest text-outline/70 outline-none"
             >
               <option value="">All Status</option>
               <option value="ACTIVE">Active</option>
@@ -147,7 +191,7 @@ export default function UserManagement() {
           </div>
           
           <div className="flex items-center gap-2">
-             <span className="text-[10px] font-black text-outline uppercase tracking-widest mr-2">Total: {total} Users</span>
+             <span className="text-[10px] font-bold text-outline/60 uppercase tracking-widest mr-2">Total: {total} Users</span>
           </div>
         </div>
         
@@ -161,11 +205,11 @@ export default function UserManagement() {
               <table className="w-full">
                 <thead>
                   <tr className="border-b border-outline/5">
-                    <th className="text-left py-6 px-4 text-[10px] font-black uppercase tracking-[0.2em] text-outline">User Identity</th>
-                    <th className="text-left py-6 px-4 text-[10px] font-black uppercase tracking-[0.2em] text-outline">Status</th>
-                    <th className="text-left py-6 px-4 text-[10px] font-black uppercase tracking-[0.2em] text-outline">Registration</th>
-                    <th className="text-left py-6 px-4 text-[10px] font-black uppercase tracking-[0.2em] text-outline">Trips</th>
-                    <th className="text-right py-6 px-4 text-[10px] font-black uppercase tracking-[0.2em] text-outline">Control</th>
+                    <th className="text-left py-6 px-4 text-[10px] font-bold uppercase tracking-[0.2em] text-outline/60">User Identity</th>
+                    <th className="text-left py-6 px-4 text-[10px] font-bold uppercase tracking-[0.2em] text-outline/60">Status</th>
+                    <th className="text-left py-6 px-4 text-[10px] font-bold uppercase tracking-[0.2em] text-outline/60">Registration</th>
+                    <th className="text-left py-6 px-4 text-[10px] font-bold uppercase tracking-[0.2em] text-outline/60">Trips</th>
+                    <th className="text-right py-6 px-4 text-[10px] font-bold uppercase tracking-[0.2em] text-outline/60">Control</th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-outline/5">
@@ -173,21 +217,21 @@ export default function UserManagement() {
                     <tr key={user.id} className="group hover:bg-background/50 transition-colors">
                       <td className="py-6 px-4">
                         <div className="flex items-center gap-4">
-                          <div className="w-12 h-12 rounded-2xl bg-secondary/30 flex items-center justify-center text-primary font-black text-sm group-hover:bg-primary group-hover:text-white transition-all overflow-hidden">
+                          <div className="w-12 h-12 rounded-2xl bg-secondary/30 flex items-center justify-center text-primary font-bold text-sm group-hover:bg-primary group-hover:text-white transition-all overflow-hidden">
                             {user.avatarUrl ? (
-                              <img src={user.avatarUrl} alt="" className="w-full h-full object-cover" />
+                              <img src={resolveImageUrl(user.avatarUrl) ?? ''} alt="" className="w-full h-full object-cover" />
                             ) : (
                               (user.fullName || user.username).charAt(0).toUpperCase()
                             )}
                           </div>
                           <div>
-                            <h4 className="text-[13px] font-black text-on-surface uppercase tracking-tight">{user.fullName || user.username}</h4>
-                            <p className="text-[10px] text-outline font-black">{user.email}</p>
+                            <h4 className="text-[13px] font-bold text-on-surface uppercase tracking-tight">{user.fullName || user.username}</h4>
+                            <p className="text-[10px] text-outline/70 font-bold">{user.email}</p>
                           </div>
                         </div>
                       </td>
                       <td className="py-6 px-4">
-                        <span className={`px-3 py-1.5 rounded-full text-[9px] font-black tracking-widest inline-flex items-center gap-2 ${
+                        <span className={`px-3 py-1.5 rounded-full text-[9px] font-bold tracking-widest inline-flex items-center gap-2 ${
                           user.status === 'ACTIVE' 
                           ? 'bg-green-50 text-green-600 border border-green-100' 
                           : 'bg-red-50 text-red-600 border border-red-100'
@@ -199,7 +243,7 @@ export default function UserManagement() {
                       <td className="py-6 px-4 text-[11px] font-bold text-outline uppercase">
                         {new Date(user.createdAt).toLocaleDateString()}
                       </td>
-                      <td className="py-6 px-4 text-[11px] font-black text-on-surface">{user._count.trips}</td>
+                      <td className="py-6 px-4 text-[11px] font-bold text-on-surface">{user._count.trips}</td>
                       <td className="py-6 px-4 text-right">
                         <div className="flex items-center justify-end gap-2">
                           <button 
@@ -207,17 +251,24 @@ export default function UserManagement() {
                             className="h-10 w-10 flex items-center justify-center rounded-xl bg-background text-outline hover:text-primary hover:bg-white hover:shadow-md transition-all"
                             title="View Details"
                           >
-                            <span className="material-symbols-outlined text-lg">visibility</span>
+                            <span className="material-symbols-outlined text-base">visibility</span>
                           </button>
                           <button 
                             onClick={() => user.status === 'ACTIVE' ? handleBanClick(user.id) : handleUnban(user.id)}
-                            className={`h-10 px-4 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all ${
+                            className={`h-10 px-4 rounded-xl text-[10px] font-bold uppercase tracking-widest transition-all ${
                               user.status === 'ACTIVE'
                               ? 'bg-red-50 text-red-600 hover:bg-red-600 hover:text-white'
                               : 'bg-green-50 text-green-600 hover:bg-green-600 hover:text-white'
                             }`}
                           >
                             {user.status === 'ACTIVE' ? 'Ban' : 'Restore'}
+                          </button>
+                          <button 
+                            onClick={() => handleDeleteUser(user.id)}
+                            className="h-10 w-10 flex items-center justify-center rounded-xl bg-red-50 text-red-400 hover:text-white hover:bg-red-600 transition-all"
+                            title="Delete User"
+                          >
+                            <span className="material-symbols-outlined text-base">delete</span>
                           </button>
                         </div>
                       </td>
@@ -228,25 +279,25 @@ export default function UserManagement() {
             </div>
             
             {/* Pagination Controls */}
-            <div className="flex items-center justify-between mt-12 pt-8 border-t border-outline/5">
-              <p className="text-[10px] font-black text-outline uppercase tracking-widest">
+            <div className="flex items-center justify-between mt-8 pt-6 border-t border-outline/5">
+              <p className="text-[10px] font-bold text-outline/60 uppercase tracking-widest">
                 Showing {users.length} of {total} users
               </p>
               <div className="flex gap-2">
                 <button 
                   disabled={page === 1}
                   onClick={() => setPage(p => p - 1)}
-                  className="h-10 px-4 bg-background rounded-xl text-[10px] font-black uppercase disabled:opacity-30 hover:shadow-md transition-all"
+                  className="h-8 px-3 bg-background rounded-lg text-[9px] font-bold uppercase disabled:opacity-30 transition-all"
                 >
                   Prev
                 </button>
-                <div className="h-10 px-4 flex items-center justify-center bg-primary/10 text-primary rounded-xl text-[10px] font-black">
+                <div className="h-8 px-3 flex items-center justify-center bg-primary/10 text-primary rounded-lg text-[9px] font-bold">
                   {page}
                 </div>
                 <button 
                   disabled={users.length < limit}
                   onClick={() => setPage(p => p + 1)}
-                  className="h-10 px-4 bg-background rounded-xl text-[10px] font-black uppercase disabled:opacity-30 hover:shadow-md transition-all"
+                  className="h-8 px-3 bg-background rounded-lg text-[9px] font-bold uppercase disabled:opacity-30 transition-all"
                 >
                   Next
                 </button>
@@ -261,7 +312,7 @@ export default function UserManagement() {
         <div className="fixed inset-0 z-[100] flex items-center justify-center p-6 sm:p-12 animate-in fade-in duration-300">
           <div className="absolute inset-0 bg-on-background/40 backdrop-blur-sm" onClick={() => setIsModalOpen(false)} />
           
-          <div className="bg-white w-full max-w-2xl rounded-[3rem] shadow-2xl relative z-10 overflow-hidden flex flex-col animate-in zoom-in-95 duration-300">
+          <div className="bg-white w-full max-w-2xl rounded-3xl shadow-2xl relative z-10 overflow-hidden flex flex-col animate-in zoom-in-95 duration-300">
             {loadingDetails ? (
               <div className="p-24 flex flex-col items-center gap-6">
                 <div className="w-16 h-16 border-4 border-primary border-t-transparent rounded-full animate-spin" />
@@ -270,7 +321,7 @@ export default function UserManagement() {
             ) : selectedUser ? (
               <>
                 {/* Modal Header/Top Area */}
-                <div className="bg-background/50 p-12 relative">
+                <div className="bg-background/50 p-8 relative">
                   <button 
                     onClick={() => setIsModalOpen(false)}
                     className="absolute top-8 right-8 w-12 h-12 flex items-center justify-center rounded-2xl bg-white shadow-xl text-outline hover:text-primary transition-all active:scale-95"
@@ -278,11 +329,11 @@ export default function UserManagement() {
                     <span className="material-symbols-outlined">close</span>
                   </button>
                   
-                  <div className="flex items-center gap-8">
-                    <div className="w-24 h-24 rounded-[2rem] bg-white shadow-2xl overflow-hidden p-2">
-                      <div className="w-full h-full rounded-[1.5rem] bg-secondary flex items-center justify-center text-primary text-3xl font-black overflow-hidden">
+                  <div className="flex items-center gap-6">
+                    <div className="w-20 h-20 rounded-2xl bg-white shadow-2xl overflow-hidden p-2">
+                      <div className="w-full h-full rounded-xl bg-secondary flex items-center justify-center text-primary text-2xl font-black overflow-hidden">
                         {selectedUser.avatarUrl ? (
-                          <img src={selectedUser.avatarUrl} alt="" className="w-full h-full object-cover" />
+                          <img src={resolveImageUrl(selectedUser.avatarUrl) ?? ''} alt="" className="w-full h-full object-cover" />
                         ) : (
                           selectedUser.username.charAt(0).toUpperCase()
                         )}
@@ -296,7 +347,7 @@ export default function UserManagement() {
                       }`}>
                         {selectedUser.status}
                       </span>
-                      <h2 className="text-3xl font-black tracking-tighter text-on-surface leading-none mb-2">
+                      <h2 className="text-2xl font-black tracking-tighter text-on-surface leading-none mb-2">
                         {selectedUser.fullName || selectedUser.username}
                       </h2>
                       <p className="text-[12px] font-black text-outline uppercase tracking-widest">@{selectedUser.username}</p>
@@ -305,27 +356,27 @@ export default function UserManagement() {
                 </div>
 
                 {/* Modal Body */}
-                <div className="p-12 space-y-10 overflow-y-auto max-h-[60vh]">
+                <div className="p-8 space-y-8 overflow-y-auto max-h-[60vh]">
                   {/* Bio Section */}
                   <div className="space-y-4">
                     <h3 className="text-[10px] font-black text-outline uppercase tracking-widest opacity-50">Biography</h3>
-                    <p className="text-on-surface text-[14px] leading-relaxed font-medium bg-background/30 p-6 rounded-3xl italic">
+                    <p className="text-on-surface text-[13px] leading-relaxed font-medium bg-background/30 p-4 rounded-2xl italic">
                       {selectedUser.bio || 'This user prefers to keep their identity mysterious. No biography provided.'}
                     </p>
                   </div>
 
                   {/* Grid Stats */}
-                  <div className="grid grid-cols-3 gap-6">
-                    <div className="bg-background p-6 rounded-[2rem] text-center">
-                       <p className="text-2xl font-black text-on-surface">{selectedUser._count.trips}</p>
+                  <div className="grid grid-cols-3 gap-4">
+                    <div className="bg-background p-4 rounded-2xl text-center">
+                       <p className="text-xl font-black text-on-surface">{selectedUser._count.trips}</p>
                        <p className="text-[8px] font-black text-outline uppercase tracking-[0.2em] mt-1">Expeditions</p>
                     </div>
-                    <div className="bg-background p-6 rounded-[2rem] text-center">
-                       <p className="text-2xl font-black text-green-600">{selectedUser._count.reportsCreated}</p>
+                    <div className="bg-background p-4 rounded-2xl text-center">
+                       <p className="text-xl font-black text-green-600">{selectedUser._count.reportsCreated}</p>
                        <p className="text-[8px] font-black text-outline uppercase tracking-[0.2em] mt-1">Contributions</p>
                     </div>
-                    <div className="bg-background p-6 rounded-[2rem] text-center">
-                       <p className="text-2xl font-black text-red-600">{selectedUser._count.reportsAgainst}</p>
+                    <div className="bg-background p-4 rounded-2xl text-center">
+                       <p className="text-xl font-black text-red-600">{selectedUser._count.reportsAgainst}</p>
                        <p className="text-[8px] font-black text-outline uppercase tracking-[0.2em] mt-1">Violations</p>
                     </div>
                   </div>
@@ -379,24 +430,33 @@ export default function UserManagement() {
                 {/* Footer Actions */}
                 <div className="p-8 bg-background/20 mt-auto border-t border-outline/5 flex items-center justify-between gap-4">
                    <p className="text-[9px] font-black text-outline uppercase tracking-widest px-4">Identification Matrix: {selectedUser.id}</p>
-                   <button 
-                     onClick={() => {
-                        if (selectedUser.status === 'ACTIVE') {
-                          setIsModalOpen(false);
-                          handleBanClick(selectedUser.id);
-                        } else {
-                          setIsModalOpen(false);
-                          handleUnban(selectedUser.id);
-                        }
-                     }}
-                     className={`h-12 px-8 rounded-2xl text-[10px] font-black uppercase tracking-[0.2em] transition-all shadow-xl ${
-                       selectedUser.status === 'ACTIVE'
-                       ? 'bg-red-600 text-white hover:bg-red-700'
-                       : 'bg-green-600 text-white hover:bg-green-700'
-                     }`}
-                   >
-                     {selectedUser.status === 'ACTIVE' ? 'Ban Access' : 'Restore Access'}
-                   </button>
+                   <div className="flex items-center gap-3">
+                     <button 
+                       onClick={() => handleDeleteUser(selectedUser.id)}
+                       className="h-12 w-12 flex items-center justify-center rounded-2xl bg-red-50 text-red-600 hover:bg-red-600 hover:text-white transition-all shadow-xl"
+                       title="Permanently Delete User"
+                     >
+                       <span className="material-symbols-outlined">delete_forever</span>
+                     </button>
+                     <button 
+                       onClick={() => {
+                          if (selectedUser.status === 'ACTIVE') {
+                            setIsModalOpen(false);
+                            handleBanClick(selectedUser.id);
+                          } else {
+                            setIsModalOpen(false);
+                            handleUnban(selectedUser.id);
+                          }
+                       }}
+                       className={`h-12 px-8 rounded-2xl text-[10px] font-black uppercase tracking-[0.2em] transition-all shadow-xl ${
+                         selectedUser.status === 'ACTIVE'
+                         ? 'bg-red-600 text-white hover:bg-red-700'
+                         : 'bg-green-600 text-white hover:bg-green-700'
+                       }`}
+                     >
+                       {selectedUser.status === 'ACTIVE' ? 'Ban Access' : 'Restore Access'}
+                     </button>
+                   </div>
                 </div>
               </>
             ) : null}
@@ -408,17 +468,17 @@ export default function UserManagement() {
       {banDialogOpen && (
         <div className="fixed inset-0 z-[110] flex items-center justify-center p-6 animate-in fade-in duration-200">
           <div className="absolute inset-0 bg-on-background/50 backdrop-blur-sm" onClick={() => setBanDialogOpen(false)} />
-          <div className="bg-white w-full max-w-md rounded-[2rem] shadow-2xl relative z-10 p-10 space-y-8 animate-in zoom-in-95 duration-200">
+          <div className="bg-white w-full max-w-md rounded-3xl shadow-2xl relative z-10 p-8 space-y-6 animate-in zoom-in-95 duration-200">
             <div>
-              <h3 className="text-2xl font-black tracking-tighter text-on-surface">Ban User</h3>
-              <p className="text-[11px] text-outline font-bold mt-2">Select a reason for banning this user. This action will be logged.</p>
+              <h3 className="text-xl font-black tracking-tighter text-on-surface">Ban User</h3>
+              <p className="text-[10px] text-outline font-bold mt-2">Select a reason for banning this user. This action will be logged.</p>
             </div>
             <div className="space-y-3">
               <label className="text-[9px] font-black text-outline uppercase tracking-[0.2em]">Violation Type</label>
               <select
                 value={banReason}
                 onChange={(e) => setBanReason(e.target.value)}
-                className="w-full h-14 px-5 bg-background rounded-2xl border border-transparent focus:border-primary/20 text-[12px] font-bold outline-none appearance-none"
+                className="w-full h-12 px-5 bg-background rounded-xl border border-transparent focus:border-primary/20 text-[12px] font-bold outline-none appearance-none"
               >
                 <option value="SPAM">Spam</option>
                 <option value="HATE_SPEECH">Hate Speech</option>
@@ -442,6 +502,101 @@ export default function UserManagement() {
                 Confirm Ban
               </button>
             </div>
+          </div>
+        </div>
+      )}
+
+      {/* Create User Modal */}
+      {isCreateModalOpen && (
+        <div className="fixed inset-0 z-[100] flex items-center justify-center p-6 animate-in fade-in duration-300">
+          <div className="absolute inset-0 bg-on-background/40 backdrop-blur-sm" onClick={() => setIsCreateModalOpen(false)} />
+          <div className="bg-white w-full max-w-lg rounded-3xl shadow-2xl relative z-10 overflow-hidden flex flex-col animate-in zoom-in-95 duration-300 max-h-[90vh]">
+            <form onSubmit={handleCreateUser} className="flex flex-col flex-1 min-h-0">
+              <div className="p-6 sm:p-8 bg-background/50 border-b border-outline/5 flex items-center justify-between shrink-0">
+                <div>
+                  <h3 className="text-xl font-black tracking-tighter text-on-surface">Create Account</h3>
+                  <p className="text-[9px] font-black text-outline uppercase tracking-widest mt-1">Manual Identity Registration</p>
+                </div>
+                <button type="button" onClick={() => setIsCreateModalOpen(false)} className="w-10 h-10 rounded-xl bg-white shadow-lg flex items-center justify-center text-outline hover:text-primary transition-all">
+                  <span className="material-symbols-outlined">close</span>
+                </button>
+              </div>
+
+              <div className="p-6 sm:p-8 space-y-4 flex-1 overflow-y-auto custom-scrollbar min-h-0">
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                  <div className="space-y-1.5">
+                    <label className="text-[9px] font-black text-outline uppercase tracking-widest ml-1">Username</label>
+                    <input 
+                      required
+                      type="text" 
+                      value={createFormData.username}
+                      onChange={(e) => setCreateFormData({...createFormData, username: e.target.value})}
+                      className="w-full h-12 px-5 bg-background rounded-xl border border-transparent focus:border-primary/20 outline-none text-[12px] font-bold"
+                      placeholder="e.g., admin_hanoi"
+                    />
+                  </div>
+                  <div className="space-y-1.5">
+                    <label className="text-[9px] font-black text-outline uppercase tracking-widest ml-1">Email Address</label>
+                    <input 
+                      required
+                      type="email" 
+                      value={createFormData.email}
+                      onChange={(e) => setCreateFormData({...createFormData, email: e.target.value})}
+                      className="w-full h-12 px-5 bg-background rounded-xl border border-transparent focus:border-primary/20 outline-none text-[12px] font-bold"
+                      placeholder="email@example.com"
+                    />
+                  </div>
+                  <div className="space-y-1.5">
+                    <label className="text-[9px] font-black text-outline uppercase tracking-widest ml-1">Password</label>
+                    <input 
+                      required
+                      type="password" 
+                      value={createFormData.password}
+                      onChange={(e) => setCreateFormData({...createFormData, password: e.target.value})}
+                      className="w-full h-12 px-5 bg-background rounded-xl border border-transparent focus:border-primary/20 outline-none text-[12px] font-bold"
+                      placeholder="••••••••"
+                    />
+                  </div>
+                  <div className="space-y-1.5">
+                    <label className="text-[9px] font-black text-outline uppercase tracking-widest ml-1">Full Name (Optional)</label>
+                    <input 
+                      type="text" 
+                      value={createFormData.fullName}
+                      onChange={(e) => setCreateFormData({...createFormData, fullName: e.target.value})}
+                      className="w-full h-12 px-5 bg-background rounded-xl border border-transparent focus:border-primary/20 outline-none text-[12px] font-bold"
+                      placeholder="Full Name"
+                    />
+                  </div>
+                  <div className="space-y-1.5 md:col-span-2">
+                    <label className="text-[9px] font-black text-outline uppercase tracking-widest ml-1">System Role</label>
+                    <select 
+                      value={createFormData.role}
+                      onChange={(e) => setCreateFormData({...createFormData, role: e.target.value})}
+                      className="w-full h-12 px-5 bg-background rounded-xl border border-transparent focus:border-primary/20 outline-none text-[11px] font-black uppercase tracking-widest"
+                    >
+                      <option value="USER">User</option>
+                      <option value="ADMIN">Administrator</option>
+                    </select>
+                  </div>
+                </div>
+              </div>
+
+              <div className="p-6 bg-background/20 border-t border-outline/5 flex justify-end gap-3 shrink-0">
+                <button 
+                  type="button" 
+                  onClick={() => setIsCreateModalOpen(false)}
+                  className="h-10 px-6 rounded-lg text-[10px] font-black uppercase tracking-widest hover:bg-white transition-all"
+                >
+                  Cancel
+                </button>
+                <button 
+                  type="submit"
+                  className="h-10 px-8 bg-primary text-white rounded-lg text-[10px] font-black uppercase tracking-widest hover:shadow-2xl hover:shadow-primary/40 transition-all shadow-xl shadow-primary/20 active:scale-95"
+                >
+                  Create Account
+                </button>
+              </div>
+            </form>
           </div>
         </div>
       )}

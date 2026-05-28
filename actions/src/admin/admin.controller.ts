@@ -12,8 +12,12 @@ import { AdminService } from './admin.service';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 import { RolesGuard } from '../common/guards/roles.guard';
 import { Roles } from '../common/decorators/roles.decorator';
-import { Role, UserStatus } from '@prisma/client';
+import { Role, UserStatus, ReportStatus } from '@prisma/client';
 import { BanUserDto } from './dto/ban-user.dto';
+import { CreatePlaceDto } from './dto/create-place.dto';
+import { UpdatePlaceDto } from './dto/update-place.dto';
+import { CreateUserDto } from './dto/create-user.dto';
+import { Post, Delete } from '@nestjs/common';
 
 @Controller('admin')
 @UseGuards(JwtAuthGuard, RolesGuard)
@@ -69,7 +73,12 @@ export class AdminController {
     @Body() body: BanUserDto,
     @Request() req: any,
   ) {
-    return this.adminService.banUser(req.user.id, userId, body.reason, body.description);
+    return this.adminService.banUser(
+      req.user.id,
+      userId,
+      body.reason,
+      body.description,
+    );
   }
 
   @Patch('users/:id/unban')
@@ -80,5 +89,94 @@ export class AdminController {
   @Get('users/:id')
   getUserDetails(@Param('id') userId: string) {
     return this.adminService.getUserDetails(userId);
+  }
+
+  @Post('users')
+  createUser(@Body() dto: CreateUserDto) {
+    return this.adminService.createUser(dto);
+  }
+
+  // ── Place Management ───────────────────────────────────────────────
+  @Get('places')
+  getPlaces(
+    @Query('page') page?: string,
+    @Query('limit') limit?: string,
+    @Query('search') search?: string,
+    @Query('category') category?: string,
+  ) {
+    return this.adminService.getPlaces(
+      page ? parseInt(page) : 1,
+      limit ? parseInt(limit) : 10,
+      search,
+      category,
+    );
+  }
+
+  @Post('places')
+  createPlace(@Body() dto: CreatePlaceDto) {
+    return this.adminService.createPlace(dto);
+  }
+
+  @Patch('places/:id')
+  updatePlace(@Param('id') id: string, @Body() dto: UpdatePlaceDto) {
+    return this.adminService.updatePlace(id, dto);
+  }
+
+  @Delete('places/:id')
+  deletePlace(@Param('id') id: string) {
+    return this.adminService.deletePlace(id);
+  }
+
+  @Delete('users/:id')
+  deleteUser(@Param('id') userId: string) {
+    return this.adminService.deleteUser(userId);
+  }
+
+  // ── Report Management ───────────────────────────────────────────────
+  @Get('reports')
+  getReports(
+    @Query('page') page?: string,
+    @Query('limit') limit?: string,
+    @Query('status') status?: ReportStatus,
+    @Query('search') search?: string,
+  ) {
+    return this.adminService.getReports(
+      page ? parseInt(page) : 1,
+      limit ? parseInt(limit) : 10,
+      status,
+      search,
+    );
+  }
+
+  @Get('reports/:id')
+  getReportDetail(@Param('id') id: string) {
+    return this.adminService.getReportDetail(id);
+  }
+
+  @Patch('reports/:id/resolve')
+  resolveReport(
+    @Param('id') reportId: string,
+    @Body() body: { adminNotes?: string; hideActivity?: boolean },
+    @Request() req: any,
+  ) {
+    return this.adminService.resolveReport(
+      req.user.id,
+      reportId,
+      body.adminNotes,
+      body.hideActivity,
+    );
+  }
+
+  @Patch('reports/:id/dismiss')
+  dismissReport(
+    @Param('id') reportId: string,
+    @Body() body: { adminNotes?: string },
+    @Request() req: any,
+  ) {
+    return this.adminService.dismissReport(
+      req.user.id,
+      reportId,
+      body.adminNotes,
+    );
   }
 }

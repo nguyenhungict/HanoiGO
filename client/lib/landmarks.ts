@@ -1,9 +1,8 @@
-import landmarksData from '@/public/data/landmarks.json';
-
 export interface Landmark {
   id: string;
   name: string;
   image: string;
+  gallery: string[];
   rating: number;
   category: string;
   description: string;
@@ -11,7 +10,7 @@ export interface Landmark {
   lng: number;
 }
 
-type PlaceStory = {
+export type PlaceStory = {
   eyebrow: string;
   intro: string;
   archiveNote: string;
@@ -19,7 +18,65 @@ type PlaceStory = {
   facts: { label: string; value: string }[];
 };
 
-export const landmarks = landmarksData as Landmark[];
+// Default static data for fallback
+export const staticLandmarks: Landmark[] = [];
+
+// API fetch function
+export async function fetchLandmarks(): Promise<Landmark[]> {
+  try {
+    const baseUrl = process.env.NEXT_PUBLIC_ACTIONS_URL || 'http://localhost:8888';
+    // Force revalidation to bypass any Next.js or browser cache
+    const response = await fetch(`${baseUrl}/places`, { 
+      cache: 'no-store',
+      headers: { 'Pragma': 'no-cache', 'Cache-Control': 'no-cache' }
+    });
+    
+    if (!response.ok) throw new Error('Failed to fetch from API');
+    const responseData = await response.json();
+    const data = Array.isArray(responseData) ? responseData : (responseData.places || []);
+    
+    // Highly reliable Unsplash static placeholders
+    const getPlaceholder = (category: string) => {
+      const cat = (category || '').toLowerCase();
+      if (cat.includes('museum') || cat.includes('historic')) 
+        return "https://images.unsplash.com/photo-1599708153386-62bf3f03361a?w=800&q=80";
+      if (cat.includes('temple') || cat.includes('pagoda')) 
+        return "https://images.unsplash.com/photo-1518548419970-58e3b4079ab2?w=800&q=80";
+      if (cat.includes('lake') || cat.includes('water')) 
+        return "https://images.unsplash.com/photo-1559592442-741e6b89cc46?w=800&q=80";
+      if (cat.includes('food') || cat.includes('cafe')) 
+        return "https://images.unsplash.com/photo-1555921015-5532091f6026?w=800&q=80";
+      return "https://images.unsplash.com/photo-1509030450996-93f25ef2030f?w=800&q=80";
+    };
+
+    return data.map((p: any) => {
+      const category = p.category || 'Sightseeing';
+      const placeholder = getPlaceholder(category);
+      
+      // Defensive check: if imageUrl exists but is a broken/deprecated link, use placeholder
+      const isValidImage = p.imageUrl && !p.imageUrl.includes('source.unsplash.com');
+      
+      return {
+        id: p.id,
+        name: p.name,
+        image: isValidImage ? p.imageUrl : placeholder,
+        gallery: (p.gallery && p.gallery.length > 0) 
+          ? p.gallery.map((img: any) => img.url).filter((url: string) => !url.includes('source.unsplash.com'))
+          : [placeholder],
+        rating: 4.5,
+        category: category,
+        description: p.descriptionEn || "",
+        lat: p.lat,
+        lng: p.lng
+      };
+    });
+  } catch (error) {
+    console.error("API Error, falling back to static landmarks:", error);
+    return staticLandmarks;
+  }
+}
+
+export let landmarks = staticLandmarks;
 
 function cleanDescription(description: string, name: string, category: string) {
   const normalized = description.replace(/â€¦/g, '...').trim();
@@ -31,51 +88,43 @@ function cleanDescription(description: string, name: string, category: string) {
 function getCategoryLens(category: string) {
   const value = category.toLowerCase();
 
-  if (value.includes('museum')) {
+  if (value.includes('art') || value.includes('museum') || value.includes('theater')) {
     return {
-      eyebrow: 'Curated Memory',
-      mood: 'quiet observation, layered timelines, and carefully preserved civic memory',
-      focus: 'gallery rooms, artifacts, and the stories that frame Hanoi across generations',
+      eyebrow: 'Arts & Culture',
+      mood: 'creative expression, quiet observation, and layered cultural timelines',
+      focus: 'galleries, performance spaces, and the artistic pulse of Hanoi',
     };
   }
 
-  if (value.includes('religious') || value.includes('temple') || value.includes('pagoda')) {
+  if (value.includes('spiritual') || value.includes('temple')) {
     return {
       eyebrow: 'Sacred Layer',
       mood: 'ritual calm, incense, and a slower ceremonial tempo',
-      focus: 'symbolic details, courtyards, altars, and the transition from street noise to contemplative space',
+      focus: 'symbolic details, courtyards, altars, and contemplative spaces',
     };
   }
 
-  if (value.includes('market') || value.includes('shopping') || value.includes('coffee')) {
+  if (value.includes('eat') || value.includes('shop')) {
     return {
-      eyebrow: 'Street Energy',
+      eyebrow: 'Local Pulse',
       mood: 'commerce, conversation, and the dense choreography of daily life',
-      focus: 'textures, storefront habits, and the social pulse that makes the area feel alive',
+      focus: 'street textures, local flavors, and the social energy of markets and cafes',
     };
   }
 
-  if (value.includes('theater') || value.includes('performance')) {
-    return {
-      eyebrow: 'Live Culture',
-      mood: 'staging, anticipation, and a heightened public atmosphere',
-      focus: "the performance tradition itself and the role the venue plays in the city's cultural identity",
-    };
-  }
-
-  if (value.includes('historic') || value.includes('landmark') || value.includes('bridge')) {
+  if (value.includes('heritage') || value.includes('historic')) {
     return {
       eyebrow: 'Historic Trace',
       mood: 'monumental form, visible age, and strong urban symbolism',
-      focus: 'architectural silhouette, historical turning points, and how the site anchors the wider district',
+      focus: 'architectural silhouettes, historical turning points, and urban heritage',
     };
   }
 
-  if (value.includes('water') || value.includes('park')) {
+  if (value.includes('nature') || value.includes('outdoor')) {
     return {
       eyebrow: 'Open Air Frame',
       mood: 'breathing room, horizon lines, and a softer city cadence',
-      focus: 'landscape atmosphere, movement, and the contrast between nature and dense urban fabric',
+      focus: 'landscape atmosphere, movement, and the contrast with the dense urban fabric',
     };
   }
 

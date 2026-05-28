@@ -1,14 +1,27 @@
 'use client';
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import Link from 'next/link';
-import { getProfileAction, updateProfileAction } from '@/lib/actions';
+import { getProfileAction, updateProfileAction, uploadImageAction } from '@/lib/actions';
 import { useRouter } from 'next/navigation';
+import { useNotification } from '@/hooks/use-notification';
+
+const BACKEND_URL = process.env.NEXT_PUBLIC_ACTIONS_URL || 'http://localhost:8888';
+
+function resolveImageUrl(url?: string | null): string | null {
+  if (!url) return null;
+  if (url.startsWith('http')) return url;
+  const cleanUrl = url.startsWith('/') ? url : `/${url}`;
+  return `${BACKEND_URL}${cleanUrl}`;
+}
 
 export default function EditProfilePage() {
   const router = useRouter();
+  const fileInputRef = useRef<HTMLInputElement>(null);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
+  const [uploading, setUploading] = useState(false);
+  const { show } = useNotification();
   const [profile, setProfile] = useState({
     name: '',
     username: '',
@@ -16,7 +29,8 @@ export default function EditProfilePage() {
     nationality: '',
     languages: '',
     bio: '',
-    avatar: 'H'
+    avatar: 'H',
+    avatarUrl: ''
   });
 
   useEffect(() => {
@@ -31,7 +45,8 @@ export default function EditProfilePage() {
           nationality: u.nationality || '',
           languages: u.languages?.join(', ') || '',
           bio: u.bio || '',
-          avatar: u.username?.charAt(0).toUpperCase() || 'H'
+          avatar: u.username?.charAt(0).toUpperCase() || 'H',
+          avatarUrl: u.avatarUrl || ''
         });
       }
       setLoading(false);
@@ -42,6 +57,37 @@ export default function EditProfilePage() {
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
     const { name, value } = e.target;
     setProfile(prev => ({ ...prev, [name]: value }));
+  };
+
+  const handleAvatarClick = () => {
+    fileInputRef.current?.click();
+  };
+
+  const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    setUploading(true);
+    const formData = new FormData();
+    formData.append('file', file);
+
+    const res = await uploadImageAction(formData);
+    setUploading(false);
+
+    if (res.success && res.url) {
+      setProfile(prev => ({ ...prev, avatarUrl: res.url }));
+      show({
+        type: 'success',
+        title: 'Ảnh đại diện đã được tải lên',
+        message: 'Bấm Lưu Thay Đổi để lưu chính thức vào hồ sơ.'
+      });
+    } else {
+      show({
+        type: 'error',
+        title: 'Lỗi tải ảnh',
+        message: res.error || 'Không thể tải ảnh đại diện lên.'
+      });
+    }
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -55,16 +101,17 @@ export default function EditProfilePage() {
       nationality: profile.nationality,
       languages: profile.languages.split(',').map(l => l.trim()).filter(l => l),
       bio: profile.bio,
+      avatarUrl: profile.avatarUrl || null
     };
 
     const res = await updateProfileAction(payload);
     setSaving(false);
     
     if (res.success) {
-      alert('Hồ sơ đã được cập nhật thành công!');
+      show({ type: 'success', title: 'Hồ sơ đã cập nhật', message: 'Thông tin cá nhân của bạn đã được lưu an toàn.' });
       router.push('/profile');
     } else {
-      alert(res.error || 'Có lỗi xảy ra khi lưu hồ sơ');
+      show({ type: 'error', title: 'Lỗi cập nhật', message: res.error || 'Có lỗi xảy ra khi lưu hồ sơ của bạn.' });
     }
   };
 
@@ -95,14 +142,34 @@ export default function EditProfilePage() {
           {/* Avatar Section */}
           <aside className="md:col-span-1 space-y-6">
             <div className="bg-white rounded-[2.5rem] p-8 border border-outline/10 shadow-xl shadow-rose-900/5 text-center">
-              <div className="relative group w-32 h-32 mx-auto mb-6">
-                <div className="w-full h-full rounded-full bg-primary flex items-center justify-center text-white text-5xl font-black border-[6px] border-surface-container-high overflow-hidden shadow-inner uppercase">
-                  {profile.avatar}
-                </div>
-                <div className="absolute inset-0 bg-black/40 rounded-full opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center text-white cursor-pointer">
-                  <span className="material-symbols-outlined">photo_camera</span>
+              <div 
+                onClick={handleAvatarClick}
+                className="relative group w-32 h-32 mx-auto mb-6 cursor-pointer overflow-hidden rounded-full border-[6px] border-surface-container-high shadow-inner bg-primary text-white text-5xl font-black flex items-center justify-center uppercase"
+              >
+                {profile.avatarUrl ? (
+                  <img 
+                    src={resolveImageUrl(profile.avatarUrl) || ''} 
+                    alt="Avatar" 
+                    className="w-full h-full object-cover"
+                  />
+                ) : (
+                  profile.avatar
+                )}
+                <div className="absolute inset-0 bg-black/40 rounded-full opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center text-white">
+                  {uploading ? (
+                    <div className="w-6 h-6 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
+                  ) : (
+                    <span className="material-symbols-outlined">photo_camera</span>
+                  )}
                 </div>
               </div>
+              <input 
+                type="file" 
+                ref={fileInputRef} 
+                onChange={handleFileChange} 
+                accept="image/*" 
+                className="hidden" 
+              />
               <h3 className="font-black text-on-surface">{profile.name || 'Your Name'}</h3>
               <p className="text-xs text-outline mt-1 font-medium">@{profile.username}</p>
               

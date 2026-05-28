@@ -1,10 +1,287 @@
 generator client {
-  provider = "prisma-client-js"
+  provider        = "prisma-client-js"
+  previewFeatures = ["postgresqlExtensions"]
 }
 
 datasource db {
-  provider = "postgresql"
-  url      = env("DATABASE_URL")
+  provider   = "postgresql"
+  url        = env("DATABASE_URL")
+  extensions = [postgis]
+}
+
+model User {
+  id               String            @id @default(uuid()) @db.Uuid
+  email            String            @unique
+  passwordHash     String            @map("password_hash")
+  username         String            @unique
+  fullName         String?           @map("full_name")
+  bio              String?
+  avatarUrl        String?           @map("avatar_url")
+  nationality      String?
+  languages        String[]
+  role             Role              @default(USER)
+  status           UserStatus        @default(PENDING)
+  tokenVersion     Int               @default(1) @map("token_version")
+  createdAt        DateTime          @default(now()) @map("created_at") @db.Timestamptz(6)
+  otpCode          String?           @map("otp_code")
+  otpExpiresAt     DateTime?         @map("otp_expires_at") @db.Timestamptz(6)
+  activities       Activity[]        @relation("HostActivities")
+  activityLikes    ActivityLike[]
+  activityMembers  ActivityMember[]
+  adminActions     AdminLog[]        @relation("AdminUser")
+  messageReactions MessageReaction[]
+  messages         Message[]
+  notifications    Notification[]
+  reportsCreated   Report[]          @relation("Reporter")
+  reportsAgainst   Report[]          @relation("TargetUser")
+  trips            Trip[]
+
+  @@map("users")
+}
+
+model Report {
+  id           String        @id @default(uuid()) @db.Uuid
+  reporterId   String?       @map("reporter_id") @db.Uuid
+  targetId     String        @map("target_id") @db.Uuid
+  reason       ViolationType
+  description  String?
+  status       ReportStatus  @default(PENDING)
+  adminNotes   String?       @map("admin_notes")
+  entityType   String?       @map("entity_type")
+  entityId     String?       @map("entity_id") @db.Uuid
+  createdAt    DateTime      @default(now()) @map("created_at") @db.Timestamptz(6)
+  resolvedAt   DateTime?     @map("resolved_at") @db.Timestamptz(6)
+  evidenceUrls String[]      @default([]) @map("evidence_urls")
+  reporter     User?         @relation("Reporter", fields: [reporterId], references: [id])
+  targetUser   User          @relation("TargetUser", fields: [targetId], references: [id])
+
+  @@index([status])
+  @@index([reporterId])
+  @@index([targetId])
+  @@map("reports")
+}
+
+model AdminLog {
+  id        String   @id @default(uuid()) @db.Uuid
+  adminId   String   @map("admin_id") @db.Uuid
+  action    String
+  targetId  String?  @map("target_id")
+  details   String?
+  createdAt DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
+  admin     User     @relation("AdminUser", fields: [adminId], references: [id])
+
+  @@index([adminId])
+  @@index([targetId])
+  @@map("admin_logs")
+}
+
+model Place {
+  id               String                  @id @default(uuid()) @db.Uuid
+  name             String                  @unique
+  descriptionEn    String?                 @map("description_en")
+  category         String
+  district         String
+  address          String?
+  lat              Float
+  lng              Float
+  location         Unsupported("geometry")
+  alwaysOpen       Boolean                 @default(false) @map("always_open")
+  openDays         Int[]                   @map("open_days")
+  openTimeStart    DateTime?               @map("open_time_start") @db.Time(6)
+  openTimeEnd      DateTime?               @map("open_time_end") @db.Time(6)
+  hasBreak         Boolean                 @default(false) @map("has_break")
+  breakStart       DateTime?               @map("break_start") @db.Time(6)
+  breakEnd         DateTime?               @map("break_end") @db.Time(6)
+  visitDurationMin Int?                    @map("visit_duration_min")
+  imageUrl         String?                 @map("image_url")
+  tags             String[]
+  createdAt        DateTime                @default(now()) @map("created_at") @db.Timestamptz(6)
+  activities       Activity[]
+  gallery          PlaceGallery[]
+  tripStops        TripStop[]
+  trips            Trip[]                  @relation("StartPlace")
+
+  @@index([location], type: Gist)
+  @@map("places")
+}
+
+model PlaceGallery {
+  id        String   @id @default(uuid()) @db.Uuid
+  placeId   String   @map("place_id") @db.Uuid
+  url       String
+  createdAt DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
+  place     Place    @relation(fields: [placeId], references: [id], onDelete: Cascade)
+
+  @@index([placeId])
+  @@map("place_gallery")
+}
+
+model Trip {
+  id           String     @id @default(uuid()) @db.Uuid
+  userId       String     @map("user_id") @db.Uuid
+  title        String?
+  numDays      Int        @map("num_days")
+  startPlaceId String?    @map("start_place_id") @db.Uuid
+  createdAt    DateTime   @default(now()) @map("created_at") @db.Timestamptz(6)
+  clonedFromId String?    @map("cloned_from_id") @db.Uuid
+  activities   Activity[]
+  tripDays     TripDay[]
+  clonedFrom   Trip?      @relation("TripClones", fields: [clonedFromId], references: [id])
+  clones       Trip[]     @relation("TripClones")
+  startPlace   Place?     @relation("StartPlace", fields: [startPlaceId], references: [id])
+  user         User       @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@index([startPlaceId])
+  @@index([clonedFromId])
+  @@map("trips")
+}
+
+model TripDay {
+  id        String     @id @default(uuid()) @db.Uuid
+  tripId    String     @map("trip_id") @db.Uuid
+  dayNumber Int        @map("day_number")
+  district  String?
+  trip      Trip       @relation(fields: [tripId], references: [id], onDelete: Cascade)
+  tripStops TripStop[]
+
+  @@index([tripId])
+  @@map("trip_days")
+}
+
+model TripStop {
+  id                String    @id @default(uuid()) @db.Uuid
+  tripDayId         String    @map("trip_day_id") @db.Uuid
+  placeId           String    @map("place_id") @db.Uuid
+  stopOrder         Int       @map("stop_order")
+  arriveAt          DateTime? @map("arrive_at") @db.Time(6)
+  departAt          DateTime? @map("depart_at") @db.Time(6)
+  distanceFromPrevM Int?      @map("distance_from_prev_m")
+  durationFromPrevS Int?      @map("duration_from_prev_s")
+  isSkipped         Boolean   @default(false) @map("is_skipped")
+  place             Place     @relation(fields: [placeId], references: [id])
+  tripDay           TripDay   @relation(fields: [tripDayId], references: [id], onDelete: Cascade)
+
+  @@index([tripDayId])
+  @@index([placeId])
+  @@map("trip_stops")
+}
+
+model Activity {
+  id              String                  @id @default(uuid()) @db.Uuid
+  hostId          String                  @map("host_id") @db.Uuid
+  placeId         String?                 @map("place_id") @db.Uuid
+  title           String
+  description     String?
+  address         String?
+  lat             Float
+  lng             Float
+  location        Unsupported("geometry")
+  scheduledAt     DateTime                @map("scheduled_at") @db.Timestamptz(6)
+  maxMembers      Int?                    @default(10) @map("max_members")
+  status          ActivityStatus          @default(OPEN)
+  createdAt       DateTime                @default(now()) @map("created_at") @db.Timestamptz(6)
+  category        String                  @default("Arts & Culture")
+  imageUrl        String?                 @map("image_url")
+  savesCount      Int                     @default(0) @map("saves_count")
+  tripId          String?                 @map("trip_id") @db.Uuid
+  host            User                    @relation("HostActivities", fields: [hostId], references: [id], onDelete: Cascade)
+  place           Place?                  @relation(fields: [placeId], references: [id])
+  trip            Trip?                   @relation(fields: [tripId], references: [id], onDelete: Cascade)
+  likes           ActivityLike[]
+  activityMembers ActivityMember[]
+  messages        Message[]
+
+  @@index([status, scheduledAt])
+  @@index([hostId])
+  @@index([placeId])
+  @@index([tripId])
+  @@index([location], type: Gist)
+  @@map("activities")
+}
+
+model ActivityMember {
+  activityId String       @map("activity_id") @db.Uuid
+  userId     String       @map("user_id") @db.Uuid
+  status     MemberStatus
+  joinedAt   DateTime     @default(now()) @map("joined_at") @db.Timestamptz(6)
+  activity   Activity     @relation(fields: [activityId], references: [id], onDelete: Cascade)
+  user       User         @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@id([activityId, userId])
+  @@index([activityId])
+  @@index([userId])
+  @@map("activity_members")
+}
+
+model Message {
+  id         String            @id @default(uuid()) @db.Uuid
+  activityId String            @map("activity_id") @db.Uuid
+  userId     String?           @map("user_id") @db.Uuid
+  content    String
+  createdAt  DateTime          @default(now()) @map("created_at") @db.Timestamptz(6)
+  type       MessageType       @default(TEXT)
+  reactions  MessageReaction[]
+  activity   Activity          @relation(fields: [activityId], references: [id], onDelete: Cascade)
+  user       User?             @relation(fields: [userId], references: [id])
+
+  @@index([activityId, createdAt])
+  @@index([userId])
+  @@map("messages")
+}
+
+model MessageReaction {
+  id        String   @id @default(uuid()) @db.Uuid
+  messageId String   @map("message_id") @db.Uuid
+  userId    String   @map("user_id") @db.Uuid
+  emoji     String
+  createdAt DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
+  message   Message  @relation(fields: [messageId], references: [id], onDelete: Cascade)
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([messageId, userId, emoji])
+  @@index([messageId])
+  @@index([userId])
+  @@map("message_reactions")
+}
+
+model Notification {
+  id         String           @id @default(uuid()) @db.Uuid
+  userId     String           @map("user_id") @db.Uuid
+  type       NotificationType
+  title      String
+  body       String?
+  entityType String?          @map("entity_type")
+  entityId   String?          @map("entity_id") @db.Uuid
+  isRead     Boolean          @default(false) @map("is_read")
+  createdAt  DateTime         @default(now()) @map("created_at") @db.Timestamptz(6)
+  user       User             @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId, isRead])
+  @@index([userId, createdAt])
+  @@map("notifications")
+}
+
+model ActivityLike {
+  activityId String   @map("activity_id") @db.Uuid
+  userId     String   @map("user_id") @db.Uuid
+  createdAt  DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
+  activity   Activity @relation(fields: [activityId], references: [id], onDelete: Cascade)
+  user       User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@id([activityId, userId])
+  @@index([activityId])
+  @@index([userId])
+  @@map("activity_likes")
+}
+
+/// This table contains check constraints and requires additional setup for migrations. Visit https://pris.ly/d/check-constraints for more info.
+model spatial_ref_sys {
+  srid      Int     @id
+  auth_name String? @db.VarChar(256)
+  auth_srid Int?
+  srtext    String? @db.VarChar(2048)
+  proj4text String? @db.VarChar(2048)
 }
 
 enum Role {
@@ -15,36 +292,7 @@ enum Role {
 enum UserStatus {
   ACTIVE
   BANNED
-}
-
-model User {
-  id           String     @id @default(uuid()) @db.Uuid
-  email        String     @unique
-  passwordHash String     @map("password_hash")
-  username     String     @unique
-  fullName     String?    @map("full_name")
-  bio          String?
-  avatarUrl    String?    @map("avatar_url")
-  nationality  String?
-  languages    String[]
-  role         Role       @default(USER)
-  status       UserStatus @default(ACTIVE)
-  tokenVersion Int        @default(1) @map("token_version")
-  createdAt    DateTime   @default(now()) @map("created_at") @db.Timestamptz
-
-  // Relationships
-  trips           Trip[]
-  activities      Activity[]       @relation("HostActivities")
-  activityMembers ActivityMember[]
-  messages        Message[]
-
-  // Admin relations
-  reportsCreated Report[]       @relation("Reporter")
-  reportsAgainst Report[]       @relation("TargetUser")
-  adminActions   AdminLog[]     @relation("AdminUser")
-  notifications  Notification[]
-
-  @@map("users")
+  PENDING
 }
 
 enum ViolationType {
@@ -60,119 +308,6 @@ enum ReportStatus {
   PENDING
   RESOLVED
   DISMISSED
-}
-
-model Report {
-  id          String        @id @default(uuid()) @db.Uuid
-  reporterId  String?       @map("reporter_id") @db.Uuid // Admin hoặc User báo cáo
-  targetId    String        @map("target_id") @db.Uuid // User bị báo cáo
-  reason      ViolationType
-  description String?
-  status      ReportStatus  @default(PENDING)
-  adminNotes  String?       @map("admin_notes")
-  entityType  String?       @map("entity_type")
-  entityId    String?       @map("entity_id") @db.Uuid
-  createdAt   DateTime      @default(now()) @map("created_at") @db.Timestamptz
-  resolvedAt  DateTime?     @map("resolved_at") @db.Timestamptz
-
-  // Relationships
-  reporter   User? @relation("Reporter", fields: [reporterId], references: [id])
-  targetUser User  @relation("TargetUser", fields: [targetId], references: [id])
-
-  @@index([status])
-  @@map("reports")
-}
-
-model AdminLog {
-  id        String   @id @default(uuid()) @db.Uuid
-  adminId   String   @map("admin_id") @db.Uuid
-  action    String // e.g., 'BAN_USER', 'DELETE_PLACE', 'UPDATE_SETTINGS'
-  targetId  String?  @map("target_id") // ID of the object changed
-  details   String? // JSON or string details
-  createdAt DateTime @default(now()) @map("created_at") @db.Timestamptz
-
-  // Relationships
-  admin User @relation("AdminUser", fields: [adminId], references: [id])
-
-  @@map("admin_logs")
-}
-
-model Place {
-  id               String                               @id @default(uuid()) @db.Uuid
-  name             String                               @unique
-  nameEn           String?                              @map("name_en")
-  descriptionEn    String?                              @map("description_en")
-  category         String
-  district         String
-  address          String?
-  lat              Float
-  lng              Float
-  location         Unsupported("geometry(Point, 4326)")
-  alwaysOpen       Boolean                              @default(false) @map("always_open")
-  openDays         Int[]                                @map("open_days") // [0=Sun, 1=Mon, ..., 6=Sat]
-  openTimeStart    DateTime?                            @map("open_time_start") @db.Time
-  openTimeEnd      DateTime?                            @map("open_time_end") @db.Time
-  hasBreak         Boolean                              @default(false) @map("has_break")
-  breakStart       DateTime?                            @map("break_start") @db.Time
-  breakEnd         DateTime?                            @map("break_end") @db.Time
-  visitDurationMin Int?                                 @map("visit_duration_min")
-  imageUrl         String?                              @map("image_url")
-  tags             String[]
-  createdAt        DateTime                             @default(now()) @map("created_at") @db.Timestamptz
-
-  // Relationships
-  trips      Trip[]     @relation("StartPlace")
-  tripStops  TripStop[]
-  activities Activity[]
-
-  @@map("places")
-}
-
-model Trip {
-  id           String   @id @default(uuid()) @db.Uuid
-  userId       String   @map("user_id") @db.Uuid
-  title        String?
-  numDays      Int      @map("num_days")
-  startPlaceId String?  @map("start_place_id") @db.Uuid
-  createdAt    DateTime @default(now()) @map("created_at") @db.Timestamptz
-
-  // Relationships
-  user       User      @relation(fields: [userId], references: [id], onDelete: Cascade)
-  startPlace Place?    @relation("StartPlace", fields: [startPlaceId], references: [id])
-  tripDays   TripDay[]
-
-  @@map("trips")
-}
-
-model TripDay {
-  id        String  @id @default(uuid()) @db.Uuid
-  tripId    String  @map("trip_id") @db.Uuid
-  dayNumber Int     @map("day_number")
-  district  String?
-
-  // Relationships
-  trip      Trip       @relation(fields: [tripId], references: [id], onDelete: Cascade)
-  tripStops TripStop[]
-
-  @@map("trip_days")
-}
-
-model TripStop {
-  id                String    @id @default(uuid()) @db.Uuid
-  tripDayId         String    @map("trip_day_id") @db.Uuid
-  placeId           String    @map("place_id") @db.Uuid
-  stopOrder         Int       @map("stop_order")
-  arriveAt          DateTime? @map("arrive_at") @db.Time
-  departAt          DateTime? @map("depart_at") @db.Time
-  distanceFromPrevM Int?      @map("distance_from_prev_m")
-  durationFromPrevS Int?      @map("duration_from_prev_s")
-  isSkipped         Boolean   @default(false) @map("is_skipped")
-
-  // Relationships
-  tripDay TripDay @relation(fields: [tripDayId], references: [id], onDelete: Cascade)
-  place   Place   @relation(fields: [placeId], references: [id])
-
-  @@map("trip_stops")
 }
 
 enum ActivityStatus {
@@ -192,77 +327,10 @@ enum NotificationType {
   ACTIVITY_APPROVED
   ACTIVITY_REJECTED
   NEW_MESSAGE
+  ADMIN_WARNING
 }
 
-model Activity {
-  id          String                               @id @default(uuid()) @db.Uuid
-  hostId      String                               @map("host_id") @db.Uuid
-  placeId     String?                              @map("place_id") @db.Uuid
-  title       String
-  description String?
-  address     String?
-  lat         Float
-  lng         Float
-  location    Unsupported("geometry(Point, 4326)")
-  scheduledAt DateTime                             @map("scheduled_at") @db.Timestamptz
-  maxMembers  Int?                                 @default(10) @map("max_members")
-  status      ActivityStatus                       @default(OPEN)
-  createdAt   DateTime                             @default(now()) @map("created_at") @db.Timestamptz
-
-  // Relationships
-  host            User             @relation("HostActivities", fields: [hostId], references: [id], onDelete: Cascade)
-  place           Place?           @relation(fields: [placeId], references: [id])
-  activityMembers ActivityMember[]
-  messages        Message[]
-
-  @@index([status, scheduledAt])
-  @@map("activities")
-}
-
-model ActivityMember {
-  activityId String       @map("activity_id") @db.Uuid
-  userId     String       @map("user_id") @db.Uuid
-  status     MemberStatus
-  joinedAt   DateTime     @default(now()) @map("joined_at") @db.Timestamptz
-
-  // Relationships
-  activity Activity @relation(fields: [activityId], references: [id], onDelete: Cascade)
-  user     User     @relation(fields: [userId], references: [id], onDelete: Cascade)
-
-  @@id([activityId, userId])
-  @@map("activity_members")
-}
-
-model Message {
-  id         String   @id @default(uuid()) @db.Uuid
-  activityId String   @map("activity_id") @db.Uuid
-  userId     String?  @map("user_id") @db.Uuid
-  content    String
-  createdAt  DateTime @default(now()) @map("created_at") @db.Timestamptz
-
-  // Relationships
-  activity Activity @relation(fields: [activityId], references: [id], onDelete: Cascade)
-  user     User?    @relation(fields: [userId], references: [id], onDelete: SetNull)
-
-  @@index([activityId, createdAt])
-  @@map("messages")
-}
-
-model Notification {
-  id         String           @id @default(uuid()) @db.Uuid
-  userId     String           @map("user_id") @db.Uuid
-  type       NotificationType
-  title      String
-  body       String?
-  entityType String?          @map("entity_type")
-  entityId   String?          @map("entity_id") @db.Uuid
-  isRead     Boolean          @default(false) @map("is_read")
-  createdAt  DateTime         @default(now()) @map("created_at") @db.Timestamptz
-
-  // Relationships
-  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
-
-  @@index([userId, isRead])
-  @@index([userId, createdAt])
-  @@map("notifications")
+enum MessageType {
+  TEXT
+  SYSTEM
 }

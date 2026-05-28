@@ -6,9 +6,11 @@ import { PrismaModule } from './prisma/prisma.module';
 import { PlacesModule } from './places/places.module';
 import { TripsModule } from './trips/trips.module';
 import { ActivitiesModule } from './activities/activities.module';
-import { ChatModule } from './chat/chat.module';
-import { AiMentorModule } from './ai-mentor/ai-mentor.module';
+import { AiChatModule } from './ai-chat/ai-chat.module';
+import { GroupChatModule } from './group-chat/group-chat.module';
 import { AdminModule } from './admin/admin.module';
+import { MediaModule } from './media/media.module';
+import { NotificationsModule } from './notifications/notifications.module';
 import { APP_GUARD } from '@nestjs/core';
 import { RolesGuard } from './common/guards/roles.guard';
 
@@ -21,9 +23,11 @@ import { RolesGuard } from './common/guards/roles.guard';
     PlacesModule,
     TripsModule,
     ActivitiesModule,
-    ChatModule,
-    AiMentorModule,
+    AiChatModule,
+    GroupChatModule,
     AdminModule,
+    MediaModule,
+    NotificationsModule,
   ],
   providers: [],
 })

@@ -1,264 +1,185 @@
 import Link from 'next/link';
-import { getLandmarkById, getPlaceStory, landmarks } from '@/lib/landmarks';
+import { fetchLandmarks } from '@/lib/landmarks';
 
-type PlacesPageProps = {
-  searchParams?: {
-    place?: string;
-    category?: string;
-  };
-};
-
-function buildPlacesHref(placeId: string, category?: string) {
-  const params = new URLSearchParams({ place: placeId });
-
-  if (category && category !== 'All') {
-    params.set('category', category);
-  }
-
-  return `/places?${params.toString()}`;
-}
-
-export default function PlacesPage({ searchParams }: PlacesPageProps) {
+export default async function PlacesDirectoryPage({ searchParams }: { searchParams?: { category?: string; search?: string } }) {
+  const landmarks = await fetchLandmarks();
   const selectedCategory = searchParams?.category || 'All';
-  const filteredLandmarks =
-    selectedCategory === 'All'
-      ? landmarks
-      : landmarks.filter((landmark) => landmark.category === selectedCategory);
+  const searchQuery = searchParams?.search?.toLowerCase() || '';
 
-  const selectedLandmark =
-    getLandmarkById(searchParams?.place) ||
-    filteredLandmarks[0] ||
-    landmarks[0];
-
-  const story = getPlaceStory(selectedLandmark);
   const categories = [
     'All',
-    ...Array.from(new Set(landmarks.map((landmark) => landmark.category))).slice(0, 6),
+    ...Array.from(new Set(landmarks.map((l) => l.category))).slice(0, 8),
   ];
-  const archiveLandmarks = filteredLandmarks
-    .filter((landmark) => landmark.id !== selectedLandmark.id)
-    .slice(0, 9);
+
+  const filteredLandmarks = landmarks.filter((l) => {
+    const matchesCategory = selectedCategory === 'All' || l.category === selectedCategory;
+    const matchesSearch = !searchQuery || l.name.toLowerCase().includes(searchQuery) || l.description?.toLowerCase().includes(searchQuery);
+    return matchesCategory && matchesSearch;
+  });
+
+  const featuredLandmarks = filteredLandmarks.filter(l => l.rating >= 4.5).slice(0, 3);
+  const otherLandmarks = filteredLandmarks.filter(l => !featuredLandmarks.includes(l));
 
   return (
-    <div className="min-h-full bg-background animate-in fade-in duration-700">
-      <header className="sticky top-0 z-20 border-b border-outline/10 bg-white/80 backdrop-blur-2xl">
-        <div className="mx-auto flex max-w-7xl flex-col gap-6 px-8 py-6">
-          <div className="space-y-2">
-            <p className="text-[10px] font-black uppercase tracking-[0.28em] text-primary">
-              Place Archive
-            </p>
-            <div className="flex flex-col gap-3 md:flex-row md:items-end md:justify-between">
+    <div className="min-h-full bg-background animate-in fade-in duration-700 font-body pb-20">
+      {/* Hero Section */}
+      <section className="relative pt-12 pb-10 md:pt-20 md:pb-16 flex items-center justify-center overflow-hidden">
+        {/* Aurora-inspired Background matching HanoiGO Theme */}
+        <div className="absolute inset-0 bg-background z-0">
+           <div className="absolute top-[-10%] left-[-10%] w-[50%] h-[50%] rounded-full bg-primary/10 blur-[100px] mix-blend-multiply animate-pulse duration-1000"></div>
+           <div className="absolute bottom-[-10%] right-[-10%] w-[40%] h-[40%] rounded-full bg-secondary/30 blur-[80px] mix-blend-multiply"></div>
+           <div className="absolute top-[20%] right-[10%] w-[30%] h-[30%] rounded-full bg-[#3F51B5]/10 blur-[90px] mix-blend-multiply"></div>
+        </div>
+        <div className="relative z-10 w-full max-w-4xl px-8 flex flex-col items-center text-center">
+          <h1 className="text-4xl md:text-5xl font-extrabold tracking-tighter text-on-surface leading-tight drop-shadow-sm">
+            Discover <span className="text-primary">Hanoi</span>'s Heritage
+          </h1>
+          <p className="mt-3 text-sm md:text-base text-on-surface-variant max-w-2xl font-medium">
+            Explore curated destinations, historical landmarks, and hidden gems across the city.
+          </p>
+
+          <form action="/places" className="mt-8 w-full max-w-2xl relative flex items-center">
+             <span className="material-symbols-outlined absolute left-6 text-on-surface-variant text-2xl z-10 pointer-events-none">search</span>
+             {selectedCategory !== 'All' && <input type="hidden" name="category" value={selectedCategory} />}
+             <input 
+               type="text" 
+               name="search"
+               defaultValue={searchQuery}
+               placeholder="Search places, categories..." 
+               className="w-full pl-12 pr-28 py-4 rounded-full bg-white/80 backdrop-blur-xl border border-outline/20 text-on-surface font-bold shadow-[0_8px_30px_rgba(38,24,23,0.05)] focus:outline-none focus:ring-4 focus:ring-primary/20 focus:border-primary/40 transition-all text-sm"
+             />
+             <button type="submit" className="absolute right-2 bg-primary hover:bg-primary-container text-white font-black uppercase tracking-widest text-[10px] px-5 py-2.5 rounded-full transition-all hover:scale-[1.02] shadow-md shadow-primary/20">
+               Search
+             </button>
+          </form>
+        </div>
+      </section>
+
+      {/* Categories */}
+      <section className="sticky top-0 z-30 bg-background/90 backdrop-blur-2xl border-y border-outline/10 shadow-sm">
+        <div className="max-w-7xl mx-auto px-8 py-4 overflow-x-auto scrollbar-none flex gap-3">
+          {categories.map((category) => {
+             const params = new URLSearchParams();
+             if (category !== 'All') params.set('category', category);
+             if (searchQuery) params.set('search', searchQuery);
+             const href = `/places?${params.toString()}`;
+             const isActive = selectedCategory === category;
+             return (
+               <Link
+                 key={category}
+                 href={href}
+                 className={`flex-shrink-0 px-5 py-2.5 rounded-full text-[10px] font-black uppercase tracking-[0.15em] transition-all duration-300 border ${
+                   isActive
+                     ? 'bg-primary border-primary text-white shadow-lg shadow-primary/20'
+                     : 'bg-white border-outline/10 text-on-surface-variant hover:bg-secondary hover:text-on-surface hover:border-secondary hover:scale-[1.02]'
+                 }`}
+               >
+                 {category}
+               </Link>
+             );
+          })}
+        </div>
+      </section>
+
+      <main className="max-w-7xl mx-auto px-8 py-12 space-y-16">
+        {/* Featured Grid (Bento Style) */}
+        {featuredLandmarks.length > 0 && (
+          <section>
+            <div className="mb-8 flex items-end justify-between">
               <div>
-                <h1 className="text-4xl font-black tracking-tighter text-on-surface">
-                  {selectedLandmark.name}
-                </h1>
-                <p className="mt-1 text-sm font-medium text-on-surface-variant">
-                  Curated from the discovery map into a full editorial view.
-                </p>
+                <p className="text-[10px] font-black uppercase tracking-[0.25em] text-primary mb-2">Curated Selection</p>
+                <h2 className="text-3xl font-extrabold tracking-tighter text-on-surface">Featured Destinations</h2>
               </div>
-              <Link
-                href="/discovery"
-                className="inline-flex h-12 items-center justify-center rounded-2xl border border-outline/15 px-6 text-[10px] font-black uppercase tracking-[0.22em] text-on-surface transition-all hover:bg-secondary"
-              >
-                Return To Discovery
-              </Link>
             </div>
-          </div>
-
-          <div className="flex flex-wrap gap-3">
-            {categories.map((category) => {
-              const href =
-                category === 'All'
-                  ? buildPlacesHref(selectedLandmark.id)
-                  : buildPlacesHref(selectedLandmark.id, category);
-
-              return (
-                <Link
-                  key={category}
-                  href={href}
-                  className={`rounded-2xl px-5 py-2.5 text-[10px] font-black uppercase tracking-[0.2em] transition-all ${
-                    selectedCategory === category
-                      ? 'bg-primary text-white shadow-lg shadow-primary/20'
-                      : 'bg-secondary text-on-secondary hover:scale-[1.01]'
+            
+            <div className="grid grid-cols-1 md:grid-cols-12 gap-5 h-auto md:h-[400px]">
+              {featuredLandmarks.map((landmark, idx) => (
+                <Link 
+                  href={`/places/${landmark.id}`} 
+                  key={landmark.id}
+                  className={`group relative overflow-hidden rounded-3xl block transition-all duration-500 hover:scale-[1.01] hover:shadow-2xl hover:shadow-primary/10 ${
+                    idx === 0 ? 'md:col-span-8 md:row-span-2' : 'md:col-span-4'
                   }`}
                 >
-                  {category}
+                  <img 
+                    src={landmark.image} 
+                    alt={landmark.name} 
+                    className="absolute inset-0 w-full h-full object-cover transition-transform duration-700 group-hover:scale-105"
+                  />
+                  <div className="absolute inset-0 bg-gradient-to-t from-on-surface/90 via-on-surface/20 to-transparent"></div>
+                  
+                  <div className="absolute bottom-0 left-0 right-0 p-8">
+                     <span className="inline-block px-3 py-1 bg-white/20 backdrop-blur-md rounded-lg text-white text-[10px] font-black uppercase tracking-widest mb-3 border border-white/20">
+                       {landmark.category}
+                     </span>
+                     <h3 className={`font-extrabold text-white tracking-tight ${idx === 0 ? 'text-3xl' : 'text-xl'}`}>
+                       {landmark.name}
+                     </h3>
+                     <div className="flex items-center gap-1.5 mt-2 text-primary-container">
+                       <span className="material-symbols-outlined fill-1 text-sm">star</span>
+                       <span className="text-xs font-black">{landmark.rating.toFixed(1)}</span>
+                     </div>
+                  </div>
                 </Link>
-              );
-            })}
-          </div>
-        </div>
-      </header>
-
-      <main className="mx-auto flex max-w-7xl flex-col gap-8 px-8 py-8">
-        <section className="grid gap-8 xl:grid-cols-[minmax(0,1.45fr)_24rem]">
-          <article className="overflow-hidden rounded-[2rem] border border-outline/10 bg-white shadow-[0_18px_60px_rgba(38,24,23,0.08)]">
-            <div className="relative h-[24rem] overflow-hidden bg-secondary-container">
-              <img
-                src={selectedLandmark.image}
-                alt={selectedLandmark.name}
-                className="h-full w-full object-cover"
-              />
-              <div className="absolute inset-0 bg-gradient-to-t from-on-surface/90 via-on-surface/20 to-transparent" />
-              <div className="absolute inset-x-0 bottom-0 p-8 text-white">
-                <div className="mb-4 flex flex-wrap items-center gap-3">
-                  <span className="rounded-full bg-white/15 px-3 py-1 text-[10px] font-black uppercase tracking-[0.24em] backdrop-blur-xl">
-                    {story.eyebrow}
-                  </span>
-                  <span className="rounded-full bg-white/15 px-3 py-1 text-[10px] font-black uppercase tracking-[0.24em] backdrop-blur-xl">
-                    {selectedLandmark.category}
-                  </span>
-                </div>
-                <h2 className="max-w-3xl text-4xl font-black tracking-tighter">
-                  {story.intro}
-                </h2>
-              </div>
+              ))}
             </div>
+          </section>
+        )}
 
-            <div className="grid gap-8 p-8 lg:grid-cols-[minmax(0,1fr)_18rem]">
-              <div className="space-y-6">
-                {story.sections.map((section) => (
-                  <div key={section.title} className="space-y-2">
-                    <p className="text-[10px] font-black uppercase tracking-[0.24em] text-primary">
-                      {section.title}
-                    </p>
-                    <p className="text-[15px] leading-8 text-on-surface-variant">
-                      {section.body}
-                    </p>
-                  </div>
+        {/* Directory Grid */}
+        <section>
+           <div className="mb-6">
+              <h2 className="text-xl font-extrabold tracking-tighter text-on-surface">Explore More</h2>
+              <p className="text-on-surface-variant text-xs font-medium mt-1">Found {otherLandmarks.length} places</p>
+           </div>
+           
+           {otherLandmarks.length === 0 ? (
+             <div className="w-full py-20 flex flex-col items-center justify-center text-center bg-white rounded-3xl border border-outline/10 shadow-sm">
+                <span className="material-symbols-outlined text-6xl text-outline/30 mb-4">search_off</span>
+                <h3 className="text-xl font-bold text-on-surface">No places found</h3>
+                <p className="text-on-surface-variant mt-2">Try adjusting your filters or search query.</p>
+             </div>
+           ) : (
+             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
+                {otherLandmarks.map((landmark) => (
+                  <Link 
+                    href={`/places/${landmark.id}`} 
+                    key={landmark.id}
+                    className="group bg-white rounded-[1.25rem] overflow-hidden border border-outline/10 shadow-sm hover:shadow-xl hover:shadow-primary/5 transition-all duration-300 hover:-translate-y-1 flex flex-col h-full"
+                  >
+                     <div className="relative h-40 overflow-hidden bg-secondary-container">
+                        <img 
+                          src={landmark.image} 
+                          alt={landmark.name} 
+                          className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-110"
+                        />
+                        <div className="absolute inset-0 bg-gradient-to-t from-black/50 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300"></div>
+                        <div className="absolute top-3 left-3 bg-white/90 backdrop-blur-md px-2 py-1 rounded-md text-[9px] font-black uppercase tracking-widest text-on-surface shadow-sm">
+                          {landmark.category}
+                        </div>
+                     </div>
+                     <div className="p-4 flex-1 flex flex-col">
+                        <div className="flex items-start justify-between gap-2 mb-2">
+                          <h3 className="font-bold text-base leading-tight text-on-surface tracking-tight group-hover:text-primary transition-colors">
+                            {landmark.name}
+                          </h3>
+                          <div className="flex items-center gap-1 text-primary shrink-0 bg-primary/5 px-1.5 py-0.5 rounded">
+                            <span className="material-symbols-outlined fill-1 text-[12px]">star</span>
+                            <span className="text-[10px] font-black">{landmark.rating.toFixed(1)}</span>
+                          </div>
+                        </div>
+                        <p className="text-on-surface-variant text-xs font-medium line-clamp-2 leading-relaxed mb-4 flex-1">
+                           {landmark.description || `Khám phá vẻ đẹp lịch sử và văn hóa tại ${landmark.name}.`}
+                        </p>
+                        <div className="flex items-center text-primary text-[10px] font-black uppercase tracking-widest pt-4 border-t border-outline/5 mt-auto">
+                           View Details
+                           <span className="material-symbols-outlined text-[14px] ml-1 group-hover:translate-x-1 transition-transform">arrow_forward</span>
+                        </div>
+                     </div>
+                  </Link>
                 ))}
-              </div>
-
-              <div className="space-y-4">
-                <div className="rounded-[1.75rem] bg-secondary-container p-6">
-                  <p className="text-[10px] font-black uppercase tracking-[0.24em] text-primary">
-                    Archive Note
-                  </p>
-                  <p className="mt-3 text-sm leading-7 text-on-secondary">
-                    {story.archiveNote}
-                  </p>
-                </div>
-
-                <div className="rounded-[1.75rem] border border-outline/10 bg-background p-6">
-                  <p className="text-[10px] font-black uppercase tracking-[0.24em] text-outline">
-                    Quick Facts
-                  </p>
-                  <div className="mt-4 space-y-4">
-                    {story.facts.map((fact) => (
-                      <div
-                        key={fact.label}
-                        className="border-b border-outline/10 pb-4 last:border-b-0 last:pb-0"
-                      >
-                        <p className="text-[9px] font-black uppercase tracking-[0.22em] text-outline">
-                          {fact.label}
-                        </p>
-                        <p className="mt-1 text-sm font-bold text-on-surface">
-                          {fact.value}
-                        </p>
-                      </div>
-                    ))}
-                  </div>
-                </div>
-              </div>
-            </div>
-          </article>
-
-          <aside className="space-y-4">
-            <div className="rounded-[2rem] border border-outline/10 bg-white p-6 shadow-sm">
-              <p className="text-[10px] font-black uppercase tracking-[0.24em] text-outline">
-                Nearby Archive Flow
-              </p>
-              <p className="mt-3 text-sm leading-7 text-on-surface-variant">
-                Move through the collection without losing the editorial framing. Each card opens another destination inside the same archive layout.
-              </p>
-            </div>
-
-            {archiveLandmarks.slice(0, 4).map((landmark) => (
-              <Link
-                key={landmark.id}
-                href={buildPlacesHref(landmark.id, selectedCategory)}
-                className="block overflow-hidden rounded-[1.75rem] border border-outline/10 bg-white transition-all duration-300 hover:scale-[1.01] hover:shadow-xl hover:shadow-primary/10"
-              >
-                <div className="flex gap-4 p-4">
-                  <img
-                    src={landmark.image}
-                    alt={landmark.name}
-                    className="h-24 w-24 rounded-[1.25rem] object-cover"
-                  />
-                  <div className="min-w-0 flex-1">
-                    <p className="text-[9px] font-black uppercase tracking-[0.2em] text-primary">
-                      {landmark.category}
-                    </p>
-                    <h3 className="mt-2 line-clamp-2 text-lg font-black tracking-tight text-on-surface">
-                      {landmark.name}
-                    </h3>
-                    <p className="mt-3 text-[10px] font-black uppercase tracking-[0.2em] text-outline">
-                      Open Article
-                    </p>
-                  </div>
-                </div>
-              </Link>
-            ))}
-          </aside>
-        </section>
-
-        <section className="space-y-5">
-          <div className="flex flex-col gap-2 md:flex-row md:items-end md:justify-between">
-            <div>
-              <p className="text-[10px] font-black uppercase tracking-[0.24em] text-primary">
-                Archive Continuum
-              </p>
-              <h2 className="text-3xl font-black tracking-tighter text-on-surface">
-                Continue Through The Collection
-              </h2>
-            </div>
-            <p className="text-sm font-medium text-on-surface-variant">
-              Select another place to swap the hero article without leaving the places route.
-            </p>
-          </div>
-
-          <div className="grid gap-6 md:grid-cols-2 xl:grid-cols-3">
-            {archiveLandmarks.map((landmark) => (
-              <Link
-                key={landmark.id}
-                href={buildPlacesHref(landmark.id, selectedCategory)}
-                className="group overflow-hidden rounded-[2rem] border border-outline/10 bg-white shadow-sm transition-all duration-300 hover:-translate-y-1 hover:shadow-2xl hover:shadow-primary/10"
-              >
-                <div className="relative h-56 overflow-hidden">
-                  <img
-                    src={landmark.image}
-                    alt={landmark.name}
-                    className="h-full w-full object-cover transition-transform duration-700 group-hover:scale-105"
-                  />
-                  <div className="absolute inset-0 bg-gradient-to-t from-on-surface/75 via-transparent to-transparent" />
-                  <div className="absolute left-5 top-5 rounded-full bg-white/90 px-3 py-1 text-[9px] font-black uppercase tracking-[0.2em] text-primary backdrop-blur-xl">
-                    {landmark.category}
-                  </div>
-                </div>
-
-                <div className="space-y-4 p-6">
-                  <div className="flex items-start justify-between gap-4">
-                    <h3 className="text-xl font-black tracking-tight text-on-surface">
-                      {landmark.name}
-                    </h3>
-                    <div className="flex items-center gap-1 text-primary">
-                      <span className="material-symbols-outlined text-base">star</span>
-                      <span className="text-xs font-black">{landmark.rating.toFixed(1)}</span>
-                    </div>
-                  </div>
-
-                  <p className="line-clamp-3 text-sm leading-7 text-on-surface-variant">
-                    {getPlaceStory(landmark).sections[0].body}
-                  </p>
-
-                  <div className="flex items-center justify-between border-t border-outline/10 pt-4 text-[10px] font-black uppercase tracking-[0.22em] text-outline transition-colors group-hover:text-primary">
-                    <span>Read Introduction</span>
-                    <span className="material-symbols-outlined text-base">arrow_forward</span>
-                  </div>
-                </div>
-              </Link>
-            ))}
-          </div>
+             </div>
+           )}
         </section>
       </main>
     </div>

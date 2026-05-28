@@ -1,4 +1,15 @@
-import { Body, Controller, Post, Get, Patch, Query, HttpCode, HttpStatus, UseGuards, Request } from '@nestjs/common';
+import {
+  Body,
+  Controller,
+  Post,
+  Get,
+  Patch,
+  Query,
+  HttpCode,
+  HttpStatus,
+  UseGuards,
+  Request,
+} from '@nestjs/common';
 import { AuthService } from './auth.service';
 import { LoginDto } from './dto/login.dto';
 import { RegisterDto } from './dto/register.dto';
@@ -17,9 +28,14 @@ export class AuthController {
     return this.authService.register(registerDto);
   }
 
-  @Get('verify')
-  async verify(@Query('token') token: string) {
-    return this.authService.verifyEmail(token);
+  @Post('verify-otp')
+  async verifyOtp(@Body('email') email: string, @Body('otp') otp: string) {
+    return this.authService.verifyOtp(email, otp);
+  }
+
+  @Post('resend-otp')
+  async resendOtp(@Body('email') email: string) {
+    return this.authService.resendOtp(email);
   }
 
   @HttpCode(HttpStatus.OK)
