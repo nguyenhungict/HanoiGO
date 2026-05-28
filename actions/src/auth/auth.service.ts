@@ -45,6 +45,25 @@ export class AuthService {
     const { email, username, password } = registerDto;
 
     const existingEmail = await this.usersService.findOneByEmail(email);
+
+    // Nếu email đã tồn tại nhưng chưa xác thực (PENDING) → cho phép đăng ký lại với OTP mới
+    if (existingEmail && existingEmail.status === UserStatus.PENDING) {
+      const otpCode = Math.floor(100000 + Math.random() * 900000).toString();
+      const otpExpiresAt = new Date(Date.now() + 10 * 60 * 1000);
+
+      await this.prisma.user.update({
+        where: { id: existingEmail.id },
+        data: { otpCode, otpExpiresAt },
+      });
+
+      await this.sendOtpEmail(email, existingEmail.username, otpCode);
+
+      return {
+        message: 'Mã xác thực đã được gửi đến email của bạn.',
+        email,
+      };
+    }
+
     if (existingEmail) {
       throw new ConflictException('Email đã được sử dụng');
     }
@@ -55,12 +74,13 @@ export class AuthService {
       throw new ConflictException('Tên người dùng đã được sử dụng');
     }
 
+    let createdUserId: string | null = null;
     try {
       const hashedPassword = await bcrypt.hash(password, 12);
       const otpCode = Math.floor(100000 + Math.random() * 900000).toString();
       const otpExpiresAt = new Date(Date.now() + 10 * 60 * 1000); // 10 minutes
 
-      await this.usersService.create({
+      const newUser = await this.usersService.create({
         email,
         username,
         passwordHash: hashedPassword,
@@ -68,6 +88,7 @@ export class AuthService {
         otpCode,
         otpExpiresAt,
       });
+      createdUserId = newUser.id;
 
       await this.sendOtpEmail(email, username, otpCode);
 
@@ -76,8 +97,12 @@ export class AuthService {
         email,
       };
     } catch (error) {
+      // Nếu gửi email thất bại → xóa user vừa tạo để người dùng có thể thử lại
+      if (createdUserId) {
+        await this.prisma.user.delete({ where: { id: createdUserId } }).catch(() => {});
+      }
       console.error('Registration error:', error);
-      throw new InternalServerErrorException('Lỗi hệ thống khi đăng ký');
+      throw new InternalServerErrorException('Lỗi hệ thống khi đăng ký. Vui lòng thử lại.');
     }
   }
 
