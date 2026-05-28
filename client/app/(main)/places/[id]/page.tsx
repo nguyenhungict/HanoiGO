@@ -1,6 +1,8 @@
 import Link from 'next/link';
 import { getPlaceStory, fetchLandmarks } from '@/lib/landmarks';
 
+export const dynamic = 'force-dynamic';
+
 type PlaceDetailsPageProps = {
   params: { id: string };
   searchParams?: { category?: string };

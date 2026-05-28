@@ -1,6 +1,8 @@
 import Link from 'next/link';
 import { fetchLandmarks } from '@/lib/landmarks';
 
+export const dynamic = 'force-dynamic';
+
 export default async function PlacesDirectoryPage({ searchParams }: { searchParams?: { category?: string; search?: string } }) {
   const landmarks = await fetchLandmarks();
   const selectedCategory = searchParams?.category || 'All';
