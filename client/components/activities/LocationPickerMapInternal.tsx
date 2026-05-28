@@ -63,7 +63,7 @@ const LocationPickerMapInternal: React.FC<LocationPickerMapInternalProps> = ({ l
   return (
     <div className="w-full h-44 rounded-2xl overflow-hidden border border-outline/10 relative z-0 mt-2 shadow-inner">
       <style>{`
-        .leaflet-container { font-family: 'Inter', sans-serif !important; border-radius: 1rem; }
+        .leaflet-container { font-family: 'Manrope', sans-serif !important; border-radius: 1rem; }
         .pin-marker { background: none !important; border: none !important; }
       `}</style>
       <MapContainer

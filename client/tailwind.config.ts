@@ -25,6 +25,7 @@ const config: Config = {
         "on-background": "#261817",
         "surface": "#FCF8F2",
         "on-surface": "#261817",
+        "on-surface-variant": "#6C614E",
         "outline": "#8e706f",
         "outline-variant": "#e2bebc",
         "surface-container-lowest": "#ffffff",

@@ -10,6 +10,7 @@ import { AiChatModule } from './ai-chat/ai-chat.module';
 import { GroupChatModule } from './group-chat/group-chat.module';
 import { AdminModule } from './admin/admin.module';
 import { MediaModule } from './media/media.module';
+import { NotificationsModule } from './notifications/notifications.module';
 import { APP_GUARD } from '@nestjs/core';
 import { RolesGuard } from './common/guards/roles.guard';
 
@@ -26,6 +27,7 @@ import { RolesGuard } from './common/guards/roles.guard';
     GroupChatModule,
     AdminModule,
     MediaModule,
+    NotificationsModule,
   ],
   providers: [],
 })

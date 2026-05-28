@@ -5,6 +5,7 @@ import { usePathname } from 'next/navigation';
 import { logoutAction } from '@/lib/actions';
 import { useTripStore } from '@/store/useTripStore';
 import Logo from '@/components/Logo';
+import { NotificationBell } from '@/components/notifications/NotificationBell';
 
 interface HeaderProps {
   username: string;
@@ -43,7 +44,7 @@ export default function Header({ username }: HeaderProps) {
                     : 'text-outline hover:text-primary hover:bg-primary/5'
                 }`}
               >
-                <span className={`material-symbols-outlined text-[18px] ${isActive ? 'fill-1' : ''}`}>{item.icon}</span>
+                <span className="material-symbols-outlined text-[18px] {isActive ? 'fill-1' : ''}">{item.icon}</span>
                 {item.name}
                 {/* Badge for saved places count */}
                 {showBadge && (
@@ -59,6 +60,7 @@ export default function Header({ username }: HeaderProps) {
 
       {/* Right: Search & Profile */}
       <div className="flex items-center gap-6">
+        <NotificationBell />
         <div className="flex items-center gap-4 pl-8 border-l border-outline/10">
           <div className="text-right hidden sm:block">
             <p className="text-[9px] font-black text-outline uppercase tracking-widest leading-none mb-1">Explorer</p>

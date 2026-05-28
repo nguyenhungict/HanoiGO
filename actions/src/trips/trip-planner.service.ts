@@ -236,6 +236,54 @@ export class TripPlannerService {
     });
   }
 
+  async cloneTrip(userId: string, sourceTripId: string) {
+    const source = await this.prisma.trip.findUnique({
+      where: { id: sourceTripId },
+      include: {
+        tripDays: {
+          include: {
+            tripStops: { orderBy: { stopOrder: 'asc' } },
+          },
+          orderBy: { dayNumber: 'asc' },
+        },
+      },
+    });
+
+    if (!source) {
+      throw new Error('Source trip not found');
+    }
+
+    return this.prisma.trip.create({
+      data: {
+        userId,
+        title: `${source.title || 'Hanoi Trip'} (Cloned)`,
+        numDays: source.numDays,
+        startPlaceId: source.startPlaceId,
+        clonedFromId: source.id,
+        tripDays: {
+          create: source.tripDays.map((day) => ({
+            dayNumber: day.dayNumber,
+            district: day.district,
+            tripStops: {
+              create: day.tripStops.map((stop) => ({
+                placeId: stop.placeId,
+                stopOrder: stop.stopOrder,
+                arriveAt: stop.arriveAt,
+                departAt: stop.departAt,
+                distanceFromPrevM: stop.distanceFromPrevM,
+                durationFromPrevS: stop.durationFromPrevS,
+                isSkipped: stop.isSkipped,
+              })),
+            },
+          })),
+        },
+      },
+      include: {
+        tripDays: { include: { tripStops: true } },
+      },
+    });
+  }
+
   private async fetchAndMapPlaces(dto: GenerateItineraryDto): Promise<Place[]> {
     const lookupByIds = Array.isArray(dto.placeIds) && dto.placeIds.length > 0;
 

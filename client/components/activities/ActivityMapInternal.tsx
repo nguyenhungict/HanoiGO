@@ -96,9 +96,9 @@ const MapController = ({ center }: { center: [number, number] }) => {
 
 const ActivityMapInternal: React.FC<ActivityMapInternalProps> = ({ activities, onSelectActivity, userLocation }) => {
   return (
-    <div className="w-full h-full rounded-[2.5rem] overflow-hidden border border-outline/5 shadow-sm relative z-0">
+    <div className="w-full h-full overflow-hidden border border-outline/10 shadow-sm relative z-0">
       <style>{`
-        .leaflet-container { font-family: 'Inter', sans-serif !important; border-radius: 2.5rem; }
+        .leaflet-container { font-family: 'Manrope', sans-serif !important; }
         .activity-marker { background: none !important; border: none !important; }
         .user-marker { background: none !important; border: none !important; }
         .leaflet-popup-content-wrapper { border-radius: 1.5rem; padding: 0; overflow: hidden; }

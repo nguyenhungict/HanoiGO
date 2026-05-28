@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { useAuthStore } from '@/store/useAuthStore';
-import { cancelJoinRequestAction } from '@/lib/actions';
+import { cancelJoinRequestAction, resolveImageUrl } from '@/lib/actions';
 
 interface ActivityCardProps {
   activity: any;
@@ -80,7 +80,7 @@ export const ActivityCard: React.FC<ActivityCardProps> = ({ activity, onClick, o
             <div className="relative shrink-0">
               <div className="w-8 h-8 rounded-lg bg-secondary border border-outline/15 flex items-center justify-center text-on-surface font-bold text-xs shadow-sm overflow-hidden">
                 {host.avatar ? (
-                  <img src={host.avatar} alt={host.username} className="w-full h-full object-cover" />
+                  <img src={resolveImageUrl(host.avatar) ?? ''} alt={host.username} className="w-full h-full object-cover" />
                 ) : (
                   host.username.charAt(0).toUpperCase()
                 )}
@@ -136,7 +136,7 @@ export const ActivityCard: React.FC<ActivityCardProps> = ({ activity, onClick, o
             <div className="flex items-center -space-x-1">
               {[...Array(Math.min(3, memberCount))].map((_, i) => (
                 <div key={i} className="w-5 h-5 rounded-full border-2 border-white bg-secondary flex items-center justify-center text-[6px] font-bold shadow-sm overflow-hidden z-10" style={{ zIndex: 10 - i }}>
-                  {host.avatar && i === 0 ? <img src={host.avatar} className="w-full h-full object-cover" alt="" /> : '👤'}
+                  {host.avatar && i === 0 ? <img src={resolveImageUrl(host.avatar) ?? ''} className="w-full h-full object-cover" alt="" /> : '👤'}
                 </div>
               ))}
             </div>

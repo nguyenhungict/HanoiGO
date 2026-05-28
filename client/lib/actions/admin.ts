@@ -180,3 +180,52 @@ export async function deleteAdminPlaceAction(id: string) {
     return { error: error.response?.data?.message || 'Không thể xóa địa điểm' };
   }
 }
+
+export async function getAdminReportsAction(page = 1, limit = 10, status?: string, search?: string) {
+  try {
+    const headers = await authHeaders();
+    const params = new URLSearchParams({ page: String(page), limit: String(limit) });
+    if (status) params.set('status', status);
+    if (search) params.set('search', search);
+
+    const response = await api.get(`/admin/reports?${params}`, { headers });
+    return response.data;
+  } catch (error: any) {
+    return { reports: [], total: 0, page: 1, lastPage: 1 };
+  }
+}
+
+export async function getAdminReportDetailAction(reportId: string) {
+  try {
+    const headers = await authHeaders();
+    const response = await api.get(`/admin/reports/${reportId}`, { headers });
+    return response.data;
+  } catch (error: any) {
+    return null;
+  }
+}
+
+export async function resolveReportAction(reportId: string, adminNotes?: string, hideActivity?: boolean) {
+  try {
+    const headers = await authHeaders();
+    const response = await api.patch(`/admin/reports/${reportId}/resolve`, { adminNotes, hideActivity }, { headers });
+    revalidatePath('/admin/reports');
+    revalidatePath('/admin/dashboard');
+    return { success: true, ...response.data };
+  } catch (error: any) {
+    return { error: error.response?.data?.message || 'Không thể giải quyết báo cáo' };
+  }
+}
+
+export async function dismissReportAction(reportId: string, adminNotes?: string) {
+  try {
+    const headers = await authHeaders();
+    const response = await api.patch(`/admin/reports/${reportId}/dismiss`, { adminNotes }, { headers });
+    revalidatePath('/admin/reports');
+    revalidatePath('/admin/dashboard');
+    return { success: true, ...response.data };
+  } catch (error: any) {
+    return { error: error.response?.data?.message || 'Không thể bác bỏ báo cáo' };
+  }
+}
+

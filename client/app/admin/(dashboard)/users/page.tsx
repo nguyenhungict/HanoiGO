@@ -7,7 +7,8 @@ import {
   unbanUserAction, 
   getAdminUserDetailsAction,
   createAdminUserAction,
-  deleteAdminUserAction
+  deleteAdminUserAction,
+  resolveImageUrl
 } from '@/lib/actions';
 import { useNotification } from '@/hooks/use-notification';
 import { useConfirm } from '@/hooks/use-confirm';
@@ -218,7 +219,7 @@ export default function UserManagement() {
                         <div className="flex items-center gap-4">
                           <div className="w-12 h-12 rounded-2xl bg-secondary/30 flex items-center justify-center text-primary font-bold text-sm group-hover:bg-primary group-hover:text-white transition-all overflow-hidden">
                             {user.avatarUrl ? (
-                              <img src={user.avatarUrl} alt="" className="w-full h-full object-cover" />
+                              <img src={resolveImageUrl(user.avatarUrl) ?? ''} alt="" className="w-full h-full object-cover" />
                             ) : (
                               (user.fullName || user.username).charAt(0).toUpperCase()
                             )}
@@ -332,7 +333,7 @@ export default function UserManagement() {
                     <div className="w-20 h-20 rounded-2xl bg-white shadow-2xl overflow-hidden p-2">
                       <div className="w-full h-full rounded-xl bg-secondary flex items-center justify-center text-primary text-2xl font-black overflow-hidden">
                         {selectedUser.avatarUrl ? (
-                          <img src={selectedUser.avatarUrl} alt="" className="w-full h-full object-cover" />
+                          <img src={resolveImageUrl(selectedUser.avatarUrl) ?? ''} alt="" className="w-full h-full object-cover" />
                         ) : (
                           selectedUser.username.charAt(0).toUpperCase()
                         )}

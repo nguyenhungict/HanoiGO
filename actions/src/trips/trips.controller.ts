@@ -45,4 +45,17 @@ export class TripsController {
   ) {
     return this.tripPlannerService.deleteTrip(req.user.id, id);
   }
+
+  /**
+   * Clone a trip by its ID → creates an independent copy for the current user.
+   * POST /trips/clone/:id
+   */
+  @UseGuards(AuthGuard('jwt'))
+  @Post('clone/:id')
+  async cloneTrip(
+    @Request() req: { user: { id: string } },
+    @Param('id') id: string,
+  ) {
+    return this.tripPlannerService.cloneTrip(req.user.id, id);
+  }
 }

@@ -3,7 +3,7 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { io, Socket } from 'socket.io-client';
 import { useAuthStore } from '@/store/useAuthStore';
-import { getMyActivitiesAction } from '@/lib/actions';
+import { getMyActivitiesAction, resolveImageUrl } from '@/lib/actions';
 
 interface Reaction { id: string; emoji: string; userId: string; user: { username: string } }
 interface Message {
@@ -291,7 +291,7 @@ export const ActivityChat: React.FC<{ activityId: string; activityTitle: string;
                         {/* Avatar */}
                         {!isMe && !isSameUser ? (
                           <div className="w-8 h-8 rounded-xl bg-secondary flex-shrink-0 flex items-center justify-center text-[10px] font-bold overflow-hidden text-on-secondary/50">
-                            {m.user?.avatarUrl ? <img src={m.user.avatarUrl} className="w-full h-full object-cover" /> : m.user?.username?.charAt(0)}
+                            {m.user?.avatarUrl ? <img src={resolveImageUrl(m.user.avatarUrl) ?? ''} className="w-full h-full object-cover" /> : m.user?.username?.charAt(0)}
                           </div>
                         ) : !isMe ? <div className="w-8 flex-shrink-0" /> : null}
 

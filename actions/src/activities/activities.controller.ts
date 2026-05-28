@@ -12,6 +12,7 @@ import {
 } from '@nestjs/common';
 import { ActivitiesService } from './activities.service';
 import { CreateActivityDto } from './dto/create-activity.dto';
+import { ReportActivityDto } from './dto/report-activity.dto';
 import { AuthGuard } from '@nestjs/passport';
 import { OptionalJwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 import { ApiTags, ApiOperation, ApiBearerAuth } from '@nestjs/swagger';
@@ -24,7 +25,7 @@ export class ActivitiesController {
   @Post()
   @UseGuards(AuthGuard('jwt'))
   @ApiBearerAuth()
-  @ApiOperation({ summary: 'Create a new activity' })
+  @ApiOperation({ summary: 'Share a trip plan or create a place-based activity' })
   async create(@Request() req: any, @Body() dto: CreateActivityDto) {
     return this.activitiesService.create(req.user.id, dto);
   }
@@ -56,7 +57,7 @@ export class ActivitiesController {
 
   @Get(':id')
   @UseGuards(OptionalJwtAuthGuard)
-  @ApiOperation({ summary: 'Get activity details' })
+  @ApiOperation({ summary: 'Get activity details (includes trip itinerary if linked)' })
   async findOne(@Param('id') id: string, @Request() req: any) {
     return this.activitiesService.findOne(id, req.user?.id);
   }
@@ -86,11 +87,7 @@ export class ActivitiesController {
     @Param('id') activityId: string,
     @Param('userId') userId: string,
   ) {
-    return this.activitiesService.approveMember(
-      req.user.id,
-      activityId,
-      userId,
-    );
+    return this.activitiesService.approveMember(req.user.id, activityId, userId);
   }
 
   @Patch(':id/reject/:userId')
@@ -113,11 +110,47 @@ export class ActivitiesController {
     return this.activitiesService.getMembers(id);
   }
 
+  /**
+   * Toggle like/unlike on an activity.
+   * POST /activities/:id/like
+   */
+  @Post(':id/like')
+  @UseGuards(AuthGuard('jwt'))
+  @ApiBearerAuth()
+  @ApiOperation({ summary: 'Toggle like/unlike an activity' })
+  async toggleLike(@Request() req: any, @Param('id') id: string) {
+    return this.activitiesService.toggleLike(req.user.id, id);
+  }
+
+  /**
+   * Clone the trip plan linked to an activity into the current user's trips.
+   * POST /activities/:id/clone-trip
+   */
+  @Post(':id/clone-trip')
+  @UseGuards(AuthGuard('jwt'))
+  @ApiBearerAuth()
+  @ApiOperation({ summary: 'Save (clone) the trip plan from an activity into my trips' })
+  async cloneActivityTrip(@Request() req: any, @Param('id') id: string) {
+    return this.activitiesService.cloneActivityTrip(req.user.id, id);
+  }
+
   @Delete(':id')
   @UseGuards(AuthGuard('jwt'))
   @ApiBearerAuth()
   @ApiOperation({ summary: 'Delete an activity (Host only)' })
   async delete(@Request() req: any, @Param('id') id: string) {
     return this.activitiesService.delete(req.user.id, id);
+  }
+
+  @Post(':id/report')
+  @UseGuards(AuthGuard('jwt'))
+  @ApiBearerAuth()
+  @ApiOperation({ summary: 'Report an activity for a violation' })
+  async reportActivity(
+    @Request() req: any,
+    @Param('id') id: string,
+    @Body() dto: ReportActivityDto,
+  ) {
+    return this.activitiesService.reportActivity(req.user.id, id, dto);
   }
 }

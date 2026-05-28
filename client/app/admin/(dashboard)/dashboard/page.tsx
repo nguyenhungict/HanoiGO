@@ -2,6 +2,15 @@
 
 import React, { useState, useEffect } from 'react';
 import {
+  AreaChart,
+  Area,
+  XAxis,
+  YAxis,
+  CartesianGrid,
+  Tooltip,
+  ResponsiveContainer,
+} from 'recharts';
+import {
   getAdminStatsAction,
   getAdminGrowthAction,
   getAdminPopularPlacesAction,
@@ -50,8 +59,10 @@ export default function AdminDashboard() {
   const [violations, setViolations] = useState<ViolationBreakdown[]>([]);
   const [reportSummary, setReportSummary] = useState<ReportSummary | null>(null);
   const [loading, setLoading] = useState(true);
+  const [isMounted, setIsMounted] = useState(false);
 
   useEffect(() => {
+    setIsMounted(true);
     const fetchData = async () => {
       try {
         const [sData, gData, pData, vData, rData] = await Promise.all([
@@ -142,36 +153,77 @@ export default function AdminDashboard() {
           </div>
           
           {/* Dynamic Growth Visualization */}
-          <div className="h-64 mt-12 w-full flex items-end justify-between gap-1 relative z-10 px-4">
-             {(() => {
-               const chartData = growth.slice(-14);
-               const maxCount = Math.max(...chartData.map((g) => g.count), 1);
-               return chartData.map((g, i) => {
-                 const heightPercent = g.count === 0 ? 0 : Math.max((g.count / maxCount) * 85, 8);
-                 return (
-                   <div key={i} className="flex-1 h-full flex flex-col items-center group/bar w-full relative">
-                      <div className="absolute -top-10 bg-on-surface text-white text-[10px] font-bold px-2 py-1 rounded opacity-0 group-hover/bar:opacity-100 transition-opacity whitespace-nowrap pointer-events-none z-20">
-                         {g.count} user{g.count !== 1 ? 's' : ''}
-                      </div>
-                      <div className="w-full h-full flex flex-col justify-end gap-1">
-                         <div className="relative w-full h-full flex items-end">
-                            <div 
-                              style={{ height: `${heightPercent}%` }} 
-                              className="w-full bg-primary rounded-t-md group-hover/bar:scale-y-[1.15] origin-bottom transition-all duration-500 shadow-sm"
-                            />
-                         </div>
-                      </div>
-                      <span className="mt-6 text-[8px] font-bold text-outline/60 uppercase rotate-45 origin-left whitespace-nowrap">
-                        {new Date(g.date).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}
-                      </span>
-                   </div>
-                 );
-               });
-             })()}
-             <div className="absolute inset-0 top-12 flex flex-col justify-between -z-10 opacity-[0.03]">
-                {[1,2,3,4,5].map(i => <div key={i} className="w-full h-[1px] bg-on-surface" />)}
-             </div>
-          </div>
+          {!isMounted ? (
+            <div className="h-64 mt-12 w-full flex items-center justify-center bg-surface-container-low/20 rounded-3xl animate-pulse">
+              <span className="text-[10px] font-bold text-outline/40 uppercase tracking-widest">Generating Chart...</span>
+            </div>
+          ) : (
+            <div className="h-64 mt-12 w-full relative z-10">
+              <ResponsiveContainer width="100%" height="100%">
+                <AreaChart 
+                  data={growth.slice(-14)} 
+                  margin={{ top: 10, right: 5, left: -25, bottom: 0 }}
+                >
+                  <defs>
+                    <linearGradient id="colorGrowth" x1="0" y1="0" x2="0" y2="1">
+                      <stop offset="5%" stopColor="#FF5A5F" stopOpacity={0.25} />
+                      <stop offset="95%" stopColor="#FF5A5F" stopOpacity={0.00} />
+                    </linearGradient>
+                  </defs>
+                  <CartesianGrid 
+                    strokeDasharray="4 4" 
+                    vertical={false} 
+                    stroke="#8e706f" 
+                    opacity={0.08}
+                  />
+                  <XAxis 
+                    dataKey="date" 
+                    tickLine={false} 
+                    axisLine={false} 
+                    dy={10}
+                    tick={{ fontSize: 9, fill: '#8e706f', fontWeight: 'bold' }} 
+                    tickFormatter={(dateStr) => 
+                      new Date(dateStr).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })
+                    }
+                  />
+                  <YAxis 
+                    tickLine={false} 
+                    axisLine={false} 
+                    dx={-5}
+                    tick={{ fontSize: 9, fill: '#8e706f', fontWeight: 'bold' }}
+                    allowDecimals={false}
+                  />
+                  <Tooltip 
+                    content={({ active, payload, label }) => {
+                      if (active && payload && payload.length) {
+                        return (
+                          <div className="bg-[#261817] text-white p-4 rounded-2xl border border-white/10 shadow-2xl backdrop-blur-md animate-in fade-in zoom-in-95 duration-200">
+                            <p className="text-[9px] font-bold text-primary-container/85 uppercase tracking-widest">
+                              {label ? new Date(label).toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' }) : ''}
+                            </p>
+                            <p className="text-sm font-bold mt-1.5 flex items-center gap-1.5">
+                              <span className="w-2 h-2 rounded-full bg-primary inline-block" />
+                              {payload[0].value?.toLocaleString()} <span className="text-[10px] font-medium text-white/50 lowercase">users</span>
+                            </p>
+                          </div>
+                        );
+                      }
+                      return null;
+                    }}
+                  />
+                  <Area 
+                    type="monotone" 
+                    dataKey="count" 
+                    stroke="#FF5A5F" 
+                    strokeWidth={2.5} 
+                    fillOpacity={1} 
+                    fill="url(#colorGrowth)"
+                    activeDot={{ r: 6, stroke: '#ffffff', strokeWidth: 2, fill: '#FF5A5F' }}
+                  />
+                </AreaChart>
+              </ResponsiveContainer>
+            </div>
+          )}
         </div>
 
         {/* Report Status - Bento Side */}

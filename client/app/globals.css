@@ -139,7 +139,7 @@ input:focus::-ms-reveal {
 
 /* ── Reel Feed: card separator on mobile ─── */
 #reel-feed > div > article {
-  border-bottom: 6px solid #f1f5f9;
+  border-bottom: 6px solid #F4EFE9;
 }
 
 @media (min-width: 768px) {

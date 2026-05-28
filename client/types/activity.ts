@@ -16,6 +16,14 @@ export interface Activity {
   memberCount: number;
   maxMembers: number;
   myStatus?: 'APPROVED' | 'PENDING' | 'NONE';
+  
+  // Trip sharing fields
+  tripId?: string;
+  likesCount?: number;
+  commentsCount?: number;
+  savesCount?: number;
+  isLiked?: boolean;
+  trip?: any; // Will use any for now to avoid circular dependency or complex type imports, can refine later
 }
 
 export interface ActivityMember {

@@ -7,7 +7,8 @@ import { useTripStore } from '@/store/useTripStore';
 import { useAuthStore } from '@/store/useAuthStore';
 import { useNotification } from '@/hooks/use-notification';
 import { useConfirm } from '@/hooks/use-confirm';
-import { Trash2, Map as MapIcon, Clock, Calendar, CheckCircle2, AlertCircle } from 'lucide-react';
+import { Trash2, Map as MapIcon, Clock, Calendar, CheckCircle2, AlertCircle, Share2 } from 'lucide-react';
+import { CreateActivityDialog } from '@/components/activities/CreateActivityDialog';
 
 const TripMap = dynamic(() => import('@/components/map/DiscoveryMap'), {
   ssr: false,
@@ -82,6 +83,7 @@ export default function TripsPage() {
   const [showSaveModal, setShowSaveModal] = useState(false);
   const [tripTitle, setTripTitle] = useState('');
   const [isSaving, setIsSaving] = useState(false);
+  const [tripToShare, setTripToShare] = useState<string | null>(null);
   const { show } = useNotification();
   const { confirm } = useConfirm();
 
@@ -140,7 +142,7 @@ export default function TripsPage() {
         show({
           type: 'success',
           title: 'Success',
-          message: 'Your itinerary has been saved!',
+          message: 'Your trip has been saved!',
         });
         setShowSaveModal(false);
         fetchSavedTrips();
@@ -148,7 +150,7 @@ export default function TripsPage() {
         show({
           type: 'error',
           title: 'Error',
-          message: 'Could not save itinerary at this time.',
+          message: 'Could not save trip at this time.',
         });
       }
     } catch (e) {
@@ -211,8 +213,8 @@ export default function TripsPage() {
     if (!token) return;
     
     const isConfirmed = await confirm({
-      title: 'Delete Itinerary',
-      message: 'Are you sure you want to delete this itinerary? This action cannot be undone.',
+      title: 'Delete Trip',
+      message: 'Are you sure you want to delete this trip? This action cannot be undone.',
       confirmText: 'Delete Now',
       cancelText: 'Cancel',
       type: 'danger'
@@ -229,12 +231,12 @@ export default function TripsPage() {
         show({
           type: 'success',
           title: 'Deleted',
-          message: 'The itinerary has been removed.',
+          message: 'The trip has been removed.',
         });
         fetchSavedTrips();
         if (itinerary) setItinerary(null);
       } else {
-        show({ type: 'error', title: 'Error', message: 'Could not delete itinerary.' });
+        show({ type: 'error', title: 'Error', message: 'Could not delete trip.' });
       }
     } catch (e) {
       console.error(e);
@@ -325,7 +327,7 @@ export default function TripsPage() {
               <div className="space-y-2">
                 <div className="flex items-center justify-between">
                   <h1 className="text-xl font-black tracking-tight text-on-surface">
-                    Your Itinerary
+                    Your Trip
                   </h1>
                   <button
                     onClick={handleReset}
@@ -603,10 +605,10 @@ export default function TripsPage() {
                     </div>
                     <div className="space-y-1 max-w-[200px]">
                       <h2 className="text-base font-black tracking-tight text-on-surface">
-                        No saved itineraries
+                        No saved trips
                       </h2>
                       <p className="text-xs text-outline font-medium">
-                        You haven't saved any itineraries yet. Create one and save it!
+                        You haven't saved any trips yet. Create one and save it!
                       </p>
                     </div>
                   </div>
@@ -650,6 +652,16 @@ export default function TripsPage() {
                             className="flex-1 py-2 bg-primary/5 text-primary rounded-xl text-[10px] font-black uppercase tracking-widest group-hover:bg-primary group-hover:text-white transition-all"
                           >
                             View Details
+                          </button>
+                          <button 
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              setTripToShare(trip.id);
+                            }}
+                            className="p-2 bg-secondary/20 text-on-surface rounded-xl hover:bg-secondary transition-all"
+                            title="Share to Activities"
+                          >
+                            <Share2 size={16} />
                           </button>
                         </div>
                       </div>
@@ -742,7 +754,7 @@ export default function TripsPage() {
               className="w-full py-4 bg-primary text-white rounded-2xl font-black shadow-lg shadow-primary/20 hover:scale-[1.01] active:scale-[0.99] transition-all uppercase tracking-widest text-[10px] flex items-center justify-center gap-2"
             >
               <span className="material-symbols-outlined text-lg">auto_awesome</span>
-              Configure & Generate Itinerary
+              Configure & Generate Trip
             </button>
           </div>
         )}
@@ -760,7 +772,7 @@ export default function TripsPage() {
               className="flex-[2] py-4 bg-primary text-white rounded-2xl font-black shadow-lg shadow-primary/20 hover:scale-[1.01] active:scale-[0.99] transition-all uppercase tracking-widest text-[10px] flex items-center justify-center gap-2"
             >
               <span className="material-symbols-outlined text-lg">save</span>
-              Save Itinerary
+              Save Trip
             </button>
           </div>
         )}
@@ -1001,6 +1013,22 @@ export default function TripsPage() {
             </div>
           </div>
         </div>
+      )}
+
+      {/* ═══ SHARE TRIP MODAL ═══ */}
+      {tripToShare && (
+        <CreateActivityDialog
+          tripId={tripToShare}
+          onClose={() => setTripToShare(null)}
+          onCreated={() => {
+            setTripToShare(null);
+            show({
+              type: 'success',
+              title: 'Shared!',
+              message: 'Your trip has been shared to Activities.',
+            });
+          }}
+        />
       )}
     </div>
   );

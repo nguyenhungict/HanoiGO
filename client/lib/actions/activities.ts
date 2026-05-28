@@ -129,3 +129,51 @@ export async function cancelJoinRequestAction(id: string) {
     return { error: error.response?.data?.message || 'Hủy yêu cầu thất bại' };
   }
 }
+
+export async function toggleLikeAction(id: string) {
+  try {
+    const headers = await authHeaders();
+    if (!headers.Authorization) return { error: 'Chưa đăng nhập' };
+
+    const response = await api.post(`/activities/${id}/like`, {}, { headers });
+    revalidatePath('/activities');
+    return { success: true, data: response.data };
+  } catch (error: any) {
+    return { error: error.response?.data?.message || 'Lỗi khi thực hiện thao tác' };
+  }
+}
+
+export async function cloneActivityTripAction(id: string) {
+  try {
+    const headers = await authHeaders();
+    if (!headers.Authorization) return { error: 'Chưa đăng nhập' };
+
+    const response = await api.post(`/activities/${id}/clone-trip`, {}, { headers });
+    revalidatePath('/activities');
+    return { success: true, data: response.data };
+  } catch (error: any) {
+    return { error: error.response?.data?.message || 'Lỗi khi lưu chuyến đi' };
+  }
+}
+
+export async function reportActivityAction(
+  activityId: string,
+  reason: string,
+  description?: string,
+  evidenceUrls?: string[]
+) {
+  try {
+    const headers = await authHeaders();
+    if (!headers.Authorization) return { error: 'Chưa đăng nhập' };
+
+    const response = await api.post(`/activities/${activityId}/report`, {
+      reason,
+      description,
+      evidenceUrls,
+    }, { headers });
+    return { success: true, data: response.data };
+  } catch (error: any) {
+    return { error: error.response?.data?.message || 'Báo cáo hoạt động thất bại' };
+  }
+}
+

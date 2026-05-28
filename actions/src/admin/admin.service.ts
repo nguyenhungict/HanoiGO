@@ -4,16 +4,20 @@ import {
   BadRequestException,
 } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
-import { ViolationType, ReportStatus, Role, UserStatus } from '@prisma/client';
+import { ViolationType, ReportStatus, Role, UserStatus, NotificationType } from '@prisma/client';
 import * as bcrypt from 'bcrypt';
 import * as crypto from 'crypto';
 import { CreatePlaceDto } from './dto/create-place.dto';
 import { UpdatePlaceDto } from './dto/update-place.dto';
 import { CreateUserDto } from './dto/create-user.dto';
+import { NotificationsService } from '../notifications/notifications.service';
 
 @Injectable()
 export class AdminService {
-  constructor(private prisma: PrismaService) {}
+  constructor(
+    private prisma: PrismaService,
+    private notificationsService: NotificationsService,
+  ) {}
 
   // ── Dashboard Stats ────────────────────────────────────────────────
   async getDashboardStats() {
@@ -241,6 +245,18 @@ export class AdminService {
       });
 
       console.log(`[AdminService] TRANSACTION COMMITTED for UserID: ${userId}`);
+
+      try {
+        await this.notificationsService.create(
+          userId,
+          NotificationType.ADMIN_WARNING,
+          'Account Suspended',
+          `Your account has been suspended due to violation: ${reason}`,
+        );
+      } catch (err) {
+        console.error('[AdminService] Failed to notify banned user:', err);
+      }
+
       return { success: true, message: 'User access revoked successfully' };
     } catch (error) {
       console.error('[AdminService] TRANSACTION FAILED:', error);
@@ -492,6 +508,203 @@ export class AdminService {
     } catch (error) {
       console.error('[AdminService] Delete Operation Failed:', error);
       throw new BadRequestException(`Deletion failed: ${error.message}`);
+    }
+  }
+
+  // ── Report Management ───────────────────────────────────────────────
+  async getReports(
+    page = 1,
+    limit = 10,
+    status?: ReportStatus,
+    search?: string,
+  ) {
+    const skip = (page - 1) * limit;
+    const where: any = {};
+
+    if (status) {
+      where.status = status;
+    }
+
+    if (search) {
+      where.OR = [
+        { description: { contains: search, mode: 'insensitive' } },
+        { reporter: { username: { contains: search, mode: 'insensitive' } } },
+        { targetUser: { username: { contains: search, mode: 'insensitive' } } },
+      ];
+    }
+
+    const [reports, total] = await Promise.all([
+      this.prisma.report.findMany({
+        where,
+        skip,
+        take: limit,
+        orderBy: { createdAt: 'desc' },
+        include: {
+          reporter: {
+            select: { id: true, username: true, email: true, fullName: true, avatarUrl: true },
+          },
+          targetUser: {
+            select: { id: true, username: true, email: true, fullName: true, avatarUrl: true },
+          },
+        },
+      }),
+      this.prisma.report.count({ where }),
+    ]);
+
+    const activityIds = reports
+      .filter((r) => r.entityType === 'ACTIVITY' && r.entityId)
+      .map((r) => r.entityId as string);
+
+    const activities = activityIds.length > 0
+      ? await this.prisma.activity.findMany({
+          where: { id: { in: activityIds } },
+          select: { id: true, title: true, status: true, hostId: true },
+        })
+      : [];
+
+    const mappedReports = reports.map((report) => {
+      let activity = null;
+      if (report.entityType === 'ACTIVITY') {
+        activity = activities.find((a) => a.id === report.entityId) || null;
+      }
+      return {
+        ...report,
+        activity,
+      };
+    });
+
+    return {
+      reports: mappedReports,
+      total,
+      page,
+      lastPage: Math.ceil(total / limit) || 1,
+    };
+  }
+
+  async getReportDetail(reportId: string) {
+    const report = await this.prisma.report.findUnique({
+      where: { id: reportId },
+      include: {
+        reporter: {
+          select: { id: true, username: true, email: true, fullName: true, avatarUrl: true },
+        },
+        targetUser: {
+          select: { id: true, username: true, email: true, fullName: true, avatarUrl: true },
+        },
+      },
+    });
+
+    if (!report) throw new NotFoundException('Report not found');
+
+    let activity = null;
+    if (report.entityType === 'ACTIVITY' && report.entityId) {
+      activity = await this.prisma.activity.findUnique({
+        where: { id: report.entityId },
+        include: {
+          host: {
+            select: { id: true, username: true, avatarUrl: true },
+          },
+        },
+      });
+    }
+
+    return {
+      ...report,
+      activity,
+    };
+  }
+
+  async resolveReport(
+    adminId: string,
+    reportId: string,
+    adminNotes?: string,
+    hideActivity?: boolean,
+  ) {
+    const report = await this.prisma.report.findUnique({
+      where: { id: reportId },
+    });
+
+    if (!report) throw new NotFoundException('Report not found');
+
+    try {
+      await this.prisma.$transaction(async (tx) => {
+        // 1. Update report status
+        await tx.report.update({
+          where: { id: reportId },
+          data: {
+            status: ReportStatus.RESOLVED,
+            resolvedAt: new Date(),
+            adminNotes: adminNotes || null,
+          },
+        });
+
+        // 2. Hide activity if requested
+        if (hideActivity && report.entityType === 'ACTIVITY' && report.entityId) {
+          await tx.activity.update({
+            where: { id: report.entityId },
+            data: { status: 'CANCELLED' },
+          });
+        }
+
+        // 3. Log admin action
+        await tx.adminLog.create({
+          data: {
+            adminId,
+            action: 'RESOLVE_REPORT',
+            targetId: reportId,
+            details: JSON.stringify({
+              reportId,
+              entityType: report.entityType,
+              entityId: report.entityId,
+              hideActivity,
+              timestamp: new Date().toISOString(),
+            }),
+          },
+        });
+      });
+
+      return { success: true };
+    } catch (error) {
+      throw new BadRequestException(`Failed to resolve report: ${error.message}`);
+    }
+  }
+
+  async dismissReport(adminId: string, reportId: string, adminNotes?: string) {
+    const report = await this.prisma.report.findUnique({
+      where: { id: reportId },
+    });
+
+    if (!report) throw new NotFoundException('Report not found');
+
+    try {
+      await this.prisma.$transaction(async (tx) => {
+        // 1. Update report status
+        await tx.report.update({
+          where: { id: reportId },
+          data: {
+            status: ReportStatus.DISMISSED,
+            resolvedAt: new Date(),
+            adminNotes: adminNotes || null,
+          },
+        });
+
+        // 2. Log admin action
+        await tx.adminLog.create({
+          data: {
+            adminId,
+            action: 'DISMISS_REPORT',
+            targetId: reportId,
+            details: JSON.stringify({
+              reportId,
+              timestamp: new Date().toISOString(),
+            }),
+          },
+        });
+      });
+
+      return { success: true };
+    } catch (error) {
+      throw new BadRequestException(`Failed to dismiss report: ${error.message}`);
     }
   }
 }

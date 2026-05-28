@@ -1,0 +1,1195 @@
+% !TEX program = pdflatex
+\documentclass[12pt,a4paper]{article}
+
+% ── Font & tiếng Việt (pdfLaTeX) ──────────────────────────────────────────────
+\usepackage[utf8]{inputenc}
+\usepackage[T5]{fontenc}
+\usepackage[vietnamese]{babel}
+\usepackage{mathptmx} % Font Times (tương tự Times New Roman)
+\usepackage{helvet}   % Font Arial/Helvetica cho sans-serif
+\usepackage{courier}  % Font Courier cho monospace
+
+% ── Layout & màu sắc ─────────────────────────────────────────────────────────
+\usepackage[top=2.5cm, bottom=2.5cm, left=3cm, right=2.5cm]{geometry}
+\usepackage{xcolor}
+\definecolor{primary}{RGB}{30,80,160}
+\definecolor{codebg}{RGB}{248,248,248}
+
+% ── Tiêu đề section ──────────────────────────────────────────────────────────
+\usepackage{titlesec}
+\titleformat{\section}{\large\bfseries\color{primary}}{\thesection.}{0.5em}{}[\titlerule]
+\titleformat{\subsection}{\normalsize\bfseries\color{primary}}{\thesubsection.}{0.5em}{}
+\titleformat{\subsubsection}{\normalsize\bfseries}{\thesubsubsection.}{0.5em}{}
+
+% ── Các gói tiện ích ─────────────────────────────────────────────────────────
+\usepackage{graphicx}
+\usepackage{hyperref}
+\usepackage{enumitem}
+\usepackage{array}
+\usepackage{booktabs}
+\usepackage{listings}
+\usepackage{fancyhdr}
+\usepackage{amsmath}
+\usepackage{float}
+
+\hypersetup{colorlinks=true, linkcolor=primary, urlcolor=primary}
+
+% ── Header / footer ──────────────────────────────────────────────────────────
+\pagestyle{fancy}
+\fancyhf{}
+\rfoot{\thepage}
+\renewcommand{\headrulewidth}{0.4pt}
+
+% ── Code listing ─────────────────────────────────────────────────────────────
+\lstset{
+  backgroundcolor=\color{codebg},
+  basicstyle=\ttfamily\small,
+  breaklines=true,
+  frame=single,
+  rulecolor=\color{gray!40},
+  numbers=left,
+  numberstyle=\tiny\color{gray},
+  xleftmargin=1em
+}
+
+% =============================================================================
+\begin{document}
+% =============================================================================
+
+\section{Tổng quan Dự án}
+
+HaNoi Go là một nền tảng web phục vụ khách du lịch nước ngoài đến Hà Nội, tập
+trung vào bốn vấn đề cốt lõi:
+
+\begin{enumerate}
+  \item \textbf{Khám phá địa điểm:} Thiếu nền tảng tổng hợp thông tin địa điểm
+        du lịch Hà Nội có bản đồ tích hợp, phù hợp với khách nước ngoài.
+  \item \textbf{Lập lịch trình tối ưu:} Khách du lịch thường mất nhiều thời gian
+        di chuyển không cần thiết do không biết cách nhóm địa điểm theo khu vực
+        và giờ mở cửa.
+  \item \textbf{Kết nối hoạt động:} Khách solo khó tìm người cùng tham gia một
+        hoạt động cụ thể trong thời gian ngắn tại Hà Nội.
+  \item \textbf{Gợi ý lưu trú và ăn uống:} Khách nước ngoài thiếu công cụ gợi ý
+        hotel và nhà hàng phù hợp với lịch trình và khu vực đang ở.
+        (Module này được triển khai tuỳ theo tiến độ.)
+\end{enumerate}
+
+% =============================================================================
+\section{Module 0: User \& Security}
+% =============================================================================
+
+Module này xử lý toàn bộ vòng đời tài khoản người dùng --- từ đăng ký, xác
+thực email qua OTP, đăng nhập, lấy lại mật khẩu, cập nhật hồ sơ cá nhân, đến
+quản trị hệ thống bởi Admin. Đây là nền tảng bảo mật cho tất cả module còn lại,
+vì mọi tính năng (lưu lịch trình, tạo activity, chat nhóm) đều yêu cầu xác
+thực.
+
+% -------------------------------------------------------------------------
+\subsection{Đăng ký tài khoản (Sign Up + OTP Verification)}
+
+\subsubsection{Bài toán}
+
+Khách du lịch nước ngoài cần tạo tài khoản nhanh chóng để lưu lịch trình và
+tham gia activity. Form đăng ký phải tối giản, rõ ràng và thân thiện với người
+dùng quốc tế. Để tránh tài khoản spam, hệ thống yêu cầu xác thực email bằng
+mã OTP trước khi kích hoạt.
+
+\subsubsection{Luồng hoạt động}
+
+\begin{enumerate}
+  \item User truy cập trang \texttt{/register}, nhập \textbf{email},
+        \textbf{username}, và \textbf{mật khẩu}.
+  \item Frontend validate inline: email đúng định dạng, username không chứa
+        ký tự đặc biệt, mật khẩu tối thiểu 8 ký tự.
+  \item Backend kiểm tra email và username chưa tồn tại trong DB
+        (\texttt{UNIQUE} constraint).
+  \item Mật khẩu được hash bằng \textbf{bcrypt} (cost factor 12) trước khi
+        lưu --- không bao giờ lưu plain text.
+  \item Hệ thống tạo bản ghi trong bảng \texttt{users} với
+        \texttt{role = USER}, \texttt{status = PENDING}, đồng thời sinh
+        \textbf{mã OTP 6 chữ số ngẫu nhiên} có thời hạn 10 phút, lưu vào
+        các trường \texttt{otp\_code} và \texttt{otp\_expires\_at}.
+  \item Gửi email chứa mã OTP qua \textbf{Nodemailer} (Gmail SMTP).
+  \item User được redirect đến trang \texttt{/verify-email?email=...} để
+        nhập mã OTP.
+  \item \textbf{Xác thực OTP:} Backend kiểm tra mã OTP khớp và chưa hết hạn.
+        Nếu hợp lệ, cập nhật \texttt{status = ACTIVE}, xoá \texttt{otp\_code}
+        và \texttt{otp\_expires\_at}. Trả về \textbf{Access Token} và
+        \textbf{Refresh Token} ngay sau đó --- user không cần đăng nhập lại.
+  \item Redirect đến trang \texttt{/profile/edit} để hoàn thiện hồ sơ.
+\end{enumerate}
+
+\subsubsection{Tính năng UI}
+
+\begin{itemize}
+  \item \textbf{Form đăng ký (\texttt{/register}):} Ba trường Email, Username,
+        Password với label rõ ràng. Nút ``Sign Up'' vô hiệu hoá khi đang gửi
+        request.
+  \item \textbf{Inline validation:} Thông báo lỗi xuất hiện ngay dưới từng
+        trường khi blur (rời khỏi ô nhập), không đợi submit.
+  \item \textbf{Password strength indicator:} Thanh hiển thị độ mạnh mật
+        khẩu (weak / fair / strong) dựa trên độ dài và ký tự đặc biệt.
+  \item \textbf{Trang Verify Email (\texttt{/verify-email}):} Giao diện nhập
+        OTP gồm 6 ô riêng biệt hỗ trợ tự động focus chuyển ô, paste toàn bộ
+        mã, và đếm ngược 60 giây trước khi cho phép ``Resend''. Nếu OTP sai
+        hoặc hết hạn, hiển thị thông báo lỗi và user có thể gửi lại mã.
+  \item \textbf{Link chuyển trang:} ``Already have an account? Log in'' dẫn
+        đến trang Login.
+  \item \textbf{Error toasts:} Hiển thị lỗi từ server (email đã tồn tại,
+        username đã dùng) dưới dạng toast notification.
+\end{itemize}
+
+% -------------------------------------------------------------------------
+\subsection{Đăng nhập (Login)}
+
+\subsubsection{Bài toán}
+
+User đã có tài khoản cần đăng nhập để truy cập các tính năng cần xác thực.
+Hệ thống dùng \textbf{JWT stateless} --- không lưu session trên server, phù
+hợp với kiến trúc NestJS + Next.js tách biệt.
+
+\subsubsection{Luồng hoạt động}
+
+\begin{enumerate}
+  \item User nhập \textbf{email hoặc username} và \textbf{mật khẩu} tại trang
+        \texttt{/login}. Backend tìm kiếm theo email trước, nếu không có thì
+        thử theo username.
+  \item Backend xác thực: so sánh mật khẩu với hash bằng
+        \texttt{bcrypt.compare()}.
+  \item Kiểm tra \texttt{status}: nếu \texttt{BANNED}, trả về lỗi
+        \texttt{403} kèm thông báo tài khoản bị khoá. Nếu \texttt{PENDING},
+        trả về lỗi yêu cầu xác thực email.
+  \item Nếu hợp lệ, sinh \textbf{Access Token} (JWT, TTL 7 ngày, chứa
+        \texttt{sub}, \texttt{username}, \texttt{role}, \texttt{tokenVersion})
+        và \textbf{Refresh Token} (JWT, TTL 7 ngày, lưu trong
+        \texttt{httpOnly cookie}).
+  \item Frontend lưu Access Token trong memory (Zustand store). Khi Access
+        Token hết hạn, frontend gọi endpoint \texttt{POST /auth/refresh} để
+        lấy token mới mà không cần user đăng nhập lại.
+  \item Trường \texttt{tokenVersion} trong DB dùng để invalidate token ngay
+        lập tức khi user bị ban --- nếu \texttt{tokenVersion} trong JWT không
+        khớp với DB, token bị từ chối.
+\end{enumerate}
+
+\subsubsection{Tính năng UI}
+
+\begin{itemize}
+  \item \textbf{Form đăng nhập:} Hai trường Email/Username và Password.
+        Nút ``Log In'' có loading spinner khi đang xử lý.
+  \item \textbf{Show / hide password:} Icon con mắt để toggle hiển thị
+        mật khẩu.
+  \item \textbf{``Forgot password?'':} Link dẫn đến trang Forgot Password.
+  \item \textbf{Redirect sau login:} Nếu user bị chặn do chưa đăng nhập
+        (ví dụ cố vào \texttt{/trips}), sau khi login thành công sẽ
+        redirect về trang đó.
+  \item \textbf{Error state:} Thông báo ``Tài khoản hoặc mật khẩu không
+        đúng'' khi sai thông tin, không tiết lộ chi tiết (tránh user
+        enumeration).
+\end{itemize}
+
+% -------------------------------------------------------------------------
+\subsection{Đặt lại mật khẩu (Forgot / Reset Password)}
+
+\subsubsection{Bài toán}
+
+User quên mật khẩu cần có cơ chế lấy lại tài khoản an toàn qua email.
+Token reset có thời hạn ngắn, chỉ dùng được một lần, và được thiết kế theo
+cơ chế \textbf{stateless} --- không cần bảng riêng trong DB.
+
+\subsubsection{Luồng hoạt động}
+
+\begin{enumerate}
+  \item \textbf{Bước 1 --- Yêu cầu reset:} User vào trang
+        \texttt{/forgot-password}, nhập địa chỉ email.
+  \item Backend kiểm tra email có tồn tại trong DB. Nếu không tồn tại,
+        vẫn trả về thông báo thành công (tránh lộ thông tin tài khoản).
+  \item Hệ thống sinh \textbf{reset token} bằng JWT, sử dụng
+        \textbf{secret động} = \texttt{JWT\_SECRET + ":" + passwordHash}
+        hiện tại. Token có TTL 15 phút.
+  \item Gửi email chứa link dạng
+        \texttt{/reset-password?token=\textless token\textgreater}
+        qua \textbf{Nodemailer} (Gmail SMTP).
+  \item \textbf{Bước 2 --- Đặt mật khẩu mới:} User click link trong
+        email, được dẫn đến trang \texttt{/reset-password}.
+  \item Backend verify token: giải mã để lấy \texttt{sub} (userId), tìm
+        user, tái tạo secret và xác minh chữ ký. Cơ chế này đảm bảo
+        tính \textbf{one-time use} vì sau khi mật khẩu thay đổi,
+        \texttt{passwordHash} thay đổi → secret cũ không còn hợp lệ.
+  \item Mật khẩu mới được hash bcrypt và cập nhật vào bảng \texttt{users}.
+\end{enumerate}
+
+\subsubsection{Tính năng UI}
+
+\begin{itemize}
+  \item \textbf{Trang Forgot Password (\texttt{/forgot-password}):}
+        Ô nhập email, nút ``Send Reset Link''. Sau khi gửi, hiển thị
+        thông báo ``Check your inbox'' dù email có tồn tại hay không.
+  \item \textbf{Trang Reset Password (\texttt{/reset-password}):}
+        Hai ô nhập ``New Password'' và ``Confirm Password'' với kiểm tra
+        khớp nhau. Nếu token hết hạn hoặc không hợp lệ, hiển thị thông
+        báo lỗi và nút ``Request a new link''.
+  \item \textbf{Thành công:} Sau khi đặt lại mật khẩu, redirect về trang
+        Login với toast ``Mật khẩu đã được cập nhật thành công.''.
+\end{itemize}
+
+% -------------------------------------------------------------------------
+\subsection{Hồ sơ người dùng (Profile)}
+
+\subsubsection{Bài toán}
+
+Sau khi xác thực, user cần một trang hồ sơ cá nhân để xem lại thống kê
+hoạt động (số trip, địa điểm yêu thích, activities đã tham gia) và chỉnh
+sửa thông tin. Trang này cũng phục vụ cho khách du lịch nước ngoài muốn
+khai báo quốc tịch và ngôn ngữ để cộng đồng dễ kết nối.
+
+\subsubsection{Mô hình dữ liệu người dùng (User)}
+
+\begin{lstlisting}[language=SQL]
+CREATE TABLE users (
+  id            uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+  email         text UNIQUE NOT NULL,
+  password_hash text NOT NULL,
+  username      text UNIQUE NOT NULL,
+  full_name     text,
+  bio           text,
+  avatar_url    text,
+  nationality   text,
+  languages     text[],           -- ['English', 'French', ...]
+  role          text DEFAULT 'USER',    -- USER | ADMIN
+  status        text DEFAULT 'PENDING', -- PENDING | ACTIVE | BANNED
+  token_version int  DEFAULT 1,        -- invalidate JWT khi ban
+  otp_code      text,                  -- 6-digit OTP
+  otp_expires_at timestamptz,
+  created_at    timestamptz DEFAULT now()
+);
+\end{lstlisting}
+
+\subsubsection{Tính năng Profile UI (\texttt{/profile})}
+
+\begin{itemize}
+  \item \textbf{Hero header:} Ảnh bìa panorama Hà Nội, avatar tròn nổi
+        phía trên, tên đầy đủ và username.
+  \item \textbf{Thông tin cá nhân:} Bio, quốc tịch (\texttt{nationality}),
+        danh sách ngôn ngữ (\texttt{languages[]}).
+  \item \textbf{Quick Stats Grid:} 4 ô thống kê --- Trips (số lịch trình
+        đã tạo), Places (địa điểm đã lưu trong Basket), Activities (số
+        activity đã tham gia), Languages.
+  \item \textbf{3 Tab nội dung:}
+        \begin{itemize}
+          \item \textbf{Trips:} Danh sách lịch trình đã tạo, mỗi card
+                hiển thị tiêu đề, số ngày, ngày tạo và link ``Open Planner''.
+          \item \textbf{Saved:} Danh sách địa điểm đã lưu vào Travel Basket
+                (Zustand store), có nút xoá từng địa điểm.
+          \item \textbf{Activities:} Danh sách activity đã tham gia, hiển
+                thị tiêu đề, ngày giờ, địa chỉ và nút ``View Chat''.
+        \end{itemize}
+  \item \textbf{Trang Edit Profile (\texttt{/profile/edit}):} Form chỉnh
+        sửa \texttt{fullName}, \texttt{bio}, \texttt{nationality},
+        \texttt{languages}, upload avatar (qua Media module).
+\end{itemize}
+
+% -------------------------------------------------------------------------
+\subsection{Admin Site --- Quản trị hệ thống}
+
+\subsubsection{Bài toán}
+
+Hệ thống cần giao diện quản trị toàn diện cho phép Admin theo dõi số liệu
+tổng quan, quản lý tài khoản, quản lý địa điểm, và xử lý báo cáo vi phạm.
+Admin Site chỉ truy cập được bởi tài khoản có \texttt{role = ADMIN} ---
+mọi endpoint đều được bảo vệ bởi \textbf{RolesGuard} (NestJS) kết hợp
+kiểm tra middleware trên Next.js.
+
+\subsubsection{Phân quyền (RBAC)}
+
+Hệ thống định nghĩa hai role và ba trạng thái tài khoản:
+
+\begin{center}
+\begin{tabular}{lll}
+  \toprule
+  \textbf{Role} & \textbf{Quyền} & \textbf{Ghi chú} \\
+  \midrule
+  \texttt{USER}  & Dùng toàn bộ tính năng app & Mặc định khi đăng ký \\
+  \texttt{ADMIN} & USER + toàn bộ Admin Site   & Gán thủ công trong DB \\
+  \bottomrule
+\end{tabular}
+\end{center}
+
+\begin{center}
+\begin{tabular}{ll}
+  \toprule
+  \textbf{Status} & \textbf{Ý nghĩa} \\
+  \midrule
+  \texttt{PENDING} & Chưa xác thực email, chưa đăng nhập được \\
+  \texttt{ACTIVE}  & Tài khoản hoạt động bình thường \\
+  \texttt{BANNED}  & Bị khoá, trả về \texttt{403} khi cố đăng nhập \\
+  \bottomrule
+\end{tabular}
+\end{center}
+
+\subsubsection{Dashboard (\texttt{/admin/dashboard})}
+
+Trang tổng quan hiển thị các số liệu realtime:
+
+\begin{itemize}
+  \item \textbf{Stats Cards:} Tổng số user (role=USER), user bị ban, tổng
+        địa điểm, tổng lịch trình, báo cáo đang chờ xử lý.
+  \item \textbf{User Growth Chart (30 ngày):} Biểu đồ đường hiển thị số
+        tài khoản mới đăng ký theo ngày, truy vấn trực tiếp từ PostgreSQL
+        (group by DATE).
+  \item \textbf{Violation Breakdown:} Biểu đồ tròn phân loại vi phạm theo
+        \texttt{ViolationType} (SPAM, HATE\_SPEECH, SCAM, FAKE\_INFORMATION,
+        INAPPROPRIATE\_CONTENT, OTHER).
+  \item \textbf{Report Status Summary:} Số báo cáo theo từng trạng thái
+        (PENDING / RESOLVED / DISMISSED).
+  \item \textbf{Popular Places:} Top 5 địa điểm được ghé thăm nhiều nhất
+        (đếm qua bảng \texttt{trip\_stops}).
+\end{itemize}
+
+\subsubsection{Quản lý người dùng (\texttt{/admin/users})}
+
+\begin{itemize}
+  \item \textbf{Danh sách user:} Bảng dữ liệu với các cột: Avatar, Username,
+        Email, Full Name, Role, Status, Ngày tạo, Trip Count. Hỗ trợ
+        \textbf{phân trang} (10 user/trang), \textbf{sắp xếp} và
+        \textbf{lọc theo status}.
+  \item \textbf{Tìm kiếm:} Thanh search lọc theo email, username hoặc
+        fullName (tìm kiếm không phân biệt hoa thường, \texttt{ILIKE}).
+  \item \textbf{Khoá tài khoản (Ban):} Chuyển \texttt{status} sang
+        \texttt{BANNED}, tăng \texttt{tokenVersion} (invalidate JWT ngay lập
+        tức), tạo bản ghi \texttt{Report} và \texttt{AdminLog} trong
+        transaction.
+  \item \textbf{Mở khoá tài khoản (Unban):} Chuyển \texttt{status} về
+        \texttt{ACTIVE}, tạo \texttt{AdminLog}.
+  \item \textbf{Tạo user thủ công:} Admin có thể tạo tài khoản trực tiếp
+        (bao gồm cả tài khoản ADMIN mới), bỏ qua bước OTP.
+  \item \textbf{Xoá user:} Xoá hoàn toàn, cascade xoá reports và adminLogs
+        liên quan trong transaction.
+  \item \textbf{Xem chi tiết user:} Trang profile đọc-only hiển thị thông
+        tin tài khoản, số trips, số báo cáo đã tạo và bị báo cáo.
+\end{itemize}
+
+\subsubsection{Quản lý địa điểm (\texttt{/admin/places})}
+
+\begin{itemize}
+  \item \textbf{Danh sách địa điểm:} Bảng hiển thị tên, category, district,
+        số lần xuất hiện trong \texttt{trip\_stops}. Hỗ trợ tìm kiếm và lọc
+        theo category.
+  \item \textbf{Thêm địa điểm mới:} Form nhập đầy đủ thông tin (tên, toạ độ,
+        category, district, giờ mở cửa, ảnh). Backend dùng
+        \texttt{ST\_GeomFromEWKT} để lưu geometry PostGIS.
+  \item \textbf{Chỉnh sửa địa điểm:} Cập nhật mọi trường, bao gồm cả toạ độ
+        (cập nhật đồng thời cột \texttt{lat}, \texttt{lng} và
+        \texttt{location} geometry).
+  \item \textbf{Xoá địa điểm:} Xoá địa điểm, cascade xoá gallery ảnh.
+\end{itemize}
+
+\subsubsection{Quản lý báo cáo vi phạm (\texttt{/admin/reports})}
+
+\begin{itemize}
+  \item \textbf{Danh sách báo cáo:} Bảng hiển thị người báo cáo, đối tượng
+        bị báo cáo, loại vi phạm, trạng thái, ngày tạo. Lọc theo
+        \texttt{ReportStatus} (PENDING / RESOLVED / DISMISSED) và tìm kiếm
+        theo username.
+  \item \textbf{Chi tiết báo cáo:} Xem thông tin đầy đủ, nếu vi phạm gắn với
+        Activity (\texttt{entityType = ACTIVITY}) thì hiển thị thông tin
+        activity đó kèm host.
+  \item \textbf{Xử lý báo cáo:} Admin ghi chú (\texttt{adminNotes}), đánh dấu
+        RESOLVED (tuỳ chọn ẩn activity bị báo cáo bằng cách chuyển sang
+        \texttt{CANCELLED}) hoặc DISMISSED.
+  \item \textbf{AdminLog:} Mọi hành động Admin (BAN\_USER, UNBAN\_USER,
+        RESOLVE\_REPORT, DISMISS\_REPORT) đều được ghi vào bảng
+        \texttt{admin\_logs} để audit trail.
+\end{itemize}
+
+\subsubsection{Bảo vệ Route}
+
+\begin{lstlisting}[language={}]
+-- Backend: RolesGuard (NestJS)
+@Roles('ADMIN')
+@UseGuards(JwtAuthGuard, RolesGuard)
+@Get('/admin/users')
+listUsers() { ... }
+
+-- Frontend: Middleware Next.js
+-- Redirect ve /login neu role !== 'ADMIN'
+export function middleware(request: NextRequest) {
+  const token = request.cookies.get('access_token');
+  const payload = decodeJwt(token);
+  if (payload.role !== 'ADMIN') {
+    return NextResponse.redirect('/login');
+  }
+}
+\end{lstlisting}
+
+% =============================================================================
+\section{Các Module Chính}
+% =============================================================================
+
+\subsection{Khám phá Địa điểm (Discovery)}
+
+\subsubsection{Bài toán}
+
+Khách du lịch nước ngoài cần một nơi tra cứu thông tin địa điểm du lịch tại
+Hà Nội một cách trực quan, có bản đồ tích hợp và khả năng lọc theo khu vực
+hoặc loại hình. Module này đóng vai trò \textbf{foundation data} cho toàn bộ
+hệ thống --- bộ dữ liệu 65 địa điểm du lịch đã được xác thực, sẵn sàng hỗ trợ
+tìm đường thời gian thực.
+
+\subsubsection{Tính năng}
+
+\begin{itemize}
+  \item \textbf{Danh sách địa điểm (\texttt{/discovery}):} Hiển thị tên, ảnh,
+        loại hình (category), khu vực (district), giờ mở cửa, thời gian tham
+        quan ước tính và tags.
+  \item \textbf{Filter:} Lọc theo khu vực (Hoàn Kiếm, Ba Đình, Tây Hồ, Đống
+        Đa, Hai Bà Trưng, Cầu Giấy) và loại hình (Heritage \& History,
+        Arts \& Culture, Sightseeing, Eat \& Shop, Nature \& Outdoors,
+        Spiritual).
+  \item \textbf{Map view:} Hiển thị toàn bộ địa điểm dưới dạng pin trên bản
+        đồ Leaflet (CartoDB Voyager tiles). Click vào pin để xem thông tin
+        chi tiết.
+  \item \textbf{Trang chi tiết địa điểm (\texttt{/places/:id}):} Thông tin
+        đầy đủ kèm vị trí trên bản đồ, gallery ảnh (\texttt{PlaceGallery}),
+        và địa điểm lân cận trong bán kính 1\,km (tái dụng
+        \texttt{ST\_DWithin} PostGIS).
+  \item \textbf{Travel Basket:} User có thể lưu địa điểm yêu thích vào
+        \texttt{TravelBasket} (Zustand store, persist localStorage). Basket
+        là đầu vào cho Trip Planner.
+\end{itemize}
+
+\subsubsection{Triển khai}
+
+Dữ liệu địa điểm được lưu trong PostgreSQL với PostGIS. Giờ mở cửa được
+tách thành các cột riêng biệt giúp thuật toán đọc nhanh và truy vấn hiệu
+quả:
+
+\begin{lstlisting}[language=SQL]
+CREATE TABLE places (
+  id                uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+  name              text NOT NULL UNIQUE,
+  description_en    text,
+  category          text NOT NULL,
+  district          text NOT NULL,
+  address           text,
+  lat               float NOT NULL,
+  lng               float NOT NULL,
+  location          geometry(Point, 4326),
+  visit_duration_min int,
+  image_url         text,
+  tags              text[],
+  -- Lịch hoạt động (parsed từ opening hours)
+  always_open       boolean DEFAULT false,
+  open_days         integer[],  -- [0..6] = [CN,T2..T7]
+  open_time_start   time,       -- giờ mở cửa (VD: 08:00)
+  open_time_end     time,       -- giờ đóng cửa (VD: 17:00)
+  has_break         boolean DEFAULT false,
+  break_start       time,       -- nghỉ trưa bắt đầu
+  break_end         time,       -- nghỉ trưa kết thúc
+  created_at        timestamptz DEFAULT now()
+);
+
+-- Bảng gallery ảnh (1 địa điểm - nhiều ảnh)
+CREATE TABLE place_gallery (
+  id        uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+  place_id  uuid REFERENCES places(id) ON DELETE CASCADE,
+  url       text NOT NULL,
+  created_at timestamptz DEFAULT now()
+);
+
+-- GiST index để tăng tốc ST_DWithin
+CREATE INDEX ON places USING GIST (location);
+\end{lstlisting}
+
+% -------------------------------------------------------------------------
+\subsection{Trip Planner}
+
+\subsubsection{Bài toán}
+
+Người dùng chọn danh sách địa điểm du lịch muốn đến tại Hà Nội cùng số ngày
+và điểm xuất phát. Hệ thống tự động sắp xếp lịch trình theo ngày sao cho tổng
+quãng đường di chuyển là nhỏ nhất, đồng thời thoả mãn ràng buộc về giờ mở cửa
+và thời gian tham quan. Lịch trình được hiển thị trực tiếp trên bản đồ Leaflet.
+
+\medskip
+\textbf{Tình huống minh hoạ:} Một du khách nước ngoài đang đứng tại khu vực
+Nhà hát Lớn muốn thăm 5 địa điểm trong 1 ngày (08:00--18:00): Hồ Hoàn Kiếm,
+Cha Cá Lã Vọng, Đền Bạch Mã, Ca Trù Thăng Long, và Văn Miếu. Mục tiêu là hệ
+thống tự phân bổ thứ tự hợp lý nhất --- không để khách đi vòng ziczac giữa hai
+đầu phố, không xếp lịch vào địa điểm đang đóng cửa.
+
+\subsubsection{Thuật toán tổng quan}
+
+Bài toán thuộc dạng biến thể của \textbf{Travelling Salesman Problem with Time
+Windows (TSPTW)} mở rộng sang đa ngày. Hệ thống giải quyết theo pipeline
+\textbf{Cluster-first, Route-second} gồm 5 giai đoạn nối tiếp nhau.
+
+% ── Giai đoạn 1 ─────────────────────────────────────────────────────────────
+\paragraph{Giai đoạn 1 --- Lọc và Phân cụm theo Địa lý (K-Means)}
+
+\textit{Kỹ thuật:} Trước tiên, hệ thống tra cứu địa điểm theo \texttt{placeIds}
+(UUID) từ cơ sở dữ liệu, lọc bỏ các địa điểm đóng cửa hoàn toàn trong toàn bộ
+hành trình. Các địa điểm còn lại được phân vào $D$ cụm (một cụm = một ngày)
+bằng thuật toán K-Means với khoảng cách Haversine:
+\[
+  d = 2R \arcsin\!\sqrt{
+    \sin^2\!\tfrac{\Delta\phi}{2}
+    + \cos\phi_1\cos\phi_2\sin^2\!\tfrac{\Delta\lambda}{2}
+  }
+\]
+Tâm cụm ban đầu được chọn theo \textbf{K-Means++} (xác suất tỉ lệ khoảng cách)
+kết hợp \textbf{Seeded PRNG} để đảm bảo cùng một bộ địa điểm luôn cho ra kết
+quả phân cụm như nhau. Sau K-Means, nếu một địa điểm rơi vào ngày mà nó đóng
+cửa, bước \texttt{postClusterOpenDaySwap} sẽ hoán đổi nó sang cụm phù hợp hơn
+--- mà không làm thay đổi chỉ số ngày của các cụm khác.
+
+\medskip
+\textit{Tình huống thực tế:} Với 5 địa điểm trên, thuật toán nhận thấy
+Văn Miếu nằm ở phía Đống Đa, cách xa 4 địa điểm còn lại ở Hoàn Kiếm. K-Means
+tự động tách Văn Miếu sang Ngày 2, còn Ngày 1 gom 4 địa điểm Hoàn Kiếm lại với
+nhau --- du khách không phải đi ngược từ Hoàn Kiếm sang Đống Đa rồi quay lại.
+
+% ── Giai đoạn 2 ─────────────────────────────────────────────────────────────
+\paragraph{Giai đoạn 2 --- Tính toán Cửa sổ Thời gian (\texttt{calculateVisitWindow})}
+
+\textit{Kỹ thuật:} Đây là hàm trung tâm, được gọi nhất quán ở mọi giai đoạn
+(GNN, cascade, conflict resolution). Với mỗi địa điểm $p$ và thời điểm dự kiến
+đến $T_{arrival}$, hàm tính:
+\begin{enumerate}
+  \item Điều chỉnh theo giờ mở cửa: $T_{visit} = \max(T_{arrival},\, O_{start})$.
+  \item \textbf{Multi-pass blocked windows:} Thu thập tất cả khoảng ``cấm''
+        (giờ nghỉ trưa chung $[L_{start}, L_{end}]$ và giờ nghỉ riêng của địa
+        điểm $[B_{start}, B_{end}]$ nếu có), sắp xếp theo thứ tự. Nếu khoảng
+        tham quan $[T_{visit},\, T_{visit}+v]$ chồng lên bất kỳ khoảng cấm nào,
+        đẩy $T_{visit}$ ra sau khoảng đó và kiểm tra lại từ đầu.
+  \item Kiểm tra hợp lệ: $T_{visit}+v \le \min(O_{end},\, T_{end})$. Nếu vi
+        phạm, trả về \texttt{null}.
+\end{enumerate}
+
+\medskip
+\textit{Tình huống thực tế:} Du khách đến Cha Cá Lã Vọng lúc 10:43, tham quan
+60 phút. Khoảng $[10{:}43, 11{:}43]$ chồng vào giờ nghỉ trưa $[11{:}00, 13{:}00]$.
+Hàm phát hiện xung đột, đẩy $T_{visit}$ về 13:00 và kiểm tra lại --- không còn
+chồng chéo nào, trả về \textit{bắt đầu 13:00, kết thúc 14:00}. Cách xử lý
+multi-pass này đảm bảo dù địa điểm có thêm giờ nghỉ riêng buổi chiều, logic vẫn
+hoạt động đúng mà không cần thêm code đặc biệt.
+
+% ── Giai đoạn 3 ─────────────────────────────────────────────────────────────
+\paragraph{Giai đoạn 3 --- Định tuyến Tham lam có Ràng buộc Thời gian (Time-Window GNN)}
+
+\textit{Kỹ thuật:} Trong mỗi cụm, hệ thống gọi \textbf{Goong Distance Matrix
+API} một lần duy nhất để lấy ma trận $N \times N$ thời gian di chuyển thực tế
+bằng xe máy giữa tất cả các cặp địa điểm. Ma trận này được lưu lại để tái sử
+dụng ở các giai đoạn sau. Thuật toán GNN sau đó chọn điểm tiếp theo theo hàm
+chi phí:
+\begin{equation}
+  Cost(j) = 2 \times \Delta T(i \to j) + T_{wait}(j) \times 60
+\end{equation}
+Hệ số $\times 2$ phạt nặng di chuyển xa hơn thời gian chờ, đồng thời phá thế
+cân bằng khi nhiều điểm cùng bị đẩy ra sau giờ nghỉ trưa (tất cả đều bắt đầu
+lúc 13:00 nhưng cách nhau về vị trí địa lý).
+
+\medskip
+\textit{Tình huống thực tế:} Lúc 10:43 sau khi rời Cha Cá Lã Vọng, thuật toán
+so sánh hai ứng viên: Đền Bạch Mã (200 m, đến 10:44) và Ca Trù Thăng Long
+(1,2 km, đến 10:55). Cả hai đều bị đẩy sang 13:00 vì giờ nghỉ trưa, nên
+$T_{wait}$ bằng nhau. Khi đó $\Delta T \times 2$ phân biệt: Đền Bạch Mã có chi
+phí thấp hơn → chọn Đền Bạch Mã đi trước. Kết quả là Ca Trù được xếp ngay
+sau đó lúc 14:10, không cần đi ngược lại.
+
+% ── Giai đoạn 4 ─────────────────────────────────────────────────────────────
+\paragraph{Giai đoạn 4 --- Điều chỉnh GPS Thực tế (\texttt{cascadeRouteTimes})}
+
+\textit{Kỹ thuật:} GNN chạy trên giả định xuất phát từ 08:00 không có thời gian
+di chuyển ban đầu. Sau đó, nếu người dùng cung cấp tọa độ GPS, hàm
+\texttt{cascadeRouteTimes} áp dụng offset thực tế:
+\begin{itemize}
+  \item \textbf{Điểm đầu tiên:} Gọi Goong API để tính thời gian từ GPS người
+        dùng đến điểm đầu; toàn bộ lịch trình dịch chuyển theo.
+  \item \textbf{Các điểm tiếp theo:} Tái sử dụng \texttt{travelFromPrevSec} đã
+        lưu từ Goong matrix ở Giai đoạn 3 --- không tính lại bằng Haversine.
+  \item \textbf{Khi có drop:} Nếu một điểm vi phạm ràng buộc sau khi cascade,
+        nó bị loại và thời gian di chuyển của điểm kế tiếp được tính lại qua
+        Goong API (vì predecessor đã thay đổi).
+\end{itemize}
+
+\medskip
+\textit{Tình huống thực tế:} GNN ban đầu xếp Hồ Hoàn Kiếm lúc 08:00. Nhưng
+du khách đang đứng ở Nhà hát Lớn --- Goong API cho biết đi xe máy mất 18 phút.
+Cascade dịch toàn bộ lịch: Hồ Hoàn Kiếm dời thành 08:28. Điểm kế tiếp (Cha Cá
+Lã Vọng) dùng lại thời gian di chuyển đã biết từ ma trận (5 phút) → đến 09:43.
+Không có địa điểm nào vi phạm giờ đóng cửa sau khi dịch, nên không có drop.
+
+% ── Giai đoạn 5 ─────────────────────────────────────────────────────────────
+\paragraph{Giai đoạn 5 --- Giải quyết Xung đột (Gap Insertion)}
+
+\textit{Kỹ thuật:} Nếu sau GNN + cascade còn địa điểm chưa được xếp lịch (do
+cụm ngày đó quá chật), hệ thống thử chèn từng địa điểm đó vào mọi \textit{khe
+trống} (gap) của tất cả các ngày. Với mỗi vị trí chèn $k$ trong ngày $d$:
+\begin{align}
+  T_{arrival}(p) &= T_{depart}(k-1) + \Delta T(k-1, p) \\
+  T_{depart}(p)  &= \texttt{calculateVisitWindow}(p,\; T_{arrival}(p))\texttt{.departMin}
+\end{align}
+Điều kiện chèn thành công: (1) \texttt{calculateVisitWindow} trả về khác
+\texttt{null}, và (2) $T_{depart}(p) + \Delta T(p, k) \le T_{arrival}(k)$
+(không làm trễ điểm đứng sau). Nếu không tìm được vị trí nào trong toàn bộ
+hành trình, địa điểm đi vào \texttt{unscheduled[]} và Frontend hiển thị thông
+báo lý do.
+
+\subsubsection{Tính toán Khoảng cách và API}
+
+Hệ thống sử dụng hai lớp khoảng cách với mục đích khác nhau:
+
+\begin{table}[H]
+\centering
+\renewcommand{\arraystretch}{1.3}
+\begin{tabular}{@{} p{0.18\textwidth} p{0.22\textwidth} p{0.50\textwidth} @{}}
+\toprule
+\textbf{Phương pháp} & \textbf{Dùng ở đâu} & \textbf{Lý do} \\
+\midrule
+Haversine & K-Means clustering & Chỉ cần khoảng cách tương đối để gom cụm địa lý, không cần chính xác theo đường phố. \\
+\addlinespace
+Goong Distance Matrix API (\texttt{vehicle=bike}) & GNN routing, GPS cascade & Cần thời gian di chuyển thực tế theo đường phố Hà Nội để lịch không sai lệch. \\
+\addlinespace
+Haversine (fallback) & Khi Goong API thất bại & Đảm bảo hệ thống không crash khi API quá tải. \\
+\bottomrule
+\end{tabular}
+\caption{Phân tầng khoảng cách trong Trip Planner}
+\end{table}
+
+\textbf{Xử lý giới hạn tốc độ API:} Khi nhận mã lỗi \texttt{OVER\_RATE\_LIMIT},
+hệ thống áp dụng \textbf{Exponential Backoff} --- thử lại 3 lần với độ trễ
+tăng dần 1s $\to$ 2s $\to$ 4s trước khi chuyển sang Haversine fallback.
+
+\subsubsection{Cơ sở dữ liệu Trip}
+
+\begin{lstlisting}[language=SQL]
+CREATE TABLE trips (
+  id            uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+  user_id       uuid REFERENCES users(id) ON DELETE CASCADE,
+  title         text,
+  num_days      int NOT NULL,
+  start_place_id uuid REFERENCES places(id),
+  cloned_from_id uuid REFERENCES trips(id) ON DELETE SET NULL,
+  created_at    timestamptz DEFAULT now()
+);
+
+CREATE TABLE trip_days (
+  id         uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+  trip_id    uuid REFERENCES trips(id) ON DELETE CASCADE,
+  day_number int NOT NULL,
+  district   text  -- khu vực chủ đạo của ngày
+);
+
+CREATE TABLE trip_stops (
+  id                  uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+  trip_day_id         uuid REFERENCES trip_days(id) ON DELETE CASCADE,
+  place_id            uuid REFERENCES places(id),
+  stop_order          int NOT NULL,
+  arrive_at           time,
+  depart_at           time,
+  distance_from_prev_m int,
+  duration_from_prev_s  int,
+  is_skipped          boolean DEFAULT false
+);
+\end{lstlisting}
+
+Trường \texttt{cloned\_from\_id} cho phép truy vết nguồn gốc khi lịch trình
+được sao chép từ Shared Trips.
+
+\subsubsection{Ví dụ Đầu vào / Đầu ra}
+
+\textit{Bối cảnh:} Du khách đang ở Nhà hát Lớn (21.0285, 105.8412), muốn thăm
+4 địa điểm tại Hoàn Kiếm trong ngày 13/05/2026, từ 08:00 đến 18:00.
+
+\begin{lstlisting}[language={}]
+-- INPUT --
+placeIds: ["uuid-hoan-kiem", "uuid-cha-ca", "uuid-bach-ma", "uuid-ca-tru"]
+numDays: 1, startTime: 480 (08:00), endTime: 1080 (18:00)
+travelDate: "2026-05-13", startLat: 21.0285, startLng: 105.8412
+
+-- OUTPUT --
+Ngay 1:
+  [18 phut tu GPS] -> Ho Hoan Kiem    08:28 - 09:28
+  [ 5 phut di chuyen]  Cha Ca La Vong 09:43 - 10:43
+  [Nghi trua 11:00 - 13:00]
+  [ 1 phut di chuyen]  Den Bach Ma   13:01 - 14:01
+  [ 8 phut di chuyen]  Ca Tru TL     14:10 - 15:10
+
+unscheduled: []   <-- tat ca deu duoc xep lich
+\end{lstlisting}
+
+\subsubsection{Đánh giá và Tinh chỉnh Thuật toán}
+
+\begin{table}[htbp]
+\centering
+\caption{Bảng so sánh tối ưu hoá thuật toán Trip Planner}
+\label{tab:algorithm_optimization}
+\renewcommand{\arraystretch}{1.4}
+\begin{tabular}{@{} p{0.20\textwidth} p{0.36\textwidth} p{0.36\textwidth} @{}}
+\toprule
+\textbf{Thành phần} & \textbf{Phiên bản cơ sở (Baseline)} & \textbf{Phiên bản tinh chỉnh (Refactored)} \\
+\midrule
+\textbf{Tra cứu địa điểm} & Tra cứu theo tên (\texttt{placeNames}). Lỗi nếu tên trùng hoặc đổi tên. & Tra cứu theo UUID (\texttt{placeIds}), hỗ trợ tên như fallback tương thích ngược. \\
+\addlinespace
+\textbf{Khởi tạo K-Means} & Chọn tâm cụm theo chỉ số mảng tuần tự. Gom cụm kém nếu dữ liệu không có thứ tự địa lý. & Áp dụng \textbf{K-Means++} kết hợp \textbf{Seeded PRNG} tạo tính xác định (Deterministic). \\
+\addlinespace
+\textbf{Bảo toàn chỉ số cụm} & Lọc bỏ cụm rỗng sau clustering, gây lệch ánh xạ ngày-cụm. & Giữ nguyên cụm rỗng; vòng lặp scheduling bỏ qua ngày trống an toàn. \\
+\addlinespace
+\textbf{Cửa sổ thời gian} & Xử lý giờ nghỉ rời rạc tại nhiều chỗ, dễ bỏ sót giờ nghỉ riêng của địa điểm. & Hàm \textbf{\texttt{calculateVisitWindow}} tập trung, multi-pass, kiểm tra \texttt{openTimeEnd} nhất quán. \\
+\addlinespace
+\textbf{Cascade GPS} & Bỏ Goong matrix, tính lại travel times bằng Haversine --- kết quả sai (ví dụ: 1 phút cho 2 điểm cách nhau 500m theo đường phố). & Tái sử dụng \texttt{travelFromPrevSec} từ Goong matrix. Chỉ gọi API lại khi stop bị drop. \\
+\addlinespace
+\textbf{Giải quyết xung đột} & Chỉ nối điểm rớt lịch vào \textit{cuối ngày}. Gán cứng 10 phút di chuyển. & \textbf{Gap Insertion} quét mọi khoảng trống trong ngày, dùng thời gian thực tế. \\
+\addlinespace
+\textbf{Dự phòng Rate Limit} & Thử lại 1 lần, chờ 3 giây cố định. & \textbf{Exponential Backoff} 3 lần (1s $\to$ 2s $\to$ 4s). \\
+\addlinespace
+\textbf{Chèn kẽ stop} & Gọi \texttt{calculateVisitWindow} thiếu thời gian di chuyển và đệm đỗ xe (mặc định 0), gây sai lệch khi chèn stop vào khoảng trống. & Truyền đầy đủ thời gian di chuyển thực tế từ stop liền trước và \texttt{PARKING\_BUFFER\_MIN} vào hàm \texttt{calculateVisitWindow}. \\
+\addlinespace
+\textbf{Định tuyến ngày đóng} & Chuyển địa điểm đóng sang ngày khác mà không kiểm tra sức chứa tối đa của ngày đích. & Kiểm tra dung lượng ngày đích có nhỏ hơn \texttt{MAX\_PLACES\_PER\_DAY} (5 địa điểm) trước khi tiến hành hoán đổi cụm. \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+
+% -------------------------------------------------------------------------
+\subsection{Activity \& Group Chat}
+
+\subsubsection{Bài toán}
+
+Khách du lịch solo muốn tìm người cùng tham gia một hoạt động cụ thể tại Hà
+Nội trong thời gian ngắn --- nhưng các nền tảng hiện tại (Facebook, Meetup)
+không gắn hoạt động trực tiếp lên bản đồ và không hỗ trợ group chat tức thì
+sau khi ghép nhóm.
+
+\subsubsection{Luồng hoạt động}
+
+\begin{enumerate}
+  \item \textbf{Tạo activity:} User điền tên hoạt động, category (Arts \&
+        Culture, Heritage \& History, Sightseeing,...), thời gian, mô tả, số
+        người tối đa, ảnh bìa. Địa điểm họp mặt được tìm kiếm thông qua cơ
+        chế tìm kiếm lai ghép (\textit{hybrid search}): hệ thống ưu tiên đối
+        khớp và gợi ý các địa danh du lịch trọng điểm sẵn có trong cơ sở dữ
+        liệu (65 địa danh) kèm huy hiệu nổi bật (``Highlight''), đồng thời
+        kết hợp \textbf{Goong Autocomplete API} để tìm kiếm các địa điểm
+        ngoài danh mục (quán cà phê, khách sạn, v.v.). Khi người dùng chọn
+        gợi ý hoặc kéo thả ghim trên bản đồ thu nhỏ (\textbf{LocationPickerMap}),
+        hệ thống tự động liên kết với \texttt{place\_id} tương ứng trong cơ
+        sở dữ liệu (nếu có), đồng thời kích hoạt bộ chuẩn hoá và dịch địa
+        chỉ sang tiếng Anh không dấu (\texttt{translateAddressToEnglish}).
+  \item \textbf{Hiển thị trên map:} Activity xuất hiện dưới dạng marker thông
+        minh trên bản đồ Leaflet. Trạng thái và màu sắc marker tự động thay
+        đổi theo thời gian họp mặt (\texttt{scheduled\_at}):
+        \begin{itemize}
+          \item \textbf{UPCOMING} (Chưa diễn ra): Marker màu xanh dương
+                (\texttt{\#1e50a0}) tiêu chuẩn.
+          \item \textbf{STARTING} (Sắp bắt đầu trong 2 giờ): Marker màu vàng
+                hổ phách (\texttt{\#f59e0b}) kèm badge hoạt họa nhấp nháy
+                ``SOON''.
+          \item \textbf{ONGOING} (Đang diễn ra trong vòng 3 giờ từ lúc bắt
+                đầu): Marker màu xanh lá cây (\texttt{\#16a34a}) kèm hiệu ứng
+                quét sóng tròn (\textit{pulse animation}) và badge ``LIVE''.
+          \item \textbf{ENDED} (Đã kết thúc sau 3 giờ): Marker màu xám
+                (\texttt{\#9ca3af}) mờ với độ trong suốt 50\%.
+        \end{itemize}
+  \item \textbf{Duyệt thành viên:} Chủ activity nhận thông báo
+        (\textbf{Notification} loại \texttt{ACTIVITY\_REQUEST}), xem profile
+        người xin tham gia và duyệt (\texttt{APPROVED}) hoặc từ chối
+        (\texttt{REJECTED}). Người xin tham gia nhận thông báo kết quả
+        (\texttt{ACTIVITY\_APPROVED} / \texttt{ACTIVITY\_REJECTED}).
+  \item \textbf{Group chat:} Sau khi được duyệt, thành viên tự động vào group
+        chat của activity. Chat đồng bộ realtime qua WebSocket và Redis
+        Pub/Sub. Tin nhắn có hai loại: \texttt{TEXT} (người dùng gửi) và
+        \texttt{SYSTEM} (thông báo hệ thống như ``User X đã tham gia nhóm'').
+  \item \textbf{Message Reactions:} Thành viên có thể react emoji vào từng
+        tin nhắn. Mỗi cặp (message, user, emoji) là duy nhất --- tránh react
+        trùng.
+  \item \textbf{Báo cáo vi phạm:} User có thể báo cáo activity vi phạm.
+        Report được gửi đến Admin Site với \texttt{entityType = ACTIVITY}.
+\end{enumerate}
+
+\subsubsection{Triển khai}
+
+\begin{lstlisting}[language=SQL]
+CREATE TABLE activities (
+  id           uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+  host_id      uuid REFERENCES users(id) ON DELETE CASCADE,
+  place_id     uuid REFERENCES places(id),  -- null neu tu nhap
+  trip_id      uuid REFERENCES trips(id) ON DELETE CASCADE, -- neu la Shared Trip
+  title        text NOT NULL,
+  description  text,
+  address      text,
+  lat          float NOT NULL,
+  lng          float NOT NULL,
+  location     geometry(Point, 4326),
+  scheduled_at timestamptz NOT NULL,
+  max_members  int DEFAULT 10,
+  status       text DEFAULT 'OPEN',  -- OPEN | CLOSED | CANCELLED
+  category     text DEFAULT 'Arts & Culture',
+  image_url    text,
+  saves_count  int DEFAULT 0,  -- dem luot Save Trip
+  created_at   timestamptz DEFAULT now()
+);
+
+CREATE TABLE activity_members (
+  activity_id  uuid REFERENCES activities(id) ON DELETE CASCADE,
+  user_id      uuid REFERENCES users(id) ON DELETE CASCADE,
+  status       text CHECK (status IN ('PENDING','APPROVED','REJECTED')),
+  joined_at    timestamptz DEFAULT now(),
+  PRIMARY KEY (activity_id, user_id)
+);
+
+CREATE TABLE messages (
+  id          uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+  activity_id uuid REFERENCES activities(id) ON DELETE CASCADE,
+  user_id     uuid REFERENCES users(id) ON DELETE SET NULL,
+  content     text NOT NULL,
+  type        text DEFAULT 'TEXT',  -- TEXT | SYSTEM
+  created_at  timestamptz DEFAULT now()
+);
+
+CREATE TABLE message_reactions (
+  id          uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+  message_id  uuid REFERENCES messages(id) ON DELETE CASCADE,
+  user_id     uuid REFERENCES users(id) ON DELETE CASCADE,
+  emoji       text NOT NULL,
+  created_at  timestamptz DEFAULT now(),
+  UNIQUE (message_id, user_id, emoji)
+);
+
+CREATE TABLE activity_likes (
+  activity_id uuid REFERENCES activities(id) ON DELETE CASCADE,
+  user_id     uuid REFERENCES users(id) ON DELETE CASCADE,
+  created_at  timestamptz DEFAULT now(),
+  PRIMARY KEY (activity_id, user_id)
+);
+
+CREATE TABLE notifications (
+  id          uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+  user_id     uuid REFERENCES users(id) ON DELETE CASCADE,
+  type        text,  -- ACTIVITY_REQUEST|APPROVED|REJECTED|NEW_MESSAGE
+  title       text NOT NULL,
+  body        text,
+  entity_type text,
+  entity_id   uuid,
+  is_read     boolean DEFAULT false,
+  created_at  timestamptz DEFAULT now()
+);
+\end{lstlisting}
+
+\textbf{Realtime:} Tin nhắn group chat được phân phối qua \textbf{WebSocket
+Gateway} (NestJS) và \textbf{Redis Pub/Sub}. Mỗi activity có một Redis channel
+riêng theo \texttt{activity:\{id\}}. Khi thành viên được duyệt, server tự động
+subscribe user vào channel tương ứng.
+
+\begin{lstlisting}[language={}]
+-- Phan phoi tin nhan group chat
+Channel: activity:{activity_id}
+Payload: { userId, username, message, timestamp }
+
+-- Server subscribe user sau khi duyet
+redis.subscribe(`activity:${activityId}`)
+\end{lstlisting}
+
+% -------------------------------------------------------------------------
+\subsection{Mạng xã hội Chia sẻ Lịch trình (Shared Trips)}
+
+\subsubsection{Bài toán}
+
+Sau khi tạo lập được một lịch trình tối ưu bằng công cụ Trip Planner, khách du
+lịch thường có nhu cầu chia sẻ thành quả này lên cộng đồng để các du khách
+khác tham khảo hoặc tái sử dụng. Các nền tảng hiện tại (như Facebook hay các
+blog du lịch) chỉ hỗ trợ chia sẻ dưới dạng văn bản và hình ảnh tĩnh, khiến
+người đọc muốn đi theo phải tự tay sao chép và thiết lập lại lịch trình từ đầu
+rất mất thời gian.
+
+Hệ thống cung cấp một cơ chế mạng xã hội du lịch thu nhỏ, liên kết trực
+tiếp giữa bài viết và dữ liệu bản đồ/lịch trình thực tế.
+
+\subsubsection{Luồng hoạt động và Tính năng}
+
+\begin{enumerate}
+  \item \textbf{Đăng bài chia sẻ lịch trình:} Trong giao diện quản lý Trip,
+        người dùng chọn lịch trình đã lên và bấm chia sẻ lên cộng đồng. Hệ
+        thống tạo một bản ghi \texttt{Activity} liên kết \texttt{trip\_id}
+        tương ứng --- bài đăng chia sẻ và activity nhóm dùng chung một thực
+        thể, phân biệt bởi sự hiện diện của \texttt{trip\_id}.
+  \item \textbf{Phân luồng bảng tin (Feed Tabs):} Bảng tin hoạt động trên
+        Frontend (\texttt{/activities}) được chia làm 3 tab chuyên biệt:
+        \begin{itemize}
+          \item \textbf{Groups:} Chỉ hiển thị các hoạt động rủ rê ghép nhóm
+                du lịch thông thường (không đính kèm Trip). Các row hiển thị
+                nút ``Join Group''.
+          \item \textbf{Shared Trips:} Chỉ hiển thị các bài đăng chia sẻ
+                lịch trình du lịch (có đính kèm \texttt{trip\_id}). Nút
+                ``Join Group'' được thay thế bằng nút ``Save Trip''.
+          \item \textbf{Joined:} Hiển thị danh sách các hoạt động hoặc lịch
+                trình chia sẻ mà người dùng hiện tại đã tạo hoặc tham
+                gia/lưu lại.
+        \end{itemize}
+  \item \textbf{Tương tác xã hội:}
+        \begin{itemize}
+          \item \textbf{Like (Yêu thích):} Cho phép người dùng thả tim bài
+                đăng. Tính năng này áp dụng cơ chế \textbf{Optimistic UI}
+                trên Frontend --- cập nhật tức thời trạng thái thích và đếm
+                số lượt thích trên giao diện, đồng thời gửi request ngầm đến
+                API. Nếu API báo lỗi, UI sẽ tự động phục hồi (rollback).
+          \item \textbf{Comment (Bình luận):} Hệ thống tái sử dụng thực thể
+                \texttt{Message} trên bảng \texttt{activities} để lưu trữ
+                và hiển thị nội dung bình luận.
+        \end{itemize}
+  \item \textbf{Sao chép lịch trình (Cloning Itinerary):} Khi bấm nút ``Save
+        Trip'', hệ thống kích hoạt API nhân bản lịch trình
+        (\texttt{cloneActivityTrip}). Toàn bộ thông tin lịch trình gốc bao
+        gồm tên (gắn hậu tố ``(Cloned)''), số ngày, điểm khởi hành, danh
+        sách \texttt{trip\_days} và \texttt{trip\_stops} được sao chép sang
+        tài khoản của người dùng mới. Trường \texttt{saves\_count} trên bài
+        đăng tăng thêm 1.
+\end{enumerate}
+
+\subsubsection{Cơ chế nhân bản lịch trình}
+
+Luồng xử lý tại Backend sử dụng dịch vụ NestJS phối hợp với Prisma ORM đảm
+bảo tính nhất quán của dữ liệu theo mô hình giao dịch sâu:
+
+\begin{enumerate}
+  \item \textbf{Xác thực thông tin:} Kiểm tra tính hợp lệ của bài đăng
+        activity và truy vấn đầy đủ cấu trúc lịch trình gốc gắn liền.
+  \item \textbf{Truy vấn sâu (Deep Query):} Đọc toàn bộ dữ liệu phân tầng
+        bao gồm lịch trình chính, \texttt{trip\_days} và \texttt{trip\_stops}
+        theo đúng thứ tự hành trình.
+  \item \textbf{Nhân bản sâu (Deep Clone):} Tạo mới Trip cho người dùng
+        hiện tại, tự động gán hậu tố ``(Cloned)'', thiết lập
+        \texttt{clonedFromId} tham chiếu về lịch trình gốc.
+  \item \textbf{Đồng bộ thống kê:} Cập nhật tăng \texttt{saves\_count} trên
+        bài viết chia sẻ và hoàn tất transaction.
+\end{enumerate}
+
+% -------------------------------------------------------------------------
+\subsection{AI Mentor}
+
+\subsubsection{Bài toán}
+
+Khách du lịch cần một trợ lý ảo am hiểu địa phương để gợi ý địa điểm, giải đáp
+thắc mắc về văn hóa Hà Nội, và đặc biệt \textbf{lập lịch trình tự động qua
+hội thoại} --- thay thế hoàn toàn luồng Trip Planner thủ công bằng cách thu
+thập thông số qua chat theo kiểu Socratic.
+
+\subsubsection{Triển khai}
+
+Module sử dụng mô hình \textbf{Gemini 2.5 Flash} (Google AI SDK) nhờ khả năng
+xử lý context lớn và độ trễ thấp. Kiến trúc \textbf{Single Mega Prompt} --- một
+lời nhắc duy nhất xử lý tất cả ý định, trả về JSON có cấu trúc:
+
+\begin{lstlisting}[language={}]
+{
+  "intent": "nearby | trip_plan | trip_plan_collecting | general",
+  "response": "<chuoi Markdown tieng Viet, than thien, emoji>",
+  "extractedParams": {
+    "numDays":         <integer | null>,
+    "travelDate":      <"YYYY-MM-DD" | null>,
+    "startTime":       <so nguyen 24h | null>,
+    "endTime":         <so nguyen 24h | null>,
+    "lunchBreakStart": <so nguyen 24h | null>,
+    "lunchBreakEnd":   <so nguyen 24h | null>,
+    "visitDuration":   <phut, 15-120 | null>,
+    "districts":       <string[] | []>,
+    "categories":      <string[] | []>
+  }
+}
+\end{lstlisting}
+
+\textbf{Bốn intent được hỗ trợ:}
+
+\begin{itemize}
+  \item \textbf{\texttt{nearby}:} User hỏi về địa điểm gần vị trí hiện tại.
+        Backend tính khoảng cách Haversine từ GPS user đến 65 địa điểm, trả
+        về 12 địa điểm gần nhất kèm tên, category, địa chỉ, khoảng cách.
+        AI phản hồi bằng gợi ý tự nhiên, đồng thời trả về \texttt{places}
+        (pin map) để Frontend hiển thị trên bản đồ.
+  \item \textbf{\texttt{trip\_plan}:} Đủ 3 thông số bắt buộc (numDays,
+        travelDate, categories). Backend gọi thẳng \texttt{TripPlannerService}
+        để sinh lịch trình, trả về \texttt{itinerary} đầy đủ.
+  \item \textbf{\texttt{trip\_plan\_collecting}:} Thiếu ít nhất 1 thông số.
+        AI hỏi \textbf{tất cả thông số còn thiếu trong một lượt duy nhất}
+        (không hỏi từng cái một). Frontend lưu \texttt{accumulatedParams} và
+        gửi lại ở lượt tiếp theo để AI biết đã thu thập được gì.
+  \item \textbf{\texttt{general}:} Câu hỏi thông thường về Hà Nội, văn hoá,
+        lịch sử, ẩm thực.
+\end{itemize}
+
+\textbf{Thông số tuỳ chọn bổ sung} (so với phiên bản cơ sở):
+
+\begin{itemize}
+  \item \textbf{\texttt{lunchBreakStart / lunchBreakEnd}:} Cho phép user chỉ
+        định khung giờ nghỉ trưa, truyền thẳng vào Trip Planner thay cho
+        giờ nghỉ mặc định toàn hệ thống.
+  \item \textbf{\texttt{visitDuration}:} Số phút tham quan mỗi địa điểm
+        (15--120 phút), cho phép tuỳ chỉnh thay vì dùng
+        \texttt{visit\_duration\_min} mặc định của từng địa điểm.
+  \item \textbf{\texttt{districts}:} Lọc địa điểm theo khu vực Hà Nội.
+\end{itemize}
+
+\begin{lstlisting}[language={}]
+System Context (built dynamically per request):
+  Today: YYYY-MM-DD
+  Recent conversation (last 8 turns)
+  Already collected params (to avoid re-asking)
+  Nearby places list (pre-sorted by distance, if applicable)
+
+Intent Rules:
+  - "trip_plan"            -> all 3 required params present
+  - "trip_plan_collecting" -> missing >= 1 required param
+                             -> ask ALL missing in ONE message
+  - "nearby"               -> user asks about places near them
+  - "general"              -> everything else
+
+Output: JSON only, no markdown fences
+\end{lstlisting}
+
+% =============================================================================
+\section{Kiến trúc Hệ thống}
+% =============================================================================
+
+\subsection{Tổng quan}
+
+\begin{center}
+\begin{tabular}{ll}
+  \toprule
+  \textbf{Tầng} & \textbf{Công nghệ} \\
+  \midrule
+  Frontend         & Next.js 14, Tailwind CSS, Leaflet.js, Zustand \\
+  Backend API      & NestJS (Node.js), WebSocket Gateway (Socket.io) \\
+  ORM              & Prisma (PostgreSQL extensions: postgis)          \\
+  AI Integration   & Gemini 2.5 Flash (Google AI SDK)                 \\
+  Routing Engine   & Goong Distance Matrix API / OSRM (self-hosted)  \\
+  Database Chính   & PostgreSQL + PostGIS                             \\
+  Cache / Realtime & Redis Pub/Sub                                    \\
+  Maps             & CartoDB Voyager + Leaflet                        \\
+  Email            & Nodemailer (Gmail SMTP)                          \\
+  Media Upload     & Multer (NestJS), lưu \texttt{public/uploads}     \\
+  \bottomrule
+\end{tabular}
+\end{center}
+
+\subsection{Cấu trúc Backend (NestJS Modules)}
+
+\begin{center}
+\begin{tabular}{ll}
+  \toprule
+  \textbf{Module} & \textbf{Chức năng} \\
+  \midrule
+  \texttt{auth}       & Đăng ký, OTP, đăng nhập, refresh, reset password \\
+  \texttt{users}      & Đọc/cập nhật hồ sơ người dùng \\
+  \texttt{admin}      & Dashboard, User/Place/Report management, AdminLog \\
+  \texttt{places}     & CRUD địa điểm, tìm kiếm PostGIS \\
+  \texttt{trips}      & Trip Planner 5-phase + lưu lịch trình \\
+  \texttt{activities} & CRUD activity, join/approve, likes, comments, clone \\
+  \texttt{group-chat} & WebSocket Gateway, Redis Pub/Sub \\
+  \texttt{ai-chat}    & Gemini integration, multi-intent routing \\
+  \texttt{media}      & Upload avatar và ảnh activity (Multer) \\
+  \texttt{prisma}     & Prisma service (shared across modules) \\
+  \texttt{common}     & Guards, decorators, filters dùng chung \\
+  \bottomrule
+\end{tabular}
+\end{center}
+
+\subsection{Cấu trúc Frontend (Next.js App Router)}
+
+\begin{center}
+\begin{tabular}{ll}
+  \toprule
+  \textbf{Route} & \textbf{Nội dung} \\
+  \midrule
+  \texttt{/}                   & Landing page \\
+  \texttt{/(auth)/register}    & Đăng ký \\
+  \texttt{/(auth)/verify-email} & Xác thực OTP \\
+  \texttt{/(auth)/login}       & Đăng nhập \\
+  \texttt{/(auth)/forgot-password} & Quên mật khẩu \\
+  \texttt{/(auth)/reset-password}  & Đặt lại mật khẩu \\
+  \texttt{/(main)/discovery}   & Khám phá địa điểm + bản đồ \\
+  \texttt{/(main)/places/:id}  & Chi tiết địa điểm \\
+  \texttt{/(main)/trips}       & Trip Planner + lịch trình đã lưu \\
+  \texttt{/(main)/activities}  & Activity feed (Groups/Shared/Joined) \\
+  \texttt{/(main)/profile}     & Hồ sơ cá nhân \\
+  \texttt{/(main)/profile/edit} & Chỉnh sửa hồ sơ \\
+  \texttt{/admin/dashboard}    & Admin dashboard stats \\
+  \texttt{/admin/users}        & Quản lý tài khoản \\
+  \texttt{/admin/places}       & Quản lý địa điểm \\
+  \texttt{/admin/reports}      & Quản lý báo cáo vi phạm \\
+  \bottomrule
+\end{tabular}
+\end{center}
+
+\subsection{Luồng dữ liệu chính}
+
+\begin{enumerate}
+  \item \textbf{Khám phá địa điểm:} Frontend gửi filter → NestJS truy vấn
+        PostgreSQL (Prisma) → trả về danh sách + GeoJSON để render Leaflet
+        pins.
+
+  \item \textbf{Trip Planner:} Frontend gửi danh sách địa điểm và số ngày →
+        NestJS tiền lọc địa điểm theo \texttt{open\_days} (Bước~0) → K-Means
+        clustering (Deterministic với Seeded PRNG) → gọi Goong Distance Matrix
+        API lấy ma trận khoảng cách thực tế → GNN Routing có tích hợp hàm chi
+        phí ưu tiên di chuyển và xử lý giờ nghỉ trưa
+        ($Cost = TravelTime \times 2 + T_{wait} \times 60$) → chạy Conflict
+        Resolution để điền vào các khe trống (Gap Insertion) → lưu lịch trình
+        vào \texttt{trips}/\texttt{trip\_days}/\texttt{trip\_stops} → trả về
+        lịch trình JSON kèm danh sách \texttt{unscheduled}.
+
+  \item \textbf{Activity \& Group Chat:} User tạo activity (Goong Autocomplete
+        + LocationPickerMap) → lưu DB + render pin trên map → user khác request
+        tham gia → tạo \texttt{Notification} cho host → chủ duyệt → NestJS
+        subscribe user vào Redis channel → WebSocket đồng bộ group chat
+        realtime + Message Reactions.
+
+  \item \textbf{Chia sẻ Lịch trình (Shared Trips):} User chọn chia sẻ lịch
+        trình $\to$ hệ thống tạo \texttt{Activity} liên kết \texttt{trip\_id}
+        $\to$ bài đăng xuất hiện trên tab Shared Trips $\to$ User khác tương
+        tác (Like dùng Optimistic UI / Comment) hoặc bấm ``Save Trip'' $\to$
+        NestJS thực thi nhân bản sâu lịch trình (\texttt{cloneActivityTrip})
+        kèm \texttt{clonedFromId} và tăng \texttt{saves\_count}.
+
+  \item \textbf{AI Mentor:} Frontend gửi message + GPS + \texttt{accumulatedParams}
+        → NestJS xây dựng Single Mega Prompt → Gemini 2.5 Flash trả về JSON
+        có \texttt{intent} → nếu \texttt{trip\_plan}: gọi
+        \texttt{TripPlannerService} trực tiếp → trả về \texttt{itinerary} +
+        \texttt{accumulatedParams} mới cho client lưu lại.
+
+  \item \textbf{Admin:} Admin đăng nhập tại \texttt{/admin/login} → JWT chứa
+        \texttt{role=ADMIN} → truy cập Dashboard/Users/Places/Reports → mọi
+        thao tác (ban, resolve report, delete) đều ghi \texttt{AdminLog} và
+        thực hiện trong Prisma transaction.
+\end{enumerate}
+
+% =============================================================================
+\section{Dữ liệu \& Nội dung}
+% =============================================================================
+
+Dự án sử dụng \textbf{một bộ dữ liệu duy nhất} (65 địa điểm du lịch trọng điểm)
+đã được xác thực tọa độ và thông tin, phục vụ cho cả ba module chính, tránh phân
+tán công sức thu thập và bảo trì. Dữ liệu được tổng hợp từ:
+
+\begin{itemize}
+  \item \textbf{OpenStreetMap (Overpass API)} --- toạ độ, tên, phân loại
+        (giấy phép ODbL, miễn phí). Dữ liệu OSM Việt Nam cũng dùng để khởi
+        tạo OSRM routing engine.
+  \item \textbf{Bổ sung thủ công} --- giờ mở cửa, thời gian tham quan ước
+        tính, ảnh đại diện, mô tả ngắn bằng tiếng Anh, tags phân loại.
+\end{itemize}
+
+\textbf{Phạm vi dữ liệu:} Chỉ bao gồm địa điểm du lịch (di tích, bảo tàng,
+hồ, công viên, chùa,...). Hotel và nhà hàng không nằm trong dataset tĩnh ---
+được tra cứu realtime bởi AI Mentor khi cần.
+
+\medskip
+Phân loại theo \textbf{khu vực} phục vụ clustering và filter:
+Hoàn Kiếm, Ba Đình, Tây Hồ, Đống Đa, Hai Bà Trưng, Cầu Giấy.
+
+\medskip
+Phân loại theo \textbf{category} (dùng nhất quán xuyên suốt cả Discovery
+filter, Activity category, và AI Mentor intent extraction):
+Heritage \& History, Arts \& Culture, Sightseeing, Eat \& Shop,
+Nature \& Outdoors, Spiritual.
+
+\end{document}

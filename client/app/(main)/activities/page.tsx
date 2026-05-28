@@ -28,7 +28,7 @@ export default function ActivitiesPage() {
   const [selectedActivity, setSelectedActivity] = useState<Activity | null>(null);
   const [showCreate, setShowCreate] = useState(false);
   const [userLocation, setUserLocation] = useState<[number, number] | null>(null);
-  const [activeTab, setActiveTab] = useState<'all' | 'my'>('all');
+  const [activeTab, setActiveTab] = useState<'groups' | 'trips' | 'my'>('groups');
   const [viewMode, setViewMode] = useState<'reel' | 'map'>('reel');
   const [chatActivity, setChatActivity] = useState<any | null>(null);
   const [selectedCategory, setSelectedCategory] = useState('all');
@@ -75,9 +75,12 @@ export default function ActivitiesPage() {
     }
   }, []);
 
-  const displayActivities = (activeTab === 'all' ? activities : myActivities).filter(a =>
-    selectedCategory === 'all' || a.category === selectedCategory
-  );
+  const displayActivities = (activeTab === 'my' ? myActivities : activities).filter(a => {
+    if (selectedCategory !== 'all' && a.category !== selectedCategory) return false;
+    if (activeTab === 'groups') return !a.tripId;
+    if (activeTab === 'trips') return !!a.tripId;
+    return true;
+  });
 
   // ── Full-screen Chat ─────────────────────────────────────────────
   if (chatActivity) {
@@ -93,40 +96,37 @@ export default function ActivitiesPage() {
   }
 
   return (
-    <div className="flex flex-col h-[calc(100vh-80px)] w-full overflow-hidden bg-slate-50 relative">
-      {/* Background Orbs for Glassmorphism */}
-      <div className="absolute top-[-10%] left-[-10%] w-[40%] h-[40%] bg-primary/10 rounded-full blur-[120px] pointer-events-none" />
-      <div className="absolute bottom-[-10%] right-[-10%] w-[40%] h-[40%] bg-secondary/20 rounded-full blur-[120px] pointer-events-none" />
-
+    <div className="flex flex-col h-[calc(100vh-80px)] w-full overflow-hidden bg-background relative pt-[53px]">
       {/* ── Header ──────────────────────────────────────────────── */}
-      <header className="px-5 py-3 bg-white/80 backdrop-blur-2xl border-b border-outline/5 flex flex-row gap-4 justify-between items-center z-20 shrink-0">
+      <header className="fixed top-20 left-0 right-0 px-5 py-2 bg-white/90 backdrop-blur-xl border-b border-outline/10 flex flex-row gap-3 justify-between items-center z-40">
         <div className="flex items-center gap-4">
           {/* Title */}
           <div>
-            <h1 className="text-xl font-bold tracking-tight text-on-surface leading-none">Activities</h1>
-            <p className="text-primary text-[8px] font-bold uppercase tracking-[0.2em] mt-0.5">Hanoi Guild</p>
+            <h1 className="text-lg font-extrabold text-on-surface leading-none">Activities</h1>
           </div>
 
           {/* Feed / Joined tabs */}
-          <nav className="flex bg-secondary p-1 rounded-2xl border border-outline/5 shadow-inner">
-            {(['all', 'my'] as const).map(tab => (
+          <nav className="flex bg-secondary-container p-0.5 rounded-lg border border-outline/10">
+            {(['groups', 'trips', 'my'] as const).map(tab => (
               <button
                 key={tab}
                 onClick={() => setActiveTab(tab)}
-                className={`px-4 py-1.5 rounded-xl text-[10px] font-bold uppercase tracking-widest transition-all duration-300 ${
-                  activeTab === tab ? 'bg-white text-primary shadow-sm' : 'text-on-surface/40 hover:text-on-surface'
+                className={`px-3 py-1.5 rounded-md text-[9px] font-black uppercase tracking-widest transition-all duration-300 ${
+                  activeTab === tab 
+                    ? 'bg-white text-primary shadow-sm' 
+                    : 'text-on-surface/50 hover:text-on-surface hover:bg-white/30'
                 }`}
               >
-                {tab === 'all' ? 'Feed' : 'Joined'}
+                {tab === 'groups' ? 'Groups' : tab === 'trips' ? 'Shared Trips' : 'Joined'}
               </button>
             ))}
           </nav>
         </div>
 
-        <div className="flex items-center gap-3">
+        <div className="flex items-center gap-2">
           {/* Categories Dropdown */}
           <div className="relative group">
-            <button className="flex items-center gap-1.5 px-4 py-2 bg-secondary rounded-2xl text-[10px] font-bold uppercase tracking-widest text-on-surface hover:bg-outline/5 transition-all border border-outline/5">
+            <button className="flex items-center gap-1.5 px-3 py-2 bg-secondary-container rounded-lg text-[9px] font-black uppercase tracking-widest text-on-surface hover:bg-secondary transition-all border border-outline/10">
               <span className="material-symbols-outlined text-sm">
                 {CATEGORIES.find(c => c.id === selectedCategory)?.icon || 'category'}
               </span>
@@ -134,7 +134,7 @@ export default function ActivitiesPage() {
               <span className="material-symbols-outlined text-sm">expand_more</span>
             </button>
             {/* Dropdown Menu */}
-            <div className="absolute top-full right-0 mt-2 w-48 bg-white border border-outline/10 rounded-2xl shadow-xl opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-200 z-50 flex flex-col p-2">
+            <div className="absolute top-full right-0 mt-2 w-48 bg-white border border-outline/10 rounded-xl shadow-lg opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-200 z-50 flex flex-col p-2">
               {CATEGORIES.map(cat => (
                 <button
                   key={cat.id}
@@ -142,7 +142,7 @@ export default function ActivitiesPage() {
                   className={`flex items-center gap-2.5 px-3 py-2.5 rounded-xl text-[10px] font-bold uppercase tracking-widest transition-colors w-full text-left ${
                     selectedCategory === cat.id
                       ? 'bg-primary text-white'
-                      : 'text-on-surface hover:bg-secondary hover:text-primary'
+                      : 'text-on-surface hover:bg-secondary-container hover:text-primary'
                   }`}
                 >
                   <span className="material-symbols-outlined text-sm">{cat.icon}</span>
@@ -152,14 +152,16 @@ export default function ActivitiesPage() {
             </div>
           </div>
 
-          <div className="w-[1px] h-7 bg-outline/10" />
+          <div className="w-[1px] h-6 bg-outline/10" />
 
           {/* View switcher: Reel / Map */}
-          <div className="flex bg-secondary p-1 rounded-2xl border border-outline/5 shadow-inner">
+          <div className="flex bg-secondary-container p-0.5 rounded-lg border border-outline/10">
             <button
               onClick={() => setViewMode('reel')}
-              className={`flex items-center gap-1.5 px-4 py-1.5 rounded-xl text-[10px] font-bold uppercase tracking-widest transition-all duration-300 ${
-                viewMode === 'reel' ? 'bg-white text-primary shadow-sm' : 'text-on-surface/40 hover:text-on-surface'
+              className={`flex items-center gap-1.5 px-3 py-1.5 rounded-md text-[9px] font-black uppercase tracking-widest transition-all duration-300 ${
+                viewMode === 'reel' 
+                  ? 'bg-white text-primary shadow-sm' 
+                  : 'text-on-surface/50 hover:text-on-surface hover:bg-white/30'
               }`}
             >
               <span className="material-symbols-outlined text-sm">dynamic_feed</span>
@@ -167,8 +169,10 @@ export default function ActivitiesPage() {
             </button>
             <button
               onClick={() => setViewMode('map')}
-              className={`flex items-center gap-1.5 px-4 py-1.5 rounded-xl text-[10px] font-bold uppercase tracking-widest transition-all duration-300 ${
-                viewMode === 'map' ? 'bg-white text-primary shadow-sm' : 'text-on-surface/40 hover:text-on-surface'
+              className={`flex items-center gap-1.5 px-3 py-1.5 rounded-md text-[9px] font-black uppercase tracking-widest transition-all duration-300 ${
+                viewMode === 'map' 
+                  ? 'bg-white text-primary shadow-sm' 
+                  : 'text-on-surface/50 hover:text-on-surface hover:bg-white/30'
               }`}
             >
               <span className="material-symbols-outlined text-sm">map</span>
@@ -176,12 +180,12 @@ export default function ActivitiesPage() {
             </button>
           </div>
 
-          <div className="w-[1px] h-7 bg-outline/10" />
+          <div className="w-[1px] h-6 bg-outline/10" />
 
           {/* Create button */}
           <button
             onClick={() => setShowCreate(true)}
-            className="flex items-center gap-2 bg-primary text-white px-5 py-2 rounded-2xl font-bold text-[10px] uppercase tracking-widest hover:opacity-90 transition-all active:scale-95 shadow-lg shadow-primary/20"
+            className="flex items-center gap-1.5 bg-primary text-white px-4 py-2 rounded-lg font-black text-[9px] uppercase tracking-widest hover:bg-primary-container transition-all active:scale-95 shadow-sm"
           >
             <span className="material-symbols-outlined text-sm">add</span>
             Create
@@ -190,28 +194,26 @@ export default function ActivitiesPage() {
       </header>
 
       {/* ── Main Content ─────────────────────────────────────────── */}
-      <main className="flex-1 relative overflow-hidden flex flex-col">
-
+      <main className="flex-1 min-h-0 relative overflow-hidden flex flex-col">
         <div className="flex-1 relative overflow-hidden">
 
           {/* ── Reel Feed View ──────────────────────────────────── */}
           {viewMode === 'reel' && (
             <div className="h-full overflow-y-auto" id="reel-feed">
-              {/* Centered narrow column — like IG/Facebook */}
-              <div className="max-w-[600px] mx-auto pb-8">
+              <div className="max-w-[600px] mx-auto pb-12 pt-5 px-4">
                 {loading ? (
                   /* Skeleton loaders */
                   Array(3).fill(0).map((_, i) => (
-                    <div key={i} className="mb-4 animate-pulse">
-                      <div className="flex items-center gap-3 px-4 py-4">
-                        <div className="w-10 h-10 rounded-full bg-secondary/60" />
+                    <div key={i} className="mb-5 bg-white border border-[#e8e3dd] rounded-xl overflow-hidden animate-pulse">
+                      <div className="flex items-center gap-3 px-6 py-4 bg-secondary-container/10">
+                        <div className="w-10 h-10 rounded-lg bg-secondary/60" />
                         <div className="flex-1 space-y-2">
                           <div className="h-3 bg-secondary/60 rounded-full w-1/3" />
                           <div className="h-2.5 bg-secondary/40 rounded-full w-1/4" />
                         </div>
                       </div>
-                      <div className="h-64 bg-secondary/40" />
-                      <div className="px-4 py-3 space-y-2">
+                      <div className="h-64 bg-secondary/20" />
+                      <div className="px-6 py-5 space-y-3">
                         <div className="h-3 bg-secondary/50 rounded-full w-3/4" />
                         <div className="h-2.5 bg-secondary/30 rounded-full w-1/2" />
                       </div>
@@ -228,19 +230,19 @@ export default function ActivitiesPage() {
                     />
                   ))
                 ) : (
-                  <div className="flex flex-col items-center justify-center py-32 text-center px-8">
-                    <div className="w-20 h-20 rounded-3xl bg-secondary flex items-center justify-center mb-6 shadow-inner">
+                  <div className="flex flex-col items-center justify-center py-28 text-center px-8 bg-white border border-outline/10 rounded-xl mt-4">
+                    <div className="w-16 h-16 rounded-xl bg-secondary-container flex items-center justify-center mb-5 border border-outline/10">
                       <span className="material-symbols-outlined text-4xl text-outline/60">explore_off</span>
                     </div>
-                    <h3 className="font-bold text-xl text-on-surface mb-2">No active groups</h3>
+                    <h3 className="font-extrabold text-xl text-on-surface mb-2">No active groups</h3>
                     <p className="text-on-surface-variant text-sm font-medium max-w-xs mx-auto leading-relaxed">
-                      {activeTab === 'all'
-                        ? 'Be the first to spark a new adventure in this category!'
-                        : 'Your adventure log is empty. Join some groups to get started.'}
+                      {selectedCategory === 'all'
+                        ? 'Create the first activity for the community.'
+                        : 'No activity matches this category yet.'}
                     </p>
                     <button
                       onClick={() => setShowCreate(true)}
-                      className="mt-8 px-8 py-3 bg-primary text-white rounded-xl font-bold text-[10px] uppercase tracking-widest hover:scale-105 active:scale-95 transition-all shadow-lg shadow-primary/20"
+                      className="mt-8 px-8 py-3.5 bg-primary text-white rounded-xl font-black text-[10px] uppercase tracking-widest hover:bg-primary-container active:scale-95 transition-all shadow-sm"
                     >
                       Start an Activity
                     </button>
@@ -252,7 +254,7 @@ export default function ActivitiesPage() {
 
           {/* ── Map View ────────────────────────────────────────── */}
           {viewMode === 'map' && (
-            <div className="h-full relative animate-in fade-in zoom-in-95 duration-500">
+            <div className="h-full relative animate-in fade-in duration-300">
               <ActivityMap
                 activities={displayActivities}
                 onSelectActivity={setSelectedActivity}
@@ -260,25 +262,25 @@ export default function ActivitiesPage() {
               />
 
               {/* Map Floating Controls */}
-              <div className="absolute bottom-10 left-1/2 -translate-x-1/2 bg-white/90 backdrop-blur-xl px-5 py-3 rounded-3xl shadow-2xl border border-outline/5 flex items-center gap-6 z-20">
+              <div className="absolute bottom-8 left-1/2 -translate-x-1/2 bg-white/95 backdrop-blur-xl px-5 py-3 rounded-xl shadow-lg border border-outline/10 flex items-center gap-5 z-20">
                 <div className="flex flex-col">
-                  <span className="text-[9px] font-bold text-on-surface-variant uppercase tracking-widest">Active Groups</span>
-                  <span className="text-lg font-bold text-on-surface">{displayActivities.length}</span>
+                  <span className="text-[9px] font-black text-on-surface-variant uppercase tracking-widest">Active Groups</span>
+                  <span className="text-lg font-extrabold text-on-surface">{displayActivities.length}</span>
                 </div>
                 <div className="w-[1px] h-8 bg-outline/10" />
                 <button
                   onClick={() => setUserLocation(userLocation)}
-                  className="w-12 h-12 bg-primary text-white rounded-2xl shadow-xl shadow-primary/5 flex items-center justify-center hover:scale-110 active:scale-95 transition-all"
+                  className="w-10 h-10 bg-primary text-white rounded-lg shadow-sm flex items-center justify-center hover:bg-primary-container active:scale-95 transition-all"
                 >
                   <span className="material-symbols-outlined">my_location</span>
                 </button>
               </div>
 
               {selectedActivity && (
-                <div className="absolute top-6 left-6 w-72 bg-white/95 backdrop-blur-2xl rounded-3xl shadow-2xl border border-outline/5 p-5 z-20 animate-in slide-in-from-left duration-500">
+                <div className="absolute top-6 left-6 w-72 bg-white/95 backdrop-blur-xl rounded-xl shadow-lg border border-outline/10 p-5 z-20 animate-in slide-in-from-left duration-300">
                   <div className="flex justify-between items-start mb-3">
-                    <h3 className="font-bold text-lg text-on-surface leading-tight">{selectedActivity.title}</h3>
-                    <button onClick={() => setSelectedActivity(null)} className="text-on-surface-variant hover:text-primary ml-2">
+                    <h3 className="font-extrabold text-lg text-on-surface leading-tight">{selectedActivity.title}</h3>
+                    <button onClick={() => setSelectedActivity(null)} className="text-on-surface-variant hover:text-primary ml-2 transition-colors">
                       <span className="material-symbols-outlined text-lg">close</span>
                     </button>
                   </div>
@@ -287,7 +289,7 @@ export default function ActivitiesPage() {
                   </p>
                   <button
                     onClick={() => setSelectedActivity(selectedActivity)}
-                    className="w-full py-3 bg-on-surface text-white text-[10px] font-bold uppercase tracking-widest rounded-2xl hover:bg-primary transition-all"
+                    className="w-full py-3 bg-[#261817] text-white text-[10px] font-black uppercase tracking-widest rounded-xl hover:bg-primary transition-all shadow-md shadow-on-surface/10"
                   >
                     View Details
                   </button>

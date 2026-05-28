@@ -17,8 +17,7 @@ export default function AdminLayout({
     { name: 'Dashboard', icon: 'dashboard', path: '/admin/dashboard' },
     { name: 'User Management', icon: 'group', path: '/admin/users' },
     { name: 'Heritage Places', icon: 'account_balance', path: '/admin/places' },
-    { name: 'Trips & Activities', icon: 'explore', path: '/admin/coming-soon' },
-    { name: 'Community Reviews', icon: 'rate_review', path: '/admin/coming-soon' },
+    { name: 'Activity Reports', icon: 'flag', path: '/admin/reports' },
     { name: 'System Settings', icon: 'settings', path: '/admin/coming-soon' },
   ];
 

@@ -12,7 +12,7 @@ import { AdminService } from './admin.service';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 import { RolesGuard } from '../common/guards/roles.guard';
 import { Roles } from '../common/decorators/roles.decorator';
-import { Role, UserStatus } from '@prisma/client';
+import { Role, UserStatus, ReportStatus } from '@prisma/client';
 import { BanUserDto } from './dto/ban-user.dto';
 import { CreatePlaceDto } from './dto/create-place.dto';
 import { UpdatePlaceDto } from './dto/update-place.dto';
@@ -130,5 +130,53 @@ export class AdminController {
   @Delete('users/:id')
   deleteUser(@Param('id') userId: string) {
     return this.adminService.deleteUser(userId);
+  }
+
+  // ── Report Management ───────────────────────────────────────────────
+  @Get('reports')
+  getReports(
+    @Query('page') page?: string,
+    @Query('limit') limit?: string,
+    @Query('status') status?: ReportStatus,
+    @Query('search') search?: string,
+  ) {
+    return this.adminService.getReports(
+      page ? parseInt(page) : 1,
+      limit ? parseInt(limit) : 10,
+      status,
+      search,
+    );
+  }
+
+  @Get('reports/:id')
+  getReportDetail(@Param('id') id: string) {
+    return this.adminService.getReportDetail(id);
+  }
+
+  @Patch('reports/:id/resolve')
+  resolveReport(
+    @Param('id') reportId: string,
+    @Body() body: { adminNotes?: string; hideActivity?: boolean },
+    @Request() req: any,
+  ) {
+    return this.adminService.resolveReport(
+      req.user.id,
+      reportId,
+      body.adminNotes,
+      body.hideActivity,
+    );
+  }
+
+  @Patch('reports/:id/dismiss')
+  dismissReport(
+    @Param('id') reportId: string,
+    @Body() body: { adminNotes?: string },
+    @Request() req: any,
+  ) {
+    return this.adminService.dismissReport(
+      req.user.id,
+      reportId,
+      body.adminNotes,
+    );
   }
 }
