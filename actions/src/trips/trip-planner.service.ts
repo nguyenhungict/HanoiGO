@@ -587,7 +587,7 @@ export class TripPlannerService {
         return this.parseGoongMatrix(data);
       }
 
-      this.logger.warn('Goong returned empty data. Using Haversine fallback.');
+      this.logger.warn(`Goong returned empty data (response: ${JSON.stringify(data)}). Using Haversine fallback.`);
       return haversineFallbackMatrix(places);
     } catch {
       this.logger.warn('Goong API unavailable. Using Haversine fallback.');
