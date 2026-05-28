@@ -70,7 +70,10 @@ export async function fetchLandmarks(): Promise<Landmark[]> {
         lng: p.lng
       };
     });
-  } catch (error) {
+  } catch (error: any) {
+    if (error?.digest === 'DYNAMIC_SERVER_USAGE' || error?.message?.includes('DYNAMIC_SERVER_USAGE')) {
+      throw error;
+    }
     console.error("API Error, falling back to static landmarks:", error);
     return staticLandmarks;
   }
