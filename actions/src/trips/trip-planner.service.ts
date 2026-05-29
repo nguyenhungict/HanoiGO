@@ -6,7 +6,6 @@ import {
   DAY_NAMES,
   DEFAULT_LUNCH_END,
   DEFAULT_LUNCH_START,
-  GOONG_API_KEY,
   PARKING_BUFFER_MIN,
 } from './trip-planner.constants';
 import {
@@ -45,6 +44,11 @@ import {
 export class TripPlannerService {
   private readonly logger = new Logger(TripPlannerService.name);
 
+  /** Đọc động tại runtime để tránh lỗi hằng số tĩnh bị đóng băng lúc import */
+  private get goongApiKey(): string {
+    return process.env.GOONG_API_KEY || '';
+  }
+
   constructor(private prisma: PrismaService) {}
 
   private async fetchGoongTravelSec(
@@ -54,7 +58,7 @@ export class TripPlannerService {
     toLng: number,
   ): Promise<number | null> {
     try {
-      const url = `https://rsapi.goong.io/DistanceMatrix?origins=${fromLat},${fromLng}&destinations=${toLat},${toLng}&vehicle=bike&api_key=${GOONG_API_KEY}`;
+      const url = `https://rsapi.goong.io/DistanceMatrix?origins=${fromLat},${fromLng}&destinations=${toLat},${toLng}&vehicle=bike&api_key=${this.goongApiKey}`;
       const data = (await (await fetch(url)).json()) as GoongMatrixResponse;
       return data.rows?.[0]?.elements?.[0]?.duration?.value ?? null;
     } catch {
@@ -63,7 +67,7 @@ export class TripPlannerService {
   }
 
   private async getRealTravelSec(from: Place, to: Place): Promise<number> {
-    if (GOONG_API_KEY) {
+    if (this.goongApiKey) {
       const sec = await this.fetchGoongTravelSec(
         from.lat,
         from.lng,
@@ -547,13 +551,14 @@ export class TripPlannerService {
   private async getDurationMatrix(places: Place[]): Promise<number[][]> {
     if (places.length <= 1) return [[0]];
 
-    if (!GOONG_API_KEY) {
+    const apiKey = this.goongApiKey;
+    if (!apiKey) {
       this.logger.warn('Goong API key not set. Using Haversine fallback.');
       return haversineFallbackMatrix(places);
     }
 
     const coords = places.map((p) => `${p.lat},${p.lng}`).join('|');
-    const url = `https://rsapi.goong.io/DistanceMatrix?origins=${coords}&destinations=${coords}&vehicle=bike&api_key=${GOONG_API_KEY}`;
+    const url = `https://rsapi.goong.io/DistanceMatrix?origins=${coords}&destinations=${coords}&vehicle=bike&api_key=${apiKey}`;
 
     try {
       const res = await fetch(url);
@@ -715,7 +720,7 @@ export class TripPlannerService {
     firstPlace: Place,
   ): Promise<number> {
     if (!dto.startLat || !dto.startLng) return 0;
-    if (GOONG_API_KEY) {
+    if (this.goongApiKey) {
       const sec = await this.fetchGoongTravelSec(
         dto.startLat,
         dto.startLng,
