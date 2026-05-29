@@ -7,6 +7,7 @@ import { useTripStore } from '@/store/useTripStore';
 import { useAuthStore } from '@/store/useAuthStore';
 import { useNotification } from '@/hooks/use-notification';
 import { useConfirm } from '@/hooks/use-confirm';
+import { getSessionAction } from '@/lib/actions';
 import { Trash2, Map as MapIcon, Clock, Calendar, CheckCircle2, AlertCircle, Share2 } from 'lucide-react';
 import { CreateActivityDialog } from '@/components/activities/CreateActivityDialog';
 
@@ -77,7 +78,7 @@ export default function TripsPage() {
   const [activeDayTab, setActiveDayTab] = useState(1);
   const [userLocation, setUserLocation] = useState<[number, number] | null>(null);
 
-  const { token } = useAuthStore();
+  const { token, setUser, setToken } = useAuthStore();
   const [savedTrips, setSavedTrips] = useState<SavedTrip[]>([]);
   const [viewMode, setViewMode] = useState<'create' | 'saved'>('create');
   const [showSaveModal, setShowSaveModal] = useState(false);
@@ -86,6 +87,15 @@ export default function TripsPage() {
   const [tripToShare, setTripToShare] = useState<string | null>(null);
   const { show } = useNotification();
   const { confirm } = useConfirm();
+
+  // Hydrate auth token from server-side cookie session (same as activities page)
+  useEffect(() => {
+    getSessionAction().then(session => {
+      if (session) { setUser(session.user); setToken(session.token); }
+      else { setUser(null); setToken(null); }
+    });
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   const fetchSavedTrips = useCallback(async () => {
     if (!token) return;
@@ -108,7 +118,19 @@ export default function TripsPage() {
 
   const handleSaveTrip = async () => {
     if (!itinerary) return;
-    if (!token) {
+
+    // Lấy token từ Zustand hoặc fallback từ server session (nếu store chưa hydrate)
+    let authToken = token;
+    if (!authToken) {
+      const session = await getSessionAction();
+      if (session?.token) {
+        authToken = session.token;
+        setUser(session.user);
+        setToken(session.token);
+      }
+    }
+
+    if (!authToken) {
       show({
         type: 'error',
         title: 'Authentication Required',
@@ -141,7 +163,7 @@ export default function TripsPage() {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-          Authorization: `Bearer ${token}`,
+          Authorization: `Bearer ${authToken}`,
         },
         body: JSON.stringify(payload),
       });
@@ -157,7 +179,7 @@ export default function TripsPage() {
       } else {
         const errText = await res.text();
         console.error('Save Trip API Error (Status ' + res.status + '):', errText);
-        
+
         let errMsg = 'Could not save trip at this time.';
         if (res.status === 401) {
           errMsg = 'Your session has expired. Please log in again!';
@@ -169,7 +191,7 @@ export default function TripsPage() {
             }
           } catch {}
         }
-        
+
         show({
           type: 'error',
           title: 'Error (' + res.status + ')',
