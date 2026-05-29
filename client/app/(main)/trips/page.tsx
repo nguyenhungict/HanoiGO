@@ -107,13 +107,21 @@ export default function TripsPage() {
   }, [fetchSavedTrips]);
 
   const handleSaveTrip = async () => {
-    if (!itinerary || !token) return;
+    if (!itinerary) return;
+    if (!token) {
+      show({
+        type: 'error',
+        title: 'Authentication Required',
+        message: 'Please log in to save your trip!',
+      });
+      return;
+    }
     setIsSaving(true);
     try {
       const payload = {
         title: tripTitle || `My Trip to Hanoi - ${config.travelDate}`,
         numDays: config.numDays,
-        startPlaceId: itinerary.days[0]?.stops[0]?.placeId,
+        startPlaceId: itinerary.days[0]?.stops[0]?.placeId || null,
         days: itinerary.days.map((day) => ({
           dayNumber: day.dayNumber,
           district: day.stops[0]?.district || day.stops.find(s => s.district)?.district || 'Hanoi',
@@ -147,18 +155,33 @@ export default function TripsPage() {
         setShowSaveModal(false);
         fetchSavedTrips();
       } else {
+        const errText = await res.text();
+        console.error('Save Trip API Error (Status ' + res.status + '):', errText);
+        
+        let errMsg = 'Could not save trip at this time.';
+        if (res.status === 401) {
+          errMsg = 'Your session has expired. Please log in again!';
+        } else {
+          try {
+            const errJson = JSON.parse(errText);
+            if (errJson.message) {
+              errMsg = Array.isArray(errJson.message) ? errJson.message.join(', ') : errJson.message;
+            }
+          } catch {}
+        }
+        
         show({
           type: 'error',
-          title: 'Error',
-          message: 'Could not save trip at this time.',
+          title: 'Error (' + res.status + ')',
+          message: errMsg,
         });
       }
     } catch (e) {
-      console.error(e);
+      console.error('Save Trip Connection Error:', e);
       show({
         type: 'error',
         title: 'Connection Error',
-        message: 'Please check your network connection.',
+        message: 'Please check your network connection or server status.',
       });
     } finally {
       setIsSaving(false);
