@@ -15,13 +15,15 @@ interface NotificationToastProps {
   type: NotificationType;
   title: string;
   message?: string;
+  onClick?: () => void;
 }
 
 export const NotificationToast: React.FC<NotificationToastProps> = ({ 
   id, 
   type, 
   title, 
-  message 
+  message,
+  onClick
 }) => {
   const { hide } = useNotification();
 
@@ -60,11 +62,18 @@ export const NotificationToast: React.FC<NotificationToastProps> = ({
 
   return (
     <div 
+      onClick={() => {
+        if (onClick) {
+          onClick();
+          hide(id);
+        }
+      }}
       className={`
         pointer-events-auto flex w-full max-w-md overflow-hidden rounded-2xl 
         backdrop-blur-xl border ${currentStyle.border} ${currentStyle.bg}
         shadow-[0_8px_32px_0_rgba(31,38,135,0.07)]
         animate-slide-in-right
+        ${onClick ? 'cursor-pointer hover:opacity-95 active:scale-[0.99] transition-all' : ''}
       `}
     >
       <div className="flex w-full items-start gap-4 p-4">
@@ -82,8 +91,11 @@ export const NotificationToast: React.FC<NotificationToastProps> = ({
           )}
         </div>
         <button
-          onClick={() => hide(id)}
-          className="flex-shrink-0 rounded-lg p-1 transition-colors hover:bg-black/5"
+          onClick={(e) => {
+            e.stopPropagation();
+            hide(id);
+          }}
+          className="flex-shrink-0 rounded-lg p-1 transition-colors hover:bg-black/5 z-10"
         >
           <X className="w-4 h-4 text-gray-500" />
         </button>
@@ -92,8 +104,8 @@ export const NotificationToast: React.FC<NotificationToastProps> = ({
       {/* Progress Bar (Optional) */}
       <div className="absolute bottom-0 left-0 h-1 bg-black/5 w-full">
          <div 
-           className={`h-full bg-current opacity-20 animate-toast-progress`} 
-           style={{ animationDuration: '5000ms' }}
+            className={`h-full bg-current opacity-20 animate-toast-progress`} 
+            style={{ animationDuration: '5000ms' }}
          />
       </div>
     </div>

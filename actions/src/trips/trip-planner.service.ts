@@ -22,6 +22,12 @@ import {
   haversineFallbackMatrix,
   kMeansClustering,
 } from './trip-planner-geo';
+import {
+  recomputeRouteTimings,
+  twoOptImprove,
+  type RouteSegment,
+  type TimingContext,
+} from './trip-planner-2opt';
 import type {
   DayItinerary,
   DbPlace,
@@ -99,64 +105,47 @@ export class TripPlannerService {
     route: ScheduledStop[];
     dropped: { place: Place; reason: string }[];
   }> {
-    // Work with ScheduledStop[] so we can reuse travelFromPrevSec from GNN matrix.
     const remaining = route.map((s) => ({ ...s }));
     const dropped: { place: Place; reason: string }[] = [];
+    const ctx: TimingContext = {
+      startTimeMin: dto.startTime,
+      endTimeMin,
+      lunchStart,
+      lunchEnd,
+    };
 
     while (true) {
-      const rebuilt: ScheduledStop[] = [];
-      let currentTimeMin = dto.startTime;
-      let removedIdx = -1;
-
+      // First stop: real travel from user origin (async Goong).
+      // Subsequent stops: reuse the matrix-based travel already stored from GNN.
+      const segments: RouteSegment[] = [];
       for (let i = 0; i < remaining.length; i++) {
-        const stop = remaining[i];
-        const place = stop.place;
-        const isFirst = i === 0;
-
-        // First stop: real GPS travel from user location (Goong API).
-        // Subsequent stops: reuse the matrix travel time already stored from the GNN run.
-        const travelFromPrevSec = isFirst
-          ? await this.getTravelToFirstStop(dto, place)
-          : stop.travelFromPrevSec;
-
-        const arriveMin = isFirst
-          ? dto.startTime + travelFromPrevSec / 60 + PARKING_BUFFER_MIN
-          : currentTimeMin + travelFromPrevSec / 60 + PARKING_BUFFER_MIN;
-
-        const window = calculateVisitWindow(
-          place,
-          arriveMin,
-          endTimeMin,
-          lunchStart,
-          lunchEnd,
-          travelFromPrevSec / 60,
-          PARKING_BUFFER_MIN,
-        );
-
-        if (!window) {
-          removedIdx = i;
-          dropped.push({ place, reason: `${dropReason} (${place.name})` });
-          break;
-        }
-
-        rebuilt.push(
-          createStop(place, window, travelFromPrevSec, PARKING_BUFFER_MIN),
-        );
-        currentTimeMin = window.departMin;
+        const place = remaining[i].place;
+        const travelFromPrevSec =
+          i === 0
+            ? await this.getTravelToFirstStop(dto, place)
+            : remaining[i].travelFromPrevSec;
+        segments.push({ place, travelFromPrevSec });
       }
 
-      if (removedIdx === -1) {
-        return { route: rebuilt, dropped };
+      const { stops, failedAt } = recomputeRouteTimings(segments, ctx);
+      if (failedAt === null) {
+        return { route: stops, dropped };
       }
 
-      // Remove the infeasible stop and fix the travel time for its successor,
-      // since its predecessor has changed.
-      remaining.splice(removedIdx, 1);
-      if (removedIdx > 0 && removedIdx < remaining.length) {
-        const prevPlace = remaining[removedIdx - 1].place;
-        const nextPlace = remaining[removedIdx].place;
-        remaining[removedIdx] = {
-          ...remaining[removedIdx],
+      const failedStop = remaining[failedAt];
+      dropped.push({
+        place: failedStop.place,
+        reason: `${dropReason} (${failedStop.place.name})`,
+      });
+      remaining.splice(failedAt, 1);
+
+      // The dropped stop had a successor whose predecessor just changed —
+      // its old travel time no longer applies. Re-fetch one fresh leg.
+      if (failedAt > 0 && failedAt < remaining.length) {
+        const prevPlace = remaining[failedAt - 1].place;
+        const nextPlace = remaining[failedAt].place;
+        remaining[failedAt] = {
+          ...remaining[failedAt],
           travelFromPrevSec: await this.getRealTravelSec(prevPlace, nextPlace),
         };
       }
@@ -521,6 +510,19 @@ export class TripPlannerService {
         );
         route = cascaded.route;
         allDropped.push(...cascaded.dropped);
+
+        // 2-opt improvement: Lin (1965) edge-reversal with time-window
+        // feasibility check (Solomon 1987). Pure matrix-based — no API calls.
+        if (route.length >= 4) {
+          const placeIdToIdx = new Map<string, number>();
+          cluster.forEach((p, i) => placeIdToIdx.set(p.id, i));
+          route = twoOptImprove(route, matrix, placeIdToIdx, {
+            startTimeMin: dto.startTime,
+            endTimeMin: dto.endTime,
+            lunchStart,
+            lunchEnd,
+          });
+        }
       }
 
       itineraries.push({

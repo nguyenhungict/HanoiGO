@@ -8,6 +8,7 @@ interface Notification {
   title: string;
   message?: string;
   duration?: number;
+  onClick?: () => void;
 }
 
 interface NotificationStore {

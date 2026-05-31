@@ -66,16 +66,20 @@ export function NotificationBell() {
     await markAllReadAction();
   };
 
-  const handleItemClick = async (item: Notification) => {
+  const handleItemClick = (item: Notification) => {
     setIsOpen(false);
     if (!item.isRead) {
       markRead(item.id);
-      await markReadAction(item.id);
+      void markReadAction(item.id);
     }
 
     // Redirect user based on notification source entity
     if (item.entityType === 'ACTIVITY' && item.entityId) {
-      router.push('/activities');
+      if (item.type === 'NEW_MESSAGE') {
+        router.push(`/activities?activityId=${item.entityId}&chat=true`);
+      } else {
+        router.push(`/activities?activityId=${item.entityId}`);
+      }
     }
   };
 
@@ -102,6 +106,8 @@ export function NotificationBell() {
         return { icon: 'check_circle', color: 'text-green-500 bg-green-50' };
       case 'ACTIVITY_REJECTED':
         return { icon: 'cancel', color: 'text-red-500 bg-red-50' };
+      case 'NEW_MESSAGE':
+        return { icon: 'chat', color: 'text-blue-500 bg-blue-50' };
       case 'ADMIN_WARNING':
         return { icon: 'warning', color: 'text-red-600 bg-red-100 animate-pulse' };
       default:

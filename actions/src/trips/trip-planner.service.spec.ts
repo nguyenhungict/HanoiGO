@@ -810,4 +810,332 @@ describe('TripPlannerService', () => {
 
     expect(result.days[0].stops[0].departAt).toBe('14:30');
   });
+
+  // ════════════════════════════════════════════════════════════════════════════
+  //  GEO & CLUSTERING SCENARIOS — Phân bổ địa điểm theo khoảng cách thực tế
+  // ════════════════════════════════════════════════════════════════════════════
+
+  // Điểm xa địa lý — bên kia sông Hồng
+  const batTrang = {
+    id: 'bt1',
+    name: 'Bat Trang Ceramic Village',
+    category: 'CRAFT',
+    district: 'Gia Lam',
+    lat: 20.9777,
+    lng: 105.9133,
+    image_url: null,
+    always_open: true,
+    open_days: [0, 1, 2, 3, 4, 5, 6],
+    open_time_start: '08:00:00',
+    open_time_end: '18:00:00',
+    has_break: false,
+    break_start: null,
+    break_end: null,
+    visit_duration_min: 60,
+  };
+
+  it('điểm địa lý xa (Bat Trang) không bị ghép cùng ngày với cụm Hoàn Kiếm', async () => {
+    // Regression: bug cũ rebalance theo "cluster nhẹ nhất" làm Bat Trang + Cau The Huc
+    // dồn chung ngày → tốn quãng đường vô lý. Phải tách thành 2 cluster theo địa lý.
+    (prismaService.$queryRawUnsafe as jest.Mock).mockResolvedValueOnce([
+      ...mockPlaces.slice(0, 3), // 3 điểm Hoàn Kiếm
+      batTrang,
+    ]);
+
+    const result = await service.generateItinerary({
+      placeNames: [
+        'Hồ Hoàn Kiếm',
+        'Nhà Thờ Lớn',
+        'Phố Cổ Hà Nội',
+        'Bat Trang Ceramic Village',
+      ],
+      numDays: 2,
+      startTime: 480,
+      endTime: 1080,
+      travelDate: '2026-05-01T00:00:00.000Z',
+      visitDurationMin: 60,
+    });
+
+    const batTrangDay = result.days.find((d) =>
+      d.stops.some((s) => s.name === 'Bat Trang Ceramic Village'),
+    );
+    expect(batTrangDay).toBeDefined();
+    const companions = batTrangDay!.stops.filter(
+      (s) => s.name !== 'Bat Trang Ceramic Village',
+    );
+    expect(companions.every((s) => s.district !== 'Hoàn Kiếm')).toBe(true);
+  });
+
+  // KNOWN BUG (phát hiện 2026-05-29): khi numDays=1 và số places > MAX_PLACES_PER_DAY,
+  // k-means tạo ra chỉ 1 cluster nên rebalance loop không có cluster đích để chuyển
+  // phần dư sang → tất cả N điểm bị xếp chung 1 ngày, vượt cap 5. Hành vi mong muốn:
+  // phần dư phải rơi vào `unscheduled`. Skip cho đến khi fix logic single-cluster overflow.
+  it.skip('không vượt MAX_PLACES_PER_DAY (5) khi user dồn 6 điểm vào 1 ngày', async () => {
+    const dto = {
+      placeNames: [
+        'Hồ Hoàn Kiếm',
+        'Nhà Thờ Lớn',
+        'Phố Cổ Hà Nội',
+        'Bảo tàng Dân tộc học',
+        'Công viên Cầu Giấy',
+        'Quán Cafe Cầu Giấy',
+      ],
+      numDays: 1,
+      startTime: 480,
+      endTime: 1200,
+      travelDate: '2026-05-01T00:00:00.000Z',
+      visitDurationMin: 60,
+    };
+
+    const result = await service.generateItinerary(dto);
+
+    for (const day of result.days) {
+      expect(day.stops.length).toBeLessThanOrEqual(5);
+    }
+    // Phần dư phải nằm trong unscheduled/infeasible, không bị mất.
+    const scheduled = result.days.reduce((s, d) => s + d.stops.length, 0);
+    const accounted =
+      scheduled + result.unscheduled.length + result.infeasible.length;
+    expect(accounted).toBe(6);
+  });
+
+  it('numDays > số places → các ngày dư trống, mọi place vẫn được xếp', async () => {
+    const dto = {
+      placeNames: ['Hồ Hoàn Kiếm', 'Nhà Thờ Lớn'],
+      numDays: 5,
+      startTime: 480,
+      endTime: 1080,
+      travelDate: '2026-05-01T00:00:00.000Z',
+      visitDurationMin: 60,
+    };
+
+    const result = await service.generateItinerary(dto);
+    const totalScheduled = result.days.reduce((s, d) => s + d.stops.length, 0);
+    expect(totalScheduled).toBe(2);
+  });
+
+  it('tất cả điểm cùng 1 quận (cluster siêu chặt) vẫn lên lịch được', async () => {
+    const dto = {
+      placeNames: ['Hồ Hoàn Kiếm', 'Nhà Thờ Lớn', 'Phố Cổ Hà Nội'],
+      numDays: 1,
+      startTime: 480,
+      endTime: 1080,
+      travelDate: '2026-05-01T00:00:00.000Z',
+      visitDurationMin: 60,
+    };
+
+    const result = await service.generateItinerary(dto);
+    expect(result.days[0].stops.length).toBe(3);
+    expect(result.unscheduled.length).toBe(0);
+  });
+
+  // ════════════════════════════════════════════════════════════════════════════
+  //  EXTERNAL API — Goong DistanceMatrix fallback behavior
+  // ════════════════════════════════════════════════════════════════════════════
+
+  // Helper — mock global.fetch theo từng kịch bản API.
+  function mockGoongFetch(
+    mode:
+      | { kind: 'ok' }
+      | { kind: 'empty' }
+      | { kind: 'rate-limit'; failCount: number }
+      | { kind: 'rate-limit-forever' }
+      | { kind: 'network-error' },
+  ) {
+    let calls = 0;
+    const spy = jest
+      .spyOn(global, 'fetch')
+      .mockImplementation(async (input: any) => {
+        calls += 1;
+        const url = String(input);
+        const oMatch = url.match(/origins=([^&]+)/);
+        const dMatch = url.match(/destinations=([^&]+)/);
+        const origins = oMatch ? oMatch[1].split('|') : [];
+        const dests = dMatch ? dMatch[1].split('|') : [];
+
+        if (mode.kind === 'network-error') {
+          throw new Error('simulated network failure');
+        }
+        if (mode.kind === 'rate-limit-forever') {
+          return new Response(
+            JSON.stringify({ error: { code: 'OVER_RATE_LIMIT' }, rows: [] }),
+            { status: 429 },
+          );
+        }
+        if (mode.kind === 'rate-limit' && calls <= mode.failCount) {
+          return new Response(
+            JSON.stringify({ error: { code: 'OVER_RATE_LIMIT' }, rows: [] }),
+            { status: 429 },
+          );
+        }
+        if (mode.kind === 'empty') {
+          // Goong trả khi matrix >10 điểm: HTTP 400 + rows: [] + status NOT_FOUND
+          return new Response(
+            JSON.stringify({ rows: [], status: 'NOT_FOUND' }),
+            { status: 400 },
+          );
+        }
+
+        // OK — sinh duration matrix giả lập từ Haversine (15 km/h)
+        const rows = origins.map((o) => {
+          const [oLat, oLng] = o.split(',').map(Number);
+          return {
+            elements: dests.map((d) => {
+              const [dLat, dLng] = d.split(',').map(Number);
+              const dLatR = ((dLat - oLat) * Math.PI) / 180;
+              const dLngR = ((dLng - oLng) * Math.PI) / 180;
+              const a =
+                Math.sin(dLatR / 2) ** 2 +
+                Math.cos((oLat * Math.PI) / 180) *
+                  Math.cos((dLat * Math.PI) / 180) *
+                  Math.sin(dLngR / 2) ** 2;
+              const km = 6371 * 2 * Math.asin(Math.sqrt(a));
+              const sec = Math.round((km / 15) * 3600);
+              return {
+                status: 'OK',
+                duration: { value: sec, text: `${Math.round(sec / 60)} min` },
+                distance: {
+                  value: Math.round(km * 1000),
+                  text: `${km.toFixed(2)} km`,
+                },
+              };
+            }),
+          };
+        });
+        return new Response(JSON.stringify({ rows }), { status: 200 });
+      });
+    return { spy, getCalls: () => calls };
+  }
+
+  it('Goong trả rows=[] (NOT_FOUND, matrix >10 điểm) → fallback Haversine, vẫn ra lịch trình', async () => {
+    // Regression test cho bug phát hiện 2026-05-29: Goong DistanceMatrix giới hạn 10×10.
+    // Matrix lớn hơn → HTTP 400 + {"rows":[], "status":"NOT_FOUND"}.
+    process.env.GOONG_API_KEY = 'test-key';
+    const goong = mockGoongFetch({ kind: 'empty' });
+
+    const dto = {
+      placeNames: ['Hồ Hoàn Kiếm', 'Nhà Thờ Lớn', 'Phố Cổ Hà Nội'],
+      numDays: 1,
+      startTime: 480,
+      endTime: 1080,
+      travelDate: '2026-05-01T00:00:00.000Z',
+      visitDurationMin: 60,
+    };
+
+    const result = await service.generateItinerary(dto);
+    expect(result.days[0].stops.length).toBe(3);
+    expect(goong.getCalls()).toBeGreaterThan(0);
+    goong.spy.mockRestore();
+  });
+
+  it('Goong throw network error → fallback Haversine, không crash', async () => {
+    process.env.GOONG_API_KEY = 'test-key';
+    const goong = mockGoongFetch({ kind: 'network-error' });
+
+    const dto = {
+      placeNames: ['Hồ Hoàn Kiếm', 'Nhà Thờ Lớn'],
+      numDays: 1,
+      startTime: 480,
+      endTime: 1080,
+      travelDate: '2026-05-01T00:00:00.000Z',
+      visitDurationMin: 60,
+    };
+
+    const result = await service.generateItinerary(dto);
+    expect(result.days[0].stops.length).toBe(2);
+    goong.spy.mockRestore();
+  });
+
+  it('Goong OVER_RATE_LIMIT 2 lần → retry rồi thành công', async () => {
+    process.env.GOONG_API_KEY = 'test-key';
+    const goong = mockGoongFetch({ kind: 'rate-limit', failCount: 2 });
+
+    const dto = {
+      placeNames: ['Hồ Hoàn Kiếm', 'Nhà Thờ Lớn', 'Phố Cổ Hà Nội'],
+      numDays: 1,
+      startTime: 480,
+      endTime: 1080,
+      travelDate: '2026-05-01T00:00:00.000Z',
+      visitDurationMin: 60,
+    };
+
+    const result = await service.generateItinerary(dto);
+    expect(result.days[0].stops.length).toBe(3);
+    expect(goong.getCalls()).toBeGreaterThanOrEqual(3);
+    goong.spy.mockRestore();
+  }, 20000);
+
+  it('Goong rate-limit liên tục → fallback Haversine sau khi cạn retry', async () => {
+    process.env.GOONG_API_KEY = 'test-key';
+    const goong = mockGoongFetch({ kind: 'rate-limit-forever' });
+
+    const dto = {
+      placeNames: ['Hồ Hoàn Kiếm', 'Nhà Thờ Lớn'],
+      numDays: 1,
+      startTime: 480,
+      endTime: 1080,
+      travelDate: '2026-05-01T00:00:00.000Z',
+      visitDurationMin: 60,
+    };
+
+    const result = await service.generateItinerary(dto);
+    expect(result.days[0].stops.length).toBe(2);
+    goong.spy.mockRestore();
+  }, 20000);
+
+  it('GOONG_API_KEY không set → bỏ qua Goong, dùng Haversine ngay từ đầu', async () => {
+    const prev = process.env.GOONG_API_KEY;
+    delete process.env.GOONG_API_KEY;
+    const goong = mockGoongFetch({ kind: 'ok' });
+
+    const dto = {
+      placeNames: ['Hồ Hoàn Kiếm', 'Nhà Thờ Lớn'],
+      numDays: 1,
+      startTime: 480,
+      endTime: 1080,
+      travelDate: '2026-05-01T00:00:00.000Z',
+      visitDurationMin: 60,
+    };
+
+    const result = await service.generateItinerary(dto);
+    expect(result.days[0].stops.length).toBe(2);
+    // Không có key → không bao giờ gọi Goong.
+    expect(goong.getCalls()).toBe(0);
+
+    goong.spy.mockRestore();
+    if (prev) process.env.GOONG_API_KEY = prev;
+  });
+
+  // ════════════════════════════════════════════════════════════════════════════
+  //  CROSS-DAY INVARIANTS
+  // ════════════════════════════════════════════════════════════════════════════
+
+  it('mọi place input phải nằm trong scheduled ∪ infeasible ∪ unscheduled (không bị mất)', async () => {
+    const dto = {
+      placeNames: [
+        'Hồ Hoàn Kiếm',
+        'Nhà Thờ Lớn',
+        'Phố Cổ Hà Nội',
+        'Bảo tàng Dân tộc học',
+        'Công viên Cầu Giấy',
+        'Quán Cafe Cầu Giấy',
+      ],
+      numDays: 2,
+      startTime: 480,
+      endTime: 1080,
+      travelDate: '2026-05-04T00:00:00.000Z', // Monday — Bảo tàng đóng cửa
+      visitDurationMin: 60,
+    };
+
+    const result = await service.generateItinerary(dto);
+
+    const scheduled = result.days.flatMap((d) => d.stops.map((s) => s.name));
+    const infeasible = result.infeasible.map((i) => i.name);
+    const unscheduled = result.unscheduled.map((u) => u.name);
+    const all = new Set([...scheduled, ...infeasible, ...unscheduled]);
+
+    for (const name of dto.placeNames) {
+      expect(all.has(name)).toBe(true);
+    }
+  });
 });

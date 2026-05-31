@@ -4,6 +4,7 @@ import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { logoutAction } from '@/lib/actions';
 import { useTripStore } from '@/store/useTripStore';
+import { useChatNotificationStore } from '@/store/useChatNotificationStore';
 import Logo from '@/components/Logo';
 import { NotificationBell } from '@/components/notifications/NotificationBell';
 
@@ -14,6 +15,9 @@ interface HeaderProps {
 export default function Header({ username }: HeaderProps) {
   const pathname = usePathname();
   const placeCount = useTripStore((s) => Object.keys(s.selectedPlaces).length);
+  const totalUnreadCount = useChatNotificationStore((s) =>
+    Object.values(s.unreadCounts).reduce((sum, count) => sum + count, 0)
+  );
 
   const navItems = [
     { name: 'Discovery', href: '/discovery', icon: 'explore' },
@@ -34,6 +38,8 @@ export default function Header({ username }: HeaderProps) {
           {navItems.map((item) => {
             const isActive = pathname === item.href;
             const showBadge = item.href === '/trips' && placeCount > 0 && !isActive;
+            const showChatBadge = item.href === '/activities' && totalUnreadCount > 0 && !isActive;
+            
             return (
               <Link 
                 key={item.name}
@@ -46,10 +52,18 @@ export default function Header({ username }: HeaderProps) {
               >
                 <span className="material-symbols-outlined text-[18px] {isActive ? 'fill-1' : ''}">{item.icon}</span>
                 {item.name}
+                
                 {/* Badge for saved places count */}
                 {showBadge && (
                   <span className="absolute -top-1.5 -right-1.5 w-5 h-5 bg-primary text-white text-[9px] font-black rounded-full flex items-center justify-center shadow-md shadow-primary/30 animate-in zoom-in duration-300">
                     {placeCount}
+                  </span>
+                )}
+
+                {/* Badge for unread activities group chat messages */}
+                {showChatBadge && (
+                  <span className="absolute -top-1.5 -right-1.5 w-5 h-5 bg-primary text-white text-[9px] font-black rounded-full flex items-center justify-center shadow-md shadow-primary/30 animate-in zoom-in duration-300">
+                    {totalUnreadCount}
                   </span>
                 )}
               </Link>

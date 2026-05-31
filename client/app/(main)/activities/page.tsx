@@ -1,13 +1,20 @@
 'use client';
 
 import React, { useState, useEffect } from 'react';
+import { useSearchParams, useRouter } from 'next/navigation';
 import { ActivityReelCard } from '@/components/activities/ActivityReelCard';
 import { ActivityMap } from '@/components/activities/ActivityMap';
 import { ActivityDetailsModal } from '@/components/activities/ActivityDetailsModal';
 import { CreateActivityDialog } from '@/components/activities/CreateActivityDialog';
 import { ActivityChat } from '@/components/activities/ActivityChat';
-import { getActivitiesAction, getMyActivitiesAction, getSessionAction } from '@/lib/actions';
+import { 
+  getActivitiesAction, 
+  getMyActivitiesAction, 
+  getSessionAction,
+  getActivityDetailsAction 
+} from '@/lib/actions';
 import { useAuthStore } from '@/store/useAuthStore';
+import { useChatNotificationStore } from '@/store/useChatNotificationStore';
 
 const CATEGORIES = [
   { id: 'all',                name: 'All',                icon: 'apps' },
@@ -22,18 +29,64 @@ const CATEGORIES = [
 import { Activity } from '@/types';
 
 export default function ActivitiesPage() {
+  const searchParams = useSearchParams();
+  const router = useRouter();
+  const activityIdParam = searchParams.get('activityId');
+  const chatParam = searchParams.get('chat');
+
   const [activities, setActivities] = useState<Activity[]>([]);
   const [myActivities, setMyActivities] = useState<Activity[]>([]);
   const [loading, setLoading] = useState(true);
+  const [loadingDeepLink, setLoadingDeepLink] = useState(false);
   const [selectedActivity, setSelectedActivity] = useState<Activity | null>(null);
   const [showCreate, setShowCreate] = useState(false);
   const [userLocation, setUserLocation] = useState<[number, number] | null>(null);
   const [activeTab, setActiveTab] = useState<'groups' | 'trips' | 'my'>('groups');
   const [viewMode, setViewMode] = useState<'reel' | 'map'>('reel');
-  const [chatActivity, setChatActivity] = useState<any | null>(null);
+  const [chatActivity, setChatActivity] = useState<Activity | null>(null);
   const [selectedCategory, setSelectedCategory] = useState('all');
 
   const { setUser, setToken } = useAuthStore();
+  const totalUnreadCount = useChatNotificationStore((s) =>
+    Object.values(s.unreadCounts).reduce((sum, count) => sum + count, 0)
+  );
+  const setActiveChatId = useChatNotificationStore((s) => s.setActiveChatId);
+
+  // Handle deep-linking from notifications
+  useEffect(() => {
+    if (activityIdParam) {
+      const loadActivity = async () => {
+        setLoadingDeepLink(true);
+        const res = await getActivityDetailsAction(activityIdParam);
+        setLoadingDeepLink(false);
+        if (res.success && res.data) {
+          if (chatParam === 'true') {
+            setChatActivity(res.data);
+          } else {
+            setSelectedActivity(res.data);
+          }
+          // Clean up query params from URL so browser refresh works nicely
+          const newParams = new URLSearchParams(searchParams.toString());
+          newParams.delete('activityId');
+          newParams.delete('chat');
+          const cleanUrl = newParams.toString() ? `/activities?${newParams.toString()}` : '/activities';
+          router.replace(cleanUrl);
+        }
+      };
+      void loadActivity();
+    }
+  }, [activityIdParam, chatParam, router, searchParams]);
+
+  useEffect(() => {
+    if (chatActivity) {
+      setActiveChatId(chatActivity.id);
+    } else {
+      setActiveChatId(null);
+    }
+    return () => {
+      setActiveChatId(null);
+    };
+  }, [chatActivity, setActiveChatId]);
 
   const fetchActivities = async () => {
     setLoading(true);
@@ -111,13 +164,18 @@ export default function ActivitiesPage() {
               <button
                 key={tab}
                 onClick={() => setActiveTab(tab)}
-                className={`px-3 py-1.5 rounded-md text-[9px] font-black uppercase tracking-widest transition-all duration-300 ${
+                className={`flex items-center gap-1.5 px-3 py-1.5 rounded-md text-[9px] font-black uppercase tracking-widest transition-all duration-300 ${
                   activeTab === tab 
                     ? 'bg-white text-primary shadow-sm' 
                     : 'text-on-surface/50 hover:text-on-surface hover:bg-white/30'
                 }`}
               >
-                {tab === 'groups' ? 'Groups' : tab === 'trips' ? 'Shared Trips' : 'Joined'}
+                <span>{tab === 'groups' ? 'Groups' : tab === 'trips' ? 'Shared Trips' : 'Joined'}</span>
+                {tab === 'my' && totalUnreadCount > 0 && (
+                  <span className="bg-primary text-white px-1.5 py-0.5 rounded-full text-[8px] font-bold inline-flex items-center justify-center min-w-[16px] h-4 leading-none">
+                    {totalUnreadCount}
+                  </span>
+                )}
               </button>
             ))}
           </nav>
@@ -323,6 +381,20 @@ export default function ActivitiesPage() {
             setActiveTab('my');
           }}
         />
+      )}
+
+      {/* ── Deep Link Loading Overlay ───────────────────────────── */}
+      {loadingDeepLink && (
+        <div className="fixed inset-0 z-[150] bg-white/60 backdrop-blur-md flex flex-col items-center justify-center animate-in fade-in duration-300">
+          <div className="w-14 h-14 rounded-2xl bg-[#FCF8F2] border border-outline/10 flex items-center justify-center mb-4 shadow-lg shadow-on-surface/5 animate-pulse">
+            <span className="material-symbols-outlined text-primary text-2xl animate-spin">
+              progress_activity
+            </span>
+          </div>
+          <p className="text-[10px] font-black text-on-surface uppercase tracking-[0.2em] animate-pulse">
+            Loading Activity...
+          </p>
+        </div>
       )}
     </div>
   );

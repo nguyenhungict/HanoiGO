@@ -1,0 +1,408 @@
+\documentclass[12pt,a4paper]{report}
+
+% --- Packages ---
+\usepackage[utf8]{inputenc}
+\usepackage[T1]{fontenc}
+\usepackage[english,vietnamese]{babel}
+\usepackage{graphicx}
+\usepackage{amsmath}
+\usepackage{hyperref}
+\usepackage{float}
+\usepackage{geometry}
+\usepackage{booktabs}
+\usepackage{enumitem}
+\usepackage{caption}
+\usepackage{tcolorbox}
+\usepackage{listings}
+\usepackage{xcolor}
+
+% --- Setup ---
+\geometry{margin=1in}
+\hypersetup{
+    colorlinks=true,
+    linkcolor=blue,
+    filecolor=magenta,
+    urlcolor=cyan,
+    pdftitle={HanoiGO - Đề xuất cải tiến Module 1},
+}
+
+% Hộp đánh dấu các khái niệm quan trọng
+\newtcolorbox{ideabox}[1]{colback=blue!5!white,colframe=blue!75!black,title=#1}
+\newtcolorbox{warningbox}[1]{colback=red!5!white,colframe=red!75!black,title=#1}
+\newtcolorbox{anabox}[1]{colback=green!5!white,colframe=green!50!black,title=#1}
+
+% Cấu hình listings cho pseudo-code
+\lstdefinestyle{pseudo}{
+    basicstyle=\ttfamily\small,
+    keywordstyle=\color{blue}\bfseries,
+    commentstyle=\color{gray}\itshape,
+    frame=single,
+    backgroundcolor=\color{gray!5},
+    breaklines=true,
+    showstringspaces=false,
+    language=Python,
+    morekeywords={for, while, if, else, return, function, do, until},
+}
+
+\begin{document}
+
+\title{Đề xuất cải tiến Module Lên kế hoạch chuyến đi \\
+\large Hướng tới một hệ thống tối ưu và có đo lường được}
+\author{Nguyễn Hùng}
+\date{\today}
+\maketitle
+
+\tableofcontents
+
+\chapter{Bối cảnh và mục tiêu cải tiến}
+
+\section{Hiện trạng module}
+
+Module Lên kế hoạch chuyến đi hiện tại sử dụng pipeline ba bước: \textit{k-means++} để phân cụm các địa điểm theo ngày, sau đó dùng thuật toán tham lam \textit{Greedy Nearest Neighbor with Time Window (GNN-TW)} để định tuyến trong từng ngày, và cuối cùng một bước \textit{resolveConflicts} cố gắng đưa các địa điểm bị bỏ vào các ngày khác.
+
+Hệ thống đã hoạt động tốt với các ràng buộc thực tế: giờ mở cửa, ngày đóng cửa hàng tuần, nghỉ trưa, giờ nghỉ giữa ngày của địa điểm, thời gian gửi xe. Tuy nhiên, để nâng tầm thành một đề tài bảo vệ tốt nghiệp có giá trị học thuật rõ rệt (mức tốt trở lên), cần ba thay đổi cốt lõi.
+
+\section{Hai cải tiến cốt lõi đề xuất}
+
+Sau khi cân nhắc effort, risk, và giá trị academic, hai cải tiến backend được giữ lại:
+
+\begin{enumerate}
+    \item \textbf{Tối ưu cục bộ 2-opt} sau bước GNN: nâng chất lượng lời giải, chuyển từ \textit{heuristic xây dựng} sang \textit{metaheuristic xây dựng + cải tiến}.
+    \item \textbf{Khung đánh giá (Evaluation Framework)}: đo lường định lượng hiệu quả của thuật toán trên dữ liệu thật, so sánh với các baseline. \textbf{Quan trọng: bộ scenarios phải bao gồm các trường hợp khó để tránh cherry-picking}.
+\end{enumerate}
+
+Kèm theo một cải tiến phía frontend (Polyline trên bản đồ) đem lại tác động trực quan cao với effort thấp.
+
+\paragraph{Quyết định loại trừ: Personalization.} Mặc dù về lý thuyết có thể nâng narrative thành multi-objective, lớp cá nhân hóa bị loại khỏi phạm vi vì: (1) tốn 3--4 ngày triển khai cả backend lẫn UI; (2) không có ground-truth data để đánh giá chất lượng cá nhân hóa, dẫn đến lỗ hổng trong phần evaluation; (3) có thể đẩy narrative sang lĩnh vực recommendation system, kéo hội đồng vào các câu hỏi ngoài chuyên môn. Tính năng này sẽ được đề cập trong phần \textit{Future Work} của báo cáo.
+
+Các cải tiến giữ lại không yêu cầu viết lại module mà chỉ \textbf{bổ sung} vào pipeline hiện có.
+
+\chapter{Cải tiến 1: Tối ưu cục bộ 2-opt}
+\label{chap:2opt}
+
+\section{Vấn đề của thuật toán tham lam (GNN)}
+
+GNN ở mỗi bước chọn địa điểm \textit{gần nhất chưa thăm} làm điểm tiếp theo. Cách làm này nhanh nhưng \textbf{không đảm bảo tối ưu}: nó dễ bị mắc kẹt vào quyết định cục bộ.
+
+\begin{anabox}{Ví dụ minh họa: tại sao GNN chưa tốt}
+Giả sử có 4 địa điểm A, B, C, D với khoảng cách như sau:
+\begin{itemize}
+    \item Bắt đầu từ A. GNN chọn B (gần nhất từ A).
+    \item Từ B, GNN chọn C (gần nhất từ B).
+    \item Từ C, chỉ còn D.
+\end{itemize}
+Lộ trình GNN: A $\rightarrow$ B $\rightarrow$ C $\rightarrow$ D, tổng = 30 km.
+
+Nhưng nếu hoán đổi: A $\rightarrow$ C $\rightarrow$ B $\rightarrow$ D, tổng = 22 km. \textbf{Giảm 27\%} chỉ bằng một lần đảo cạnh.
+
+GNN không thấy được tối ưu này vì nó luôn nhìn về phía trước một bước. Cần một bước \textit{nhìn lại và sửa}.
+\end{anabox}
+
+\section{Ý tưởng của 2-opt: đơn giản nhưng hiệu quả}
+
+\begin{ideabox}{2-opt là gì?}
+\textbf{Phép toán 2-opt}: chọn hai cạnh trong lộ trình hiện tại, đảo ngược đoạn nằm giữa hai cạnh đó, và kiểm tra xem tổng độ dài có giảm không.
+
+\textbf{Trực giác}: Tưởng tượng bạn dắt một sợi dây qua các điểm theo thứ tự A--B--C--D--E. Nếu hai đoạn dây giao nhau (X-shape), hãy gỡ nút bằng cách đảo đoạn ở giữa. Sợi dây sẽ luôn ngắn hơn hoặc bằng.
+\end{ideabox}
+
+\subsection{Thuật toán 2-opt từng bước}
+
+\begin{lstlisting}[style=pseudo, caption={Pseudo-code thuật toán 2-opt}]
+function two_opt(route):
+    improved = true
+    while improved:
+        improved = false
+        for i in 1 .. len(route) - 2:
+            for j in i + 1 .. len(route) - 1:
+                # Cạnh hiện tại: route[i-1]->route[i] va route[j]->route[j+1]
+                # Cạnh sau khi swap: route[i-1]->route[j] va route[i]->route[j+1]
+                old_dist = d(route[i-1], route[i]) + d(route[j], route[j+1])
+                new_dist = d(route[i-1], route[j]) + d(route[i], route[j+1])
+                if new_dist < old_dist:
+                    route = reverse_segment(route, i, j)
+                    improved = true
+    return route
+\end{lstlisting}
+
+Vòng lặp \textit{while improved} đảm bảo thuật toán chạy đến khi không còn cải thiện nào nữa --- gọi là \textbf{điểm cực tiểu cục bộ 2-opt}.
+
+\subsection{Tại sao chỉ dùng 2-opt mà không dùng thuật toán mạnh hơn?}
+
+\begin{itemize}[leftmargin=*]
+    \item \textbf{Độ phức tạp}: 2-opt là $O(n^2)$ mỗi vòng, hội tụ rất nhanh với $n < 30$ địa điểm --- phù hợp với một chuyến đi thật.
+    \item \textbf{Cải thiện thực tế}: trong các nghiên cứu VRPTW (Bräysy \& Gendreau, 2005), 2-opt thường giảm 8--15\% tổng quãng đường so với heuristic xây dựng.
+    \item \textbf{Dễ giải thích}: rất quan trọng cho luận văn --- bạn vẽ được ra giấy và giải thích từng bước.
+    \item \textbf{Chuẩn học thuật}: đây là kỹ thuật được Lin (1965) đề xuất, là nền tảng của tất cả các metaheuristic định tuyến hiện đại (3-opt, Lin-Kernighan, OR-opt).
+\end{itemize}
+
+\section{Lưu ý quan trọng: 2-opt phải tôn trọng ràng buộc thời gian}
+
+Lộ trình của HanoiGO có \textit{giờ mở cửa} cho mỗi địa điểm. Sau khi đảo cạnh, lộ trình mới có thể \textbf{vi phạm} ràng buộc (đến nơi sau giờ đóng cửa). Vì vậy, ta phải:
+
+\begin{enumerate}
+    \item Thử swap.
+    \item Tính lại thời gian đến/đi cho cả lộr trình mới (cascade).
+    \item Nếu lộ trình mới vẫn feasible (tất cả stop đều đến trước giờ đóng), và tổng travel giảm $\rightarrow$ giữ.
+    \item Nếu không $\rightarrow$ hoàn nguyên.
+\end{enumerate}
+
+Đây gọi là \textbf{2-opt with feasibility check} --- biến thể chuẩn cho VRPTW.
+
+\section{Quản lý độ phức tạp: giữ 2-opt không làm phình module}
+
+Module hiện đã có nhiều logic (\texttt{cascadeRouteTimes}, \texttt{resolveConflicts}, GNN-TW). Một câu hỏi tự nhiên: thêm 2-opt có làm module phình thêm không? Cách kiểm soát:
+
+\begin{enumerate}[leftmargin=*]
+    \item \textbf{Tách file riêng}: tạo \texttt{trip-planner-2opt.ts} chứa toàn bộ logic 2-opt và feasibility check. Service chính không bị đụng đến.
+    \item \textbf{Refactor logic timing thành helper dùng chung}: \texttt{cascadeRouteTimes} hiện đang tự tính lại arrive/depart cho cả route. Tách thành hàm \texttt{recomputeRouteTimings(route, dto)} để cả \texttt{cascadeRouteTimes} và \texttt{twoOpt} cùng gọi. Sau refactor, code có thể \textit{giảm} duplication so với hiện tại.
+    \item \textbf{Service chỉ thêm 1 dòng}: sau bước GNN, gọi \texttt{route = await twoOpt(route, dto)} --- không thay đổi luồng tổng thể.
+\end{enumerate}
+
+Tổng code thực tăng dự kiến khoảng 80 dòng net (sau khi trừ phần refactor giảm duplication). Đây là mức chấp nhận được cho một cải tiến mang tính học thuật, và bản thân việc refactor cũng là \textbf{cộng điểm} engineering quality.
+
+\section{Cách trình bày trong báo cáo}
+
+Sau khi cài đặt, bạn có thể nói:
+\begin{quote}
+\textit{``Hệ thống áp dụng pipeline hai pha: pha xây dựng (GNN với time-window constructive heuristic theo Solomon, 1987), tiếp nối bởi pha cải tiến (2-opt local search có kiểm tra ràng buộc thời gian theo Lin, 1965). Kết hợp này thuộc nhóm metaheuristic Construct-and-Improve, là kiến trúc tiêu chuẩn cho các bài toán VRPTW không cần giải pháp tối ưu toàn cục.''}
+\end{quote}
+
+Một câu này nâng trình độ trình bày của bạn lên rõ rệt.
+
+\chapter{Cải tiến 2: Khung đánh giá định lượng}
+\label{chap:eval}
+
+\section{Vấn đề của trạng thái hiện tại}
+
+Hiện tại bạn nói \textit{``thuật toán tạo lịch trình tốt''} nhưng \textbf{không có số liệu chứng minh}. Đây là điểm yếu chí mạng khi bảo vệ --- hội đồng sẽ hỏi:
+\begin{itemize}
+    \item Tốt so với cái gì?
+    \item Đo bằng tiêu chí nào?
+    \item Dữ liệu thử trên bao nhiêu trường hợp?
+\end{itemize}
+
+Không trả lời được = mất điểm.
+
+\section{Cấu trúc khung đánh giá đề xuất}
+
+\begin{ideabox}{Bốn thành phần cần có}
+\begin{enumerate}
+    \item \textbf{Bộ test scenarios}: 15--20 kịch bản đại diện.
+    \item \textbf{Metrics (tiêu chí đo)}: 4 chỉ số định lượng.
+    \item \textbf{Baselines (chuẩn để so)}: 3 thuật toán đối chứng.
+    \item \textbf{Báo cáo}: bảng số liệu + biểu đồ trực quan.
+\end{enumerate}
+\end{ideabox}
+
+\subsection{Bộ test scenarios --- nguyên tắc chống cherry-picking}
+
+\begin{warningbox}{Nguyên tắc đạo đức khoa học}
+Không được \textbf{cherry-pick} các trường hợp dễ để khoe kết quả tốt. Bộ scenario phải bao gồm cả các \textit{trường hợp khó cố ý} mà thuật toán có thể thua hoặc cho kết quả tệ. Hội đồng chấm thesis có kinh nghiệm sẽ phát hiện cherry-picking ngay --- và đây là cách \textbf{mất điểm nặng nhất}.
+\end{warningbox}
+
+Đề xuất bộ 12--15 scenarios chia thành hai nhóm:
+
+\paragraph{Nhóm A --- Trường hợp thông thường (5--6 scenarios)} để chứng minh thuật toán hoạt động tốt ở điều kiện tiêu chuẩn:
+
+\begin{table}[H]
+\centering
+\caption{Nhóm A: scenarios thông thường}
+\begin{tabular}{llcccl}
+\toprule
+\textbf{ID} & \textbf{Tên} & \textbf{Số ngày} & \textbf{Số điểm} & \textbf{Đặc điểm} \\
+\midrule
+A1 & Tourist nhanh   & 1 & 3 & Tất cả Hoàn Kiếm, mở 24/7 \\
+A2 & Tourist trung   & 2 & 6 & Hai cụm địa lý rõ ràng \\
+A3 & Tourist dài     & 3 & 10 & Cụm phân tán đều \\
+A4 & Cuối tuần       & 2 & 5 & Travel date là thứ Bảy \\
+A5 & Buổi sáng       & 1 & 4 & startTime 7:00, endTime 12:00 \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+\paragraph{Nhóm B --- Trường hợp khó cố ý (6--9 scenarios)} để chứng minh thuật toán xử lý ổn các edge cases, hoặc ít nhất \textit{thất bại một cách có kiểm soát}:
+
+\begin{table}[H]
+\centering
+\caption{Nhóm B: scenarios khó cố ý chống cherry-pick}
+\begin{tabular}{llcccp{5cm}}
+\toprule
+\textbf{ID} & \textbf{Tên} & \textbf{Số ngày} & \textbf{Số điểm} & \textbf{Lý do khó} \\
+\midrule
+B1 & Đóng cửa hôm đó    & 1 & 5 & 3/5 địa điểm đóng vào travel date \\
+B2 & Lịch chật          & 1 & 5 & endTime--startTime chỉ đủ 70\% tổng visit duration \\
+B3 & Outlier địa lý     & 2 & 5 & 4 điểm Hoàn Kiếm + 1 điểm Bát Tràng (12km) \\
+B4 & Xung đột nghỉ trưa & 1 & 4 & Tất cả địa điểm có giờ nghỉ trùng lunch break mặc định \\
+B5 & Mở muộn lẫn lộn    & 1 & 5 & Trộn địa điểm mở 24/7 và địa điểm mở từ 17:00 \\
+B6 & Vượt quá khả năng  & 2 & 15 & Buộc thuật toán phải drop ít nhất 5 điểm \\
+B7 & Thứ Hai            & 2 & 7 & Travel date là thứ Hai, 4/7 địa điểm đóng cửa thứ Hai \\
+B8 & Goong fail         & 2 & 12 & Goong matrix $>$10 điểm, buộc fallback Haversine \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+\paragraph{Tiêu chí thành công cho nhóm B} không phải lúc nào cũng là \textit{``travel time thấp nhất''}. Với scenarios khó, thước đo có thể là:
+
+\begin{itemize}[leftmargin=*]
+    \item \textbf{B1, B7 (đóng cửa)}: thuật toán phải đánh dấu đúng các địa điểm vào \texttt{infeasible}, không bị crash, không cố nhét vào lịch.
+    \item \textbf{B2, B6 (overload)}: \texttt{unscheduled} phải hợp lý --- ưu tiên giữ các địa điểm có \textit{visit duration nhỏ} hoặc \textit{gần cluster nhất}, không drop ngẫu nhiên.
+    \item \textbf{B3 (outlier)}: Bát Tràng KHÔNG được ghép cùng cụm Hoàn Kiếm (đây là bug đã có từ trước, đã sửa).
+    \item \textbf{B4, B5 (time conflicts)}: lộ trình phải đúng thứ tự thời gian, không có stop nào vi phạm giờ mở/đóng.
+    \item \textbf{B8 (API fail)}: thuật toán không crash, fallback hoạt động, kết quả vẫn feasible.
+\end{itemize}
+
+\paragraph{Báo cáo trung thực.} Nếu trên một scenario nào đó thuật toán của bạn \textit{không tốt hơn} baseline (ví dụ trên B1 khi mọi thuật toán đều phải drop cùng số địa điểm), \textbf{hãy thẳng thắn ghi điều đó}. Hội đồng đánh giá cao sự trung thực hơn là kết quả ``hoàn hảo'' đáng nghi.
+
+\subsection{Bốn metrics (chỉ số đo)}
+
+\begin{enumerate}
+    \item \textbf{Tổng thời gian di chuyển} (phút): thấp = tốt. Phản ánh hiệu quả định tuyến.
+    \item \textbf{Tỷ lệ địa điểm được xếp lịch thành công} (\%): cao = tốt. Phản ánh độ linh hoạt.
+    \item \textbf{Thời gian chờ trung bình} (phút): thấp = tốt. Phản ánh chất lượng time-window.
+    \item \textbf{Thời gian chạy} (ms): thấp = tốt. Phản ánh tính khả thi cho UX real-time.
+\end{enumerate}
+
+\subsection{Ba baseline để so sánh}
+
+Bạn cần \textbf{ba thuật toán đối chứng} để chứng minh thuật toán của mình tốt hơn:
+
+\begin{enumerate}
+    \item \textbf{Random Order}: xếp ngẫu nhiên. Mức sàn thấp nhất.
+    \item \textbf{Group by District}: gom theo quận. Heuristic tay đơn giản mà nhiều app du lịch hiện đang dùng.
+    \item \textbf{GNN-only (no 2-opt)}: thuật toán hiện tại trước khi cải tiến --- chứng minh 2-opt thực sự giúp.
+\end{enumerate}
+
+\subsection{Bảng kết quả mẫu}
+
+Sau khi chạy, bạn sẽ có bảng dạng:
+
+\begin{table}[H]
+\centering
+\caption{Bảng so sánh thuật toán --- ví dụ minh họa}
+\begin{tabular}{lcccc}
+\toprule
+\textbf{Thuật toán} & \textbf{Travel (phút)} & \textbf{Schedule rate (\%)} & \textbf{Wait (phút)} & \textbf{Latency (ms)} \\
+\midrule
+Random            & 142 & 73 & 28 & 5 \\
+By-district       & 98  & 88 & 19 & 8 \\
+GNN-only          & 76  & 94 & 12 & 145 \\
+\textbf{GNN + 2-opt} & \textbf{64}  & \textbf{94} & \textbf{11} & \textbf{210} \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+Một bảng như thế này, đi kèm 2--3 biểu đồ cột, \textbf{là minh chứng mạnh nhất} trong toàn bộ luận văn. Hội đồng nhìn vào bảng là đánh giá được ngay.
+
+\section{Câu nói "phép màu" trong bảo vệ}
+
+Khi hội đồng hỏi \textit{``làm sao biết thuật toán tốt?''}, bạn trả lời:
+
+\begin{quote}
+\textit{``Em đã xây dựng khung đánh giá gồm 20 test scenarios đại diện cho các loại du khách. Trên bốn metrics chính, thuật toán của em (GNN + 2-opt) giảm 16\% tổng quãng đường so với GNN thuần và 35\% so với baseline gom-theo-quận, trong khi giữ schedule rate 94\% và latency dưới 250ms.''}
+\end{quote}
+
+Đây là câu khiến hội đồng \textit{im lặng} và chuyển sang câu hỏi khác.
+
+\chapter{Cải tiến 3 (Frontend): Polyline trên bản đồ}
+
+\section{Vấn đề hiện tại}
+
+Bản đồ trong giao diện hiện chỉ hiển thị các pin số (1, 2, 3, \ldots) cho từng stop. Người dùng không thấy được \textit{lộ trình thực tế} giữa các điểm --- chỉ đoán được rằng các pin được nối với nhau theo thứ tự.
+
+\section{Giải pháp}
+
+Vẽ đường polyline thật giữa các stops bằng dữ liệu trả về từ Goong Directions API. Mỗi ngày dùng một màu khác nhau (đã có sẵn \texttt{DAY\_COLORS} trong \texttt{trip-planner.constants.ts}).
+
+\paragraph{Triển khai backend.} Sau khi GNN + 2-opt trả về thứ tự stops cuối cùng, gọi Goong \texttt{Directions} API (không phải DistanceMatrix) với các waypoint theo thứ tự. Lưu encoded polyline string vào response \texttt{DayItinerary}.
+
+\paragraph{Triển khai frontend.} Dùng \texttt{L.polyline} (Leaflet) decode polyline và vẽ với màu theo ngày. Fallback: nếu Goong không trả polyline, vẽ đường thẳng nối các điểm (Leaflet hỗ trợ sẵn).
+
+\section{Effort và tác động}
+
+\begin{itemize}[leftmargin=*]
+    \item \textbf{Effort}: $\sim$1 ngày code cho cả hai phía.
+    \item \textbf{Tác động trực quan}: ảnh chụp giao diện trong báo cáo sẽ chuyên nghiệp hơn rõ rệt. Hội đồng nhìn screenshot là cảm được luôn.
+    \item \textbf{Rủi ro}: rất thấp --- không đụng đến thuật toán, chỉ thêm một field response và một lớp render.
+\end{itemize}
+
+\chapter{Future Work --- Hướng phát triển sau bảo vệ}
+
+Mục này không thuộc phạm vi triển khai trước bảo vệ, nhưng \textbf{nên có mặt trong báo cáo} để thể hiện tầm nhìn và biên giới của đồ án:
+
+\paragraph{Lớp cá nhân hóa (Personalization).} Mỗi người dùng có vector sở thích $\mathbf{p} = (p_\text{heritage}, p_\text{food}, p_\text{nature}, p_\text{shopping}, p_\text{culture})$ với $\sum p_i = 1$. Vector này dùng để: (a) cho điểm match khi chọn lọc danh sách địa điểm trong giai đoạn prefilter; (b) điều chỉnh visit duration theo độ khớp. Khi đó bài toán chuyển thành \textbf{multi-objective optimization}: tối thiểu travel time đồng thời tối đa preference match. \textit{Lý do hoãn}: cần ground-truth data về sở thích thật của user để evaluate chất lượng cá nhân hóa --- không khả thi trong phạm vi đồ án mà không có user study.
+
+\paragraph{Học visit duration từ dữ liệu thực.} Visit duration hiện cố định theo category. Có thể học từ dữ liệu thực tế (thời gian user thực sự dành cho mỗi địa điểm, lấy từ check-in hoặc GPS dwelling time) bằng regression.
+
+\paragraph{Hỗ trợ nhiều phương tiện.} Hiện chỉ tính cho xe máy ($vehicle=bike$, 15 km/h). Có thể mở rộng cho đi bộ, ô tô, xe buýt --- chỉ cần đổi tham số API và tốc độ Haversine fallback.
+
+\paragraph{Re-optimize tương tác (drag-drop).} Cho phép user kéo-thả để sắp xếp lại stops trong timeline; backend chạy 2-opt với ràng buộc giữ vị trí cố định và trả về lịch cập nhật. Đây là mở rộng tự nhiên sau khi 2-opt được triển khai trong phạm vi đồ án.
+
+\paragraph{So sánh nhiều phương án (Pareto frontier).} Sinh đồng thời nhiều lịch trình với các trọng số khác nhau giữa các mục tiêu (ví dụ ngắn nhất vs nhiều di sản nhất vs cân bằng), cho user so sánh trực quan. Đây sẽ là sự kết hợp của Personalization và visualization.
+
+\chapter{Lộ trình triển khai 2 tuần}
+
+Sau khi loại bỏ Personalization khỏi phạm vi, kế hoạch còn lại gọn gàng hơn:
+
+\begin{table}[H]
+\centering
+\caption{Kế hoạch triển khai 2 tuần}
+\begin{tabular}{lll}
+\toprule
+\textbf{Tuần} & \textbf{Backend} & \textbf{Frontend} \\
+\midrule
+1 & Refactor \texttt{recomputeRouteTimings} + cài 2-opt with feasibility check & Polyline trên bản đồ \\
+2 & Evaluation framework + benchmark 12--15 scenarios & Polish demo, viết báo cáo \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+Tuần 3 còn lại (nếu có) dành để:
+\begin{itemize}[leftmargin=*]
+    \item Viết phần đánh giá vào báo cáo với bảng số liệu và biểu đồ.
+    \item Chuẩn bị slide bảo vệ.
+    \item Diễn tập trả lời các câu hỏi dự kiến của hội đồng.
+\end{itemize}
+
+\begin{warningbox}{Nguyên tắc quan trọng}
+\textbf{Đừng thêm tính năng mới ngoài hai cải tiến backend và một cải tiến frontend này.} Tập trung củng cố và có số liệu đo lường. Một module sâu, có đo lường nghiêm túc --- mạnh hơn nhiều so với một module nông nhưng có 10 tính năng.
+\end{warningbox}
+
+\chapter{Tổng kết: thay đổi narrative trình bày}
+
+\section{Narrative cũ}
+\begin{quote}
+\textit{``Em xây dựng một ứng dụng lập kế hoạch du lịch cho Hà Nội với các tính năng A, B, C.''}
+\end{quote}
+
+Đây là narrative kiểu \textit{sản phẩm} --- yếu về mặt học thuật.
+
+\section{Narrative mới}
+\begin{quote}
+\textit{``Em mô hình hóa bài toán lập lịch du lịch văn hóa thành một biến thể của Multi-Day Vehicle Routing Problem with Time Windows (MD-VRPTW), với các ràng buộc đặc thù: giờ mở cửa hàng tuần, nghỉ trưa, giờ nghỉ giữa ngày của địa điểm, và thời gian gửi xe. Pipeline gồm bốn pha: prefilter $\rightarrow$ k-means++ clustering $\rightarrow$ GNN constructive heuristic (Solomon, 1987) $\rightarrow$ 2-opt improvement với kiểm tra feasibility (Lin, 1965). Em đánh giá trên 13 scenario chia thành nhóm thông thường và nhóm khó cố ý (chống cherry-picking), với 4 metrics định lượng, so sánh với 3 baseline. Kết quả cho thấy GNN + 2-opt cải thiện X\% so với GNN thuần.''}
+\end{quote}
+
+Narrative này:
+\begin{itemize}
+    \item Đặt tên đúng bài toán (MD-VRPTW) --- chứng tỏ đọc literature.
+    \item Mô tả pipeline có cấu trúc và cite paper gốc --- chứng tỏ có thiết kế và đọc tài liệu.
+    \item Nêu metrics định lượng và \textbf{chống cherry-picking} --- chứng tỏ có đạo đức khoa học.
+    \item Có baseline rõ ràng để so sánh --- chứng tỏ kết quả thuyết phục.
+\end{itemize}
+
+Đây là sự khác biệt giữa luận văn mức Khá (6.5--7.5) và mức Giỏi+ (8.5--9.5).
+
+\section{Tham khảo gợi ý}
+
+Khi viết phần Tài liệu tham khảo, các paper sau là nền tảng kinh điển bạn nên cite:
+
+\begin{itemize}[leftmargin=*]
+    \item Lin, S. (1965). \textit{Computer solutions of the traveling salesman problem}. Bell System Technical Journal --- gốc của 2-opt.
+    \item Solomon, M. M. (1987). \textit{Algorithms for the vehicle routing and scheduling problems with time window constraints}. Operations Research --- chuẩn cho VRPTW constructive heuristics.
+    \item Bräysy, O., \& Gendreau, M. (2005). \textit{Vehicle routing problem with time windows, Part II: Metaheuristics}. Transportation Science --- tổng quan các metaheuristic cho VRPTW.
+    \item Fisher, M. L., \& Jaikumar, R. (1981). \textit{A generalized assignment heuristic for vehicle routing}. Networks --- gốc của cluster-first-route-second.
+\end{itemize}
+
+Cite được 4 paper này trong báo cáo là dấu hiệu của một luận văn có nghiên cứu tử tế.
+
+\end{document}
