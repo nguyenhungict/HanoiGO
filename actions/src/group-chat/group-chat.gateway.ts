@@ -189,7 +189,9 @@ export class GroupChatGateway
         }
       }
     } catch (err) {
-      this.logger.error(`Failed to dispatch chat notifications: ${err.message}`);
+      this.logger.error(
+        `Failed to dispatch chat notifications: ${err.message}`,
+      );
     }
   }
 

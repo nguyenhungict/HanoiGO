@@ -1,7 +1,12 @@
 import { recomputeRouteTimings, twoOptImprove } from './trip-planner-2opt';
 import type { Place, ScheduledStop } from './trip-planner.types';
 
-function makePlace(id: string, lat: number, lng: number, overrides: Partial<Place> = {}): Place {
+function makePlace(
+  id: string,
+  lat: number,
+  lng: number,
+  overrides: Partial<Place> = {},
+): Place {
   return {
     id,
     name: id,

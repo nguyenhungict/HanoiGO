@@ -8,7 +8,7 @@ export class PlacesService {
   async findAll(page?: number, limit?: number) {
     const skip = page && limit ? (page - 1) * limit : undefined;
     const take = limit ? limit : undefined;
-    
+
     const [places, total] = await Promise.all([
       this.prisma.place.findMany({
         skip,

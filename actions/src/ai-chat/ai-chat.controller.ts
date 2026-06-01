@@ -21,7 +21,12 @@ export class AiChatController {
     },
   ): Promise<AiChatResponse & { accumulatedParams?: unknown }> {
     const { message, lat, lng, history, accumulated } = body;
-    return this.aiChatService.getAiResponse(message, lat, lng, history, accumulated ?? {});
+    return this.aiChatService.getAiResponse(
+      message,
+      lat,
+      lng,
+      history,
+      accumulated ?? {},
+    );
   }
 }
-

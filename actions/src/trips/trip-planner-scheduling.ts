@@ -1,4 +1,8 @@
-import { DAY_NAMES, MAX_PLACES_PER_DAY, PARKING_BUFFER_MIN } from './trip-planner.constants';
+import {
+  DAY_NAMES,
+  MAX_PLACES_PER_DAY,
+  PARKING_BUFFER_MIN,
+} from './trip-planner.constants';
 import { haversine } from './trip-planner-geo';
 import type {
   DayItinerary,
@@ -232,9 +236,16 @@ export function calculateVisitWindow(
   }
 
   const departMin = startVisitMin + place.visitDurationMin;
-  const effectiveClose = place.alwaysOpen
-    ? endTimeMin
-    : Math.min(place.openTimeEnd, endTimeMin);
+
+  // Guard: if openTimeEnd < openTimeStart the place has overnight/cross-midnight hours
+  // (e.g. a bar open 20:00–02:00). During daytime scheduling we treat it as open
+  // until the user's end time so it is not incorrectly rejected.
+  const isOvernightPlace =
+    !place.alwaysOpen && place.openTimeEnd < place.openTimeStart;
+  const effectiveClose =
+    place.alwaysOpen || isOvernightPlace
+      ? endTimeMin
+      : Math.min(place.openTimeEnd, endTimeMin);
 
   if (departMin > effectiveClose) return null;
 

@@ -33,7 +33,9 @@ export class ActivitiesService {
     const trip = await this.prisma.trip.findUnique({
       where: { id: tripId },
       include: {
-        startPlace: { select: { id: true, name: true, lat: true, lng: true, address: true } },
+        startPlace: {
+          select: { id: true, name: true, lat: true, lng: true, address: true },
+        },
         tripDays: {
           orderBy: { dayNumber: 'asc' },
           take: 1,
@@ -42,7 +44,15 @@ export class ActivitiesService {
               orderBy: { stopOrder: 'asc' },
               take: 1,
               include: {
-                place: { select: { id: true, name: true, lat: true, lng: true, address: true } },
+                place: {
+                  select: {
+                    id: true,
+                    name: true,
+                    lat: true,
+                    lng: true,
+                    address: true,
+                  },
+                },
               },
             },
           },
@@ -53,9 +63,7 @@ export class ActivitiesService {
     if (!trip) throw new NotFoundException('Trip not found');
 
     const anchor =
-      trip.startPlace ??
-      trip.tripDays[0]?.tripStops[0]?.place ??
-      null;
+      trip.startPlace ?? trip.tripDays[0]?.tripStops[0]?.place ?? null;
 
     if (!anchor) {
       throw new BadRequestException(
@@ -81,7 +89,7 @@ export class ActivitiesService {
       let lng = dto.lng;
       let address = dto.address ?? null;
       let placeId = dto.placeId ?? null;
-      let tripId = dto.tripId ?? null;
+      const tripId = dto.tripId ?? null;
 
       // Auto-fill location from the linked Trip when lat/lng are not provided
       if (tripId && (lat === undefined || lng === undefined)) {
@@ -277,7 +285,8 @@ export class ActivitiesService {
       WHERE a.id = ${id}::uuid
     `;
 
-    if (activities.length === 0) throw new NotFoundException('Activity not found');
+    if (activities.length === 0)
+      throw new NotFoundException('Activity not found');
 
     const activity = activities[0];
 
@@ -299,7 +308,13 @@ export class ActivitiesService {
         where: { id: activity.tripId },
         include: {
           startPlace: {
-            select: { id: true, name: true, lat: true, lng: true, imageUrl: true },
+            select: {
+              id: true,
+              name: true,
+              lat: true,
+              lng: true,
+              imageUrl: true,
+            },
           },
           tripDays: {
             orderBy: { dayNumber: 'asc' },
@@ -359,9 +374,12 @@ export class ActivitiesService {
       SELECT host_id as "hostId", title, status FROM activities WHERE id = ${activityId}::uuid
     `;
 
-    if (activities.length === 0) throw new NotFoundException('Activity not found');
+    if (activities.length === 0)
+      throw new NotFoundException('Activity not found');
     if (activities[0].status !== 'OPEN') {
-      throw new BadRequestException('This activity is no longer open for joining.');
+      throw new BadRequestException(
+        'This activity is no longer open for joining.',
+      );
     }
 
     const activity = activities[0];
@@ -413,7 +431,8 @@ export class ActivitiesService {
       SELECT host_id as "hostId", title FROM activities WHERE id = ${activityId}::uuid
     `;
 
-    if (activities.length === 0) throw new NotFoundException('Activity not found');
+    if (activities.length === 0)
+      throw new NotFoundException('Activity not found');
     const activity = activities[0];
     if (activity.hostId !== hostId)
       throw new ForbiddenException('Only the host can approve members');
@@ -441,7 +460,8 @@ export class ActivitiesService {
       SELECT host_id as "hostId", title FROM activities WHERE id = ${activityId}::uuid
     `;
 
-    if (activities.length === 0) throw new NotFoundException('Activity not found');
+    if (activities.length === 0)
+      throw new NotFoundException('Activity not found');
     const activity = activities[0];
     if (activity.hostId !== hostId)
       throw new ForbiddenException('Only the host can reject members');
@@ -470,7 +490,8 @@ export class ActivitiesService {
       SELECT host_id as "hostId" FROM activities WHERE id = ${activityId}::uuid
     `;
 
-    if (activityResult.length === 0) throw new NotFoundException('Activity not found');
+    if (activityResult.length === 0)
+      throw new NotFoundException('Activity not found');
     if (activityResult[0].hostId !== userId) {
       throw new ForbiddenException('Only the host can delete this activity');
     }
@@ -528,7 +549,12 @@ export class ActivitiesService {
       where: { activityId },
       include: {
         user: {
-          select: { id: true, username: true, avatarUrl: true, nationality: true },
+          select: {
+            id: true,
+            username: true,
+            avatarUrl: true,
+            nationality: true,
+          },
         },
       },
       orderBy: { joinedAt: 'asc' },
@@ -625,7 +651,11 @@ export class ActivitiesService {
     return cloned;
   }
 
-  async reportActivity(reporterId: string, activityId: string, dto: ReportActivityDto) {
+  async reportActivity(
+    reporterId: string,
+    activityId: string,
+    dto: ReportActivityDto,
+  ) {
     const activity = await this.prisma.activity.findUnique({
       where: { id: activityId },
     });

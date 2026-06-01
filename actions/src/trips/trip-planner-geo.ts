@@ -147,78 +147,86 @@ export function kMeansClustering(
   clusters = clusters.filter((c) => c.length > 0);
 
   // ── Rebalance: move overflow places to the GEOGRAPHICALLY CLOSEST eligible cluster ──
-  // BUG FIX: Previously moved to the "lightest" cluster (fewest places), which caused
-  // geographically distant places (e.g., Bat Trang in Gia Lam + Cau The Huc in Hoan Kiem)
-  // to land in the same day. Now we always move to the cluster whose centroid is
-  // closest to the place being moved, as long as that cluster is under MAX_PLACES_PER_DAY.
-  let rebalanced = true;
-  while (rebalanced) {
-    rebalanced = false;
-    for (let c = 0; c < clusters.length; c++) {
-      while (clusters[c].length > MAX_PLACES_PER_DAY) {
-        // Find the place in this over-full cluster that is FURTHEST from its centroid
-        // (i.e., the place that fits the least in this cluster)
-        const clusterCentroid = getCentroid(clusters[c]);
-        let worstPlaceIdx = -1;
-        let maxDistFromCentroid = -1;
+  // Two-pass approach:
+  //  Pass 1 (soft): Move places respecting a distance guard so we don't mix
+  //    geographically distant places unless necessary.
+  //  Pass 2 (forced): If any cluster is STILL over MAX_PLACES_PER_DAY after
+  //    soft moves, force-move the place that is closest to the target cluster,
+  //    regardless of distance — capacity constraints are non-negotiable.
+  for (let pass = 0; pass < 2; pass++) {
+    const forcedMove = pass === 1;
+    let rebalanced = true;
+    while (rebalanced) {
+      rebalanced = false;
+      for (let c = 0; c < clusters.length; c++) {
+        while (clusters[c].length > MAX_PLACES_PER_DAY) {
+          // Rank all places by distance from this cluster's centroid (furthest first).
+          // In soft mode we try the furthest-from-centroid first (worst fit).
+          // In forced mode we try ALL candidates and pick the one closest to a target.
+          const clusterCentroid = getCentroid(clusters[c]);
+          const candidates = clusters[c]
+            .map((place, idx) => ({
+              place,
+              idx,
+              distFromCentroid: haversine(
+                place.lat,
+                place.lng,
+                clusterCentroid.lat,
+                clusterCentroid.lng,
+              ),
+            }))
+            .sort((a, b) => b.distFromCentroid - a.distFromCentroid);
 
-        for (let i = 0; i < clusters[c].length; i++) {
-          const d = haversine(
-            clusters[c][i].lat,
-            clusters[c][i].lng,
-            clusterCentroid.lat,
-            clusterCentroid.lng,
-          );
-          if (d > maxDistFromCentroid) {
-            maxDistFromCentroid = d;
-            worstPlaceIdx = i;
+          let moved = false;
+
+          for (const candidate of candidates) {
+            // Find the target cluster closest to this candidate that has room
+            let bestTargetIdx = -1;
+            let minDistToTarget = Infinity;
+
+            for (let t = 0; t < clusters.length; t++) {
+              if (t === c) continue;
+              if (clusters[t].length >= MAX_PLACES_PER_DAY) continue;
+
+              const targetCentroid = getCentroid(clusters[t]);
+              const dist = haversine(
+                candidate.place.lat,
+                candidate.place.lng,
+                targetCentroid.lat,
+                targetCentroid.lng,
+              );
+
+              if (dist < minDistToTarget) {
+                minDistToTarget = dist;
+                bestTargetIdx = t;
+              }
+            }
+
+            if (bestTargetIdx === -1) break; // all targets full
+
+            if (!forcedMove) {
+              // Soft pass: check distance guard
+              const targetSpread = clusterSpreadKm(clusters[bestTargetIdx]);
+              const maxAllowedDist = Math.max(targetSpread * 3, 5);
+              if (
+                minDistToTarget > maxAllowedDist &&
+                clusters[bestTargetIdx].length > 0
+              ) {
+                continue; // try next candidate instead of breaking
+              }
+            }
+
+            // Move the place
+            const actualIdx = clusters[c].indexOf(candidate.place);
+            clusters[c].splice(actualIdx, 1);
+            clusters[bestTargetIdx].push(candidate.place);
+            moved = true;
+            rebalanced = true;
+            break; // restart the while loop with updated cluster sizes
           }
+
+          if (!moved) break; // no candidate could be moved — exit inner while
         }
-
-        if (worstPlaceIdx === -1) break;
-        const worstPlace = clusters[c][worstPlaceIdx];
-
-        // Find the cluster that is geographically CLOSEST to worstPlace,
-        // excluding the current cluster, and only if under capacity.
-        let bestTargetIdx = -1;
-        let minDistToTarget = Infinity;
-
-        for (let t = 0; t < clusters.length; t++) {
-          if (t === c) continue;
-          if (clusters[t].length >= MAX_PLACES_PER_DAY) continue;
-
-          // Score: distance from worstPlace to target cluster centroid
-          const targetCentroid = getCentroid(clusters[t]);
-          const dist = haversine(
-            worstPlace.lat,
-            worstPlace.lng,
-            targetCentroid.lat,
-            targetCentroid.lng,
-          );
-
-          if (dist < minDistToTarget) {
-            minDistToTarget = dist;
-            bestTargetIdx = t;
-          }
-        }
-
-        // If no eligible target exists (all other clusters are full), stop rebalancing
-        if (bestTargetIdx === -1) break;
-
-        // Validate: moving this place should not dramatically worsen the target cluster's spread.
-        // Only transfer if the place's distance to the target centroid is reasonable
-        // (within 3× the target cluster's current spread, or target cluster is empty).
-        const targetSpread = clusterSpreadKm(clusters[bestTargetIdx]);
-        const maxAllowedDist = Math.max(targetSpread * 3, 5); // at least 5km tolerance
-        if (minDistToTarget > maxAllowedDist && clusters[bestTargetIdx].length > 0) {
-          // This place is too far from every other cluster — it's a geographic outlier.
-          // Leave it in the current over-full cluster rather than making another day worse.
-          break;
-        }
-
-        clusters[c].splice(worstPlaceIdx, 1);
-        clusters[bestTargetIdx].push(worstPlace);
-        rebalanced = true;
       }
     }
   }

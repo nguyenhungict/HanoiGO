@@ -4,7 +4,13 @@ import {
   BadRequestException,
 } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
-import { ViolationType, ReportStatus, Role, UserStatus, NotificationType } from '@prisma/client';
+import {
+  ViolationType,
+  ReportStatus,
+  Role,
+  UserStatus,
+  NotificationType,
+} from '@prisma/client';
 import * as bcrypt from 'bcrypt';
 import * as crypto from 'crypto';
 import { CreatePlaceDto } from './dto/create-place.dto';
@@ -55,7 +61,10 @@ export class AdminService {
 
     if (Array.isArray(growth)) {
       growth.forEach((row: any) => {
-        const dateKey = row.date instanceof Date ? row.date.toISOString().split('T')[0] : String(row.date);
+        const dateKey =
+          row.date instanceof Date
+            ? row.date.toISOString().split('T')[0]
+            : String(row.date);
         growthMap.set(dateKey, row.count);
       });
     }
@@ -541,10 +550,22 @@ export class AdminService {
         orderBy: { createdAt: 'desc' },
         include: {
           reporter: {
-            select: { id: true, username: true, email: true, fullName: true, avatarUrl: true },
+            select: {
+              id: true,
+              username: true,
+              email: true,
+              fullName: true,
+              avatarUrl: true,
+            },
           },
           targetUser: {
-            select: { id: true, username: true, email: true, fullName: true, avatarUrl: true },
+            select: {
+              id: true,
+              username: true,
+              email: true,
+              fullName: true,
+              avatarUrl: true,
+            },
           },
         },
       }),
@@ -555,12 +576,13 @@ export class AdminService {
       .filter((r) => r.entityType === 'ACTIVITY' && r.entityId)
       .map((r) => r.entityId as string);
 
-    const activities = activityIds.length > 0
-      ? await this.prisma.activity.findMany({
-          where: { id: { in: activityIds } },
-          select: { id: true, title: true, status: true, hostId: true },
-        })
-      : [];
+    const activities =
+      activityIds.length > 0
+        ? await this.prisma.activity.findMany({
+            where: { id: { in: activityIds } },
+            select: { id: true, title: true, status: true, hostId: true },
+          })
+        : [];
 
     const mappedReports = reports.map((report) => {
       let activity = null;
@@ -586,10 +608,22 @@ export class AdminService {
       where: { id: reportId },
       include: {
         reporter: {
-          select: { id: true, username: true, email: true, fullName: true, avatarUrl: true },
+          select: {
+            id: true,
+            username: true,
+            email: true,
+            fullName: true,
+            avatarUrl: true,
+          },
         },
         targetUser: {
-          select: { id: true, username: true, email: true, fullName: true, avatarUrl: true },
+          select: {
+            id: true,
+            username: true,
+            email: true,
+            fullName: true,
+            avatarUrl: true,
+          },
         },
       },
     });
@@ -639,7 +673,11 @@ export class AdminService {
         });
 
         // 2. Hide activity if requested
-        if (hideActivity && report.entityType === 'ACTIVITY' && report.entityId) {
+        if (
+          hideActivity &&
+          report.entityType === 'ACTIVITY' &&
+          report.entityId
+        ) {
           await tx.activity.update({
             where: { id: report.entityId },
             data: { status: 'CANCELLED' },
@@ -665,7 +703,9 @@ export class AdminService {
 
       return { success: true };
     } catch (error) {
-      throw new BadRequestException(`Failed to resolve report: ${error.message}`);
+      throw new BadRequestException(
+        `Failed to resolve report: ${error.message}`,
+      );
     }
   }
 
@@ -704,7 +744,9 @@ export class AdminService {
 
       return { success: true };
     } catch (error) {
-      throw new BadRequestException(`Failed to dismiss report: ${error.message}`);
+      throw new BadRequestException(
+        `Failed to dismiss report: ${error.message}`,
+      );
     }
   }
 }

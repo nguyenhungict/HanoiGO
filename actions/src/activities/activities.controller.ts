@@ -25,7 +25,9 @@ export class ActivitiesController {
   @Post()
   @UseGuards(AuthGuard('jwt'))
   @ApiBearerAuth()
-  @ApiOperation({ summary: 'Share a trip plan or create a place-based activity' })
+  @ApiOperation({
+    summary: 'Share a trip plan or create a place-based activity',
+  })
   async create(@Request() req: any, @Body() dto: CreateActivityDto) {
     return this.activitiesService.create(req.user.id, dto);
   }
@@ -57,7 +59,9 @@ export class ActivitiesController {
 
   @Get(':id')
   @UseGuards(OptionalJwtAuthGuard)
-  @ApiOperation({ summary: 'Get activity details (includes trip itinerary if linked)' })
+  @ApiOperation({
+    summary: 'Get activity details (includes trip itinerary if linked)',
+  })
   async findOne(@Param('id') id: string, @Request() req: any) {
     return this.activitiesService.findOne(id, req.user?.id);
   }
@@ -87,7 +91,11 @@ export class ActivitiesController {
     @Param('id') activityId: string,
     @Param('userId') userId: string,
   ) {
-    return this.activitiesService.approveMember(req.user.id, activityId, userId);
+    return this.activitiesService.approveMember(
+      req.user.id,
+      activityId,
+      userId,
+    );
   }
 
   @Patch(':id/reject/:userId')
@@ -129,7 +137,9 @@ export class ActivitiesController {
   @Post(':id/clone-trip')
   @UseGuards(AuthGuard('jwt'))
   @ApiBearerAuth()
-  @ApiOperation({ summary: 'Save (clone) the trip plan from an activity into my trips' })
+  @ApiOperation({
+    summary: 'Save (clone) the trip plan from an activity into my trips',
+  })
   async cloneActivityTrip(@Request() req: any, @Param('id') id: string) {
     return this.activitiesService.cloneActivityTrip(req.user.id, id);
   }

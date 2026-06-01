@@ -37,7 +37,9 @@ export class NotificationsGateway
       const token = auth.token || headers.authorization?.split(' ')[1];
 
       if (!token) {
-        this.logger.warn(`Connection rejected: No token provided (${client.id})`);
+        this.logger.warn(
+          `Connection rejected: No token provided (${client.id})`,
+        );
         client.disconnect();
         return;
       }
@@ -57,9 +59,13 @@ export class NotificationsGateway
       }
       this.activeClients.get(userId)!.add(client.id);
 
-      this.logger.log(`User connected: ${username} (${userId}) | socketId: ${client.id}`);
+      this.logger.log(
+        `User connected: ${username} (${userId}) | socketId: ${client.id}`,
+      );
     } catch (e) {
-      this.logger.error(`Auth failed for client ${client.id}: ${(e as Error).message}`);
+      this.logger.error(
+        `Auth failed for client ${client.id}: ${(e as Error).message}`,
+      );
       client.disconnect();
     }
     await Promise.resolve();
@@ -85,7 +91,9 @@ export class NotificationsGateway
   sendToUser(userId: string, event: string, payload: any) {
     const socketIds = this.activeClients.get(userId);
     if (socketIds && socketIds.size > 0) {
-      this.logger.log(`Pushing event ${event} to user ${userId} across ${socketIds.size} sockets`);
+      this.logger.log(
+        `Pushing event ${event} to user ${userId} across ${socketIds.size} sockets`,
+      );
       for (const socketId of socketIds) {
         this.server.to(socketId).emit(event, payload);
       }
