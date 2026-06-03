@@ -61,7 +61,8 @@ export class NotificationsService {
         queryOptions.skip = 1; // Skip the cursor element itself
       }
 
-      const notifications = await this.prisma.notification.findMany(queryOptions);
+      const notifications =
+        await this.prisma.notification.findMany(queryOptions);
 
       let nextCursor: string | undefined = undefined;
       if (notifications.length > limit) {
@@ -74,7 +75,10 @@ export class NotificationsService {
         nextCursor,
       };
     } catch (error) {
-      this.logger.error(`Failed to find notifications for user ${userId}:`, error);
+      this.logger.error(
+        `Failed to find notifications for user ${userId}:`,
+        error,
+      );
       throw error;
     }
   }

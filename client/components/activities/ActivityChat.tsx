@@ -4,6 +4,7 @@ import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { io, Socket } from 'socket.io-client';
 import { useAuthStore } from '@/store/useAuthStore';
 import { getMyActivitiesAction, resolveImageUrl } from '@/lib/actions';
+import { useChatNotificationStore } from '@/store/useChatNotificationStore';
 
 interface Reaction { id: string; emoji: string; userId: string; user: { username: string } }
 interface Message {
@@ -11,6 +12,7 @@ interface Message {
   type: 'TEXT' | 'SYSTEM'; createdAt: string;
   user?: { username: string; avatarUrl: string | null };
   reactions: Reaction[];
+  isOptimistic?: boolean;
 }
 
 const QUICK_EMOJIS = ['👍', '❤️', '😂', '😮', '😢', '🔥'];
@@ -34,6 +36,7 @@ export const ActivityChat: React.FC<{ activityId: string; activityTitle: string;
   activityId: initialId, activityTitle: initialTitle, onClose,
 }) => {
   const { user, token } = useAuthStore();
+  const setActiveChatId = useChatNotificationStore((s) => s.setActiveChatId);
   const [activeId, setActiveId] = useState(initialId);
   const [activeTitle, setActiveTitle] = useState(initialTitle);
   const [messages, setMessages] = useState<Message[]>([]);
@@ -79,7 +82,25 @@ export const ActivityChat: React.FC<{ activityId: string; activityTitle: string;
 
     socket.on('new_message', (msg: Message) => {
       if (msg.activityId === activeId) {
-        setMessages(prev => [...prev, msg]);
+        setMessages(prev => {
+          const currentUser = useAuthStore.getState().user;
+          const isMyMessage = currentUser && (
+            msg.userId === currentUser.id || 
+            msg.user?.username === currentUser.username
+          );
+          
+          if (isMyMessage) {
+            // Find the first temporary optimistic message in the feed and replace it
+            const optimisticIndex = prev.findIndex(m => m.isOptimistic);
+            if (optimisticIndex !== -1) {
+              const updated = [...prev];
+              updated[optimisticIndex] = msg; // Swap optimistic message with the server-confirmed message
+              return updated;
+            }
+          }
+          // Otherwise, append normally (for other users' messages or if no optimistic message is found)
+          return [...prev, msg];
+        });
         setTimeout(() => bottomRef.current?.scrollIntoView({ behavior: 'smooth' }), 50);
       }
     });
@@ -96,7 +117,8 @@ export const ActivityChat: React.FC<{ activityId: string; activityTitle: string;
     });
 
     socket.on('typing_users', ({ activityId, users }: { activityId: string; users: string[] }) => {
-      if (activityId === activeId) setTypingUsers(users.filter(id => id !== user?.id));
+      const currentUser = useAuthStore.getState().user;
+      if (activityId === activeId) setTypingUsers(users.filter(id => id !== currentUser?.id));
     });
 
     socket.on('online_users', (ids: string[]) => setOnlineUsers(ids));
@@ -114,12 +136,39 @@ export const ActivityChat: React.FC<{ activityId: string; activityTitle: string;
     if (id === activeId) return;
     setMessages([]); setHasMore(true); setTypingUsers([]); setOnlineUsers([]);
     setActiveId(id); setActiveTitle(title);
+    setActiveChatId(id);
   };
 
   // ── send message ─────────────────────────────────────────────────────────────
   const handleSend = () => {
     if (!input.trim() || !socketRef.current || !connected) return;
-    socketRef.current.emit('send_message', { activityId: activeId, content: input.trim() });
+    const messageContent = input.trim();
+
+    const currentUser = useAuthStore.getState().user;
+    // 1. Create an optimistic message for instant UI render
+    const tempId = `optimistic-${Date.now()}`;
+    const optimisticMsg: Message = {
+      id: tempId,
+      activityId: activeId,
+      userId: currentUser?.id || '',
+      content: messageContent,
+      type: 'TEXT',
+      createdAt: new Date().toISOString(),
+      user: {
+        username: currentUser?.username || 'You',
+        avatarUrl: currentUser?.avatarUrl || null,
+      },
+      reactions: [],
+      isOptimistic: true,
+    };
+
+    // 2. Add to messages state immediately (0ms perceived latency)
+    setMessages(prev => [...prev, optimisticMsg]);
+    setTimeout(() => bottomRef.current?.scrollIntoView({ behavior: 'smooth' }), 50);
+
+    // 3. Emit real message to the remote NestJS + Supabase backend
+    socketRef.current.emit('send_message', { activityId: activeId, content: messageContent });
+    
     setInput('');
     if (typingTimeout.current) clearTimeout(typingTimeout.current);
     socketRef.current.emit('stop_typing', { activityId: activeId });
@@ -298,8 +347,9 @@ export const ActivityChat: React.FC<{ activityId: string; activityTitle: string;
                         <div className="flex flex-col gap-1">
                           {/* Bubble + hover actions */}
                           <div className={`flex items-center gap-2 ${isMe ? 'flex-row-reverse' : 'flex-row'}`}>
-                            <div className={`px-4 py-2.5 rounded-xl text-sm leading-relaxed select-text shadow-sm
-                              ${isMe ? 'bg-primary text-white rounded-tr-sm' : 'bg-white text-on-surface rounded-tl-sm border border-outline/10'}`}>
+                            <div className={`px-4 py-2.5 rounded-xl text-sm leading-relaxed select-text shadow-sm transition-all duration-300
+                              ${isMe ? 'bg-primary text-white rounded-tr-sm' : 'bg-white text-on-surface rounded-tl-sm border border-outline/10'}
+                              ${m.isOptimistic ? 'opacity-60 saturate-50' : 'opacity-100'}`}>
                               {m.content}
                             </div>
 

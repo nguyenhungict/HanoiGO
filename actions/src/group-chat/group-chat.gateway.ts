@@ -11,6 +11,8 @@ import { Server, Socket } from 'socket.io';
 import { Logger } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
 import { JwtService } from '@nestjs/jwt';
+import { NotificationsService } from '../notifications/notifications.service';
+import { NotificationType } from '@prisma/client';
 
 const ALLOWED_EMOJIS = ['👍', '❤️', '😂', '😮', '😢', '🔥'];
 const MSG_PAGE_SIZE = 30;
@@ -40,6 +42,7 @@ export class GroupChatGateway
   constructor(
     private prisma: PrismaService,
     private jwtService: JwtService,
+    private notificationsService: NotificationsService,
   ) {}
 
   // ──────────────────────────────── Connection ────────────────────────────────
@@ -151,6 +154,45 @@ export class GroupChatGateway
     });
 
     this.server.to(`activity_${activityId}`).emit('new_message', message);
+
+    try {
+      // Find all approved members of the activity (except the sender)
+      const members = await this.prisma.activityMember.findMany({
+        where: {
+          activityId,
+          status: 'APPROVED',
+          userId: { not: userId },
+        },
+      });
+
+      const activeUsers = onlineMap.get(activityId) || new Set<string>();
+
+      const activity = await this.prisma.activity.findUnique({
+        where: { id: activityId },
+        select: { title: true },
+      });
+
+      const senderName = message.user?.username || 'Someone';
+      const activityTitle = activity?.title || 'Group';
+
+      // Create persistent DB notifications for members who are NOT actively in the chat room
+      for (const member of members) {
+        if (!activeUsers.has(member.userId)) {
+          await this.notificationsService.create(
+            member.userId,
+            NotificationType.NEW_MESSAGE,
+            `New message in ${activityTitle}`,
+            `${senderName}: ${content.trim().substring(0, 60)}${content.trim().length > 60 ? '...' : ''}`,
+            'ACTIVITY',
+            activityId,
+          );
+        }
+      }
+    } catch (err) {
+      this.logger.error(
+        `Failed to dispatch chat notifications: ${err.message}`,
+      );
+    }
   }
 
   // ──────────────────────────────── Load More ─────────────────────────────────

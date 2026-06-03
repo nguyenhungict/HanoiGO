@@ -4,6 +4,7 @@ import { useAuthStore } from '@/store/useAuthStore';
 import { Activity } from '@/types';
 import { cancelJoinRequestAction, cloneActivityTripAction } from '@/lib/actions';
 import { useNotification } from '@/hooks/use-notification';
+import { useChatNotificationStore } from '@/store/useChatNotificationStore';
 
 interface ActivityReelCardProps {
   activity: Activity;
@@ -37,6 +38,7 @@ export const ActivityReelCard: React.FC<ActivityReelCardProps> = ({ activity, on
   const { user } = useAuthStore();
   const router = useRouter();
   const { show } = useNotification();
+  const unreadCount = useChatNotificationStore((s) => s.unreadCounts[activity.id] || 0);
 
   const handleCancelClick = async (e: React.MouseEvent) => {
     e.stopPropagation();
@@ -196,10 +198,15 @@ export const ActivityReelCard: React.FC<ActivityReelCardProps> = ({ activity, on
           {(isHost || isMember) && onChat && (
             <button
               onClick={(e) => { e.stopPropagation(); onChat(activity); }}
-              className="flex items-center gap-1.5 text-[12px] font-medium text-on-surface-variant hover:text-on-surface transition-colors px-2 py-1.5 rounded-lg hover:bg-surface-container"
+              className="flex items-center gap-1.5 text-[12px] font-medium text-on-surface-variant hover:text-on-surface transition-colors px-2 py-1.5 rounded-lg hover:bg-surface-container relative"
             >
               <span className="material-symbols-outlined text-[16px]">chat_bubble_outline</span>
-              Chat
+              <span>Chat</span>
+              {unreadCount > 0 && (
+                <span className="ml-1 px-1.5 py-0.5 bg-primary text-white text-[9px] font-black rounded-full flex items-center justify-center leading-none min-w-[15px] h-3.5 animate-in zoom-in duration-300">
+                  {unreadCount}
+                </span>
+              )}
             </button>
           )}
         </div>

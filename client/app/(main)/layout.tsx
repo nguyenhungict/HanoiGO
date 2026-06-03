@@ -2,6 +2,7 @@ import { cookies } from 'next/headers';
 import Header from '@/components/Header';
 import SessionGuard from '@/components/SessionGuard';
 import { NotificationSocketProvider } from '@/components/notifications/NotificationSocketProvider';
+import { ChatSocketProvider } from '@/components/notifications/ChatSocketProvider';
 
 export default async function MainLayout({ children }: { children: React.ReactNode }) {
   const cookieStore = await cookies();
@@ -11,6 +12,7 @@ export default async function MainLayout({ children }: { children: React.ReactNo
     <div className="min-h-screen bg-surface font-body text-on-surface flex flex-col h-screen overflow-hidden">
       <SessionGuard redirectTo="/login" />
       <NotificationSocketProvider />
+      <ChatSocketProvider />
       {/* Top Header Navigation Hub */}
       <Header username={username} />
 

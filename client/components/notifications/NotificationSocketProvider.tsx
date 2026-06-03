@@ -1,6 +1,7 @@
 'use client';
 
-import React, { useEffect, useRef } from 'react';
+import { useEffect, useRef } from 'react';
+import { useRouter } from 'next/navigation';
 import { io, Socket } from 'socket.io-client';
 import { useAuthStore } from '@/store/useAuthStore';
 import { useNotificationBellStore } from '@/store/useNotificationBellStore';
@@ -8,7 +9,8 @@ import { useNotificationStore } from '@/store/useNotificationStore';
 import { Notification } from '@/types/notification';
 
 export function NotificationSocketProvider() {
-  const { token } = useAuthStore();
+  const router = useRouter();
+  const token = useAuthStore((s) => s.token);
   const { prependNotification } = useNotificationBellStore();
   const { show: showToast } = useNotificationStore();
   const socketRef = useRef<Socket | null>(null);
@@ -48,12 +50,21 @@ export function NotificationSocketProvider() {
         toastType = 'warning';
       }
 
-      // 3. Trigger UI Toast
+      // 3. Trigger UI Toast with interactive deep linking
       showToast({
         type: toastType,
         title: notification.title,
         message: notification.body || undefined,
         duration: 6000,
+        onClick: () => {
+          if (notification.entityType === 'ACTIVITY' && notification.entityId) {
+            if (notification.type === 'NEW_MESSAGE') {
+              router.push(`/activities?activityId=${notification.entityId}&chat=true`);
+            } else {
+              router.push(`/activities?activityId=${notification.entityId}`);
+            }
+          }
+        },
       });
     });
 
@@ -67,7 +78,7 @@ export function NotificationSocketProvider() {
       socket.disconnect();
       socketRef.current = null;
     };
-  }, [token, prependNotification, showToast]);
+  }, [token, prependNotification, showToast, router]);
 
   return null;
 }
