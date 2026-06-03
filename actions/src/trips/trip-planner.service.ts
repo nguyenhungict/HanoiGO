@@ -51,6 +51,13 @@ export class TripPlannerService {
 
   constructor(private prisma: PrismaService) {}
 
+  private dominantDistrict(places: Place[]): string | null {
+    if (places.length === 0) return null;
+    const counts = new Map<string, number>();
+    for (const p of places) counts.set(p.district, (counts.get(p.district) ?? 0) + 1);
+    return [...counts.entries()].sort((a, b) => b[1] - a[1])[0][0];
+  }
+
   private async fetchGoongTravelSec(
     fromLat: number,
     fromLng: number,
@@ -170,7 +177,6 @@ export class TripPlannerService {
         userId,
         title: dto.title || 'My Trip to Hanoi',
         numDays: dto.numDays,
-        startPlaceId: dto.startPlaceId,
         tripDays: {
           create: dto.days.map((day) => ({
             dayNumber: day.dayNumber,
@@ -262,7 +268,6 @@ export class TripPlannerService {
         userId,
         title: `${source.title || 'Hanoi Trip'} (Cloned)`,
         numDays: source.numDays,
-        startPlaceId: source.startPlaceId,
         clonedFromId: source.id,
         tripDays: {
           create: source.tripDays.map((day) => ({
@@ -297,7 +302,7 @@ export class TripPlannerService {
     const dbPlaces = await this.prisma.$queryRawUnsafe<DbPlace[]>(
       `SELECT id, name, category, district, lat, lng, image_url,
               always_open, open_days, open_time_start, open_time_end,
-              has_break, break_start, break_end, visit_duration_min
+              visit_duration_min
        FROM places WHERE ${whereClause}`,
       lookupValues,
     );
@@ -314,9 +319,6 @@ export class TripPlannerService {
       openDays: p.open_days,
       openTimeStart: dbTimeToMin(p.open_time_start),
       openTimeEnd: dbTimeToMin(p.open_time_end),
-      hasBreak: p.has_break,
-      breakStart: dbTimeToMin(p.break_start),
-      breakEnd: dbTimeToMin(p.break_end),
       visitDurationMin: dto.visitDurationMin || p.visit_duration_min || 60,
     }));
   }
@@ -334,6 +336,7 @@ export class TripPlannerService {
         return {
           dayNumber: day.dayNumber,
           dayLabel: DAY_NAMES[day.dayOfWeek],
+          district: day.district ?? null,
           color: DAY_COLORS[idx % DAY_COLORS.length],
           stops: day.stops.map((stop, i) => ({
             order: i + 1,
@@ -379,6 +382,7 @@ export class TripPlannerService {
     const emptyDay: DayItinerary = {
       dayNumber,
       dayOfWeek,
+      district: place.district,
       stops: [],
       totalTravelSec: 0,
       totalWaitMin: 0,
@@ -421,6 +425,7 @@ export class TripPlannerService {
       itinerary: {
         dayNumber,
         dayOfWeek,
+        district: place.district,
         stops: [
           createStop(place, window, travelToFirstSec, PARKING_BUFFER_MIN),
         ],
@@ -474,6 +479,7 @@ export class TripPlannerService {
         itineraries.push({
           dayNumber: d + 1,
           dayOfWeek,
+          district: null,
           stops: [],
           totalTravelSec: 0,
           totalWaitMin: 0,
@@ -526,6 +532,7 @@ export class TripPlannerService {
       itineraries.push({
         dayNumber: d + 1,
         dayOfWeek,
+        district: this.dominantDistrict(cluster),
         stops: route,
         totalTravelSec: route.reduce(
           (s, stop) => s + stop.travelFromPrevSec,

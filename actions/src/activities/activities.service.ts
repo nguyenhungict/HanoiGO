@@ -33,7 +33,6 @@ export class ActivitiesService {
     const trip = await this.prisma.trip.findUnique({
       where: { id: tripId },
       include: {
-        startPlace: { select: { id: true, name: true, lat: true, lng: true, address: true } },
         tripDays: {
           orderBy: { dayNumber: 'asc' },
           take: 1,
@@ -42,7 +41,9 @@ export class ActivitiesService {
               orderBy: { stopOrder: 'asc' },
               take: 1,
               include: {
-                place: { select: { id: true, name: true, lat: true, lng: true, address: true } },
+                place: {
+                  select: { id: true, name: true, lat: true, lng: true, address: true },
+                },
               },
             },
           },
@@ -52,10 +53,7 @@ export class ActivitiesService {
 
     if (!trip) throw new NotFoundException('Trip not found');
 
-    const anchor =
-      trip.startPlace ??
-      trip.tripDays[0]?.tripStops[0]?.place ??
-      null;
+    const anchor = trip.tripDays[0]?.tripStops[0]?.place ?? null;
 
     if (!anchor) {
       throw new BadRequestException(
@@ -298,9 +296,6 @@ export class ActivitiesService {
       activity.trip = await this.prisma.trip.findUnique({
         where: { id: activity.tripId },
         include: {
-          startPlace: {
-            select: { id: true, name: true, lat: true, lng: true, imageUrl: true },
-          },
           tripDays: {
             orderBy: { dayNumber: 'asc' },
             include: {
@@ -591,7 +586,6 @@ export class ActivitiesService {
         userId,
         title: `${source.title || 'Hanoi Trip'} (Cloned)`,
         numDays: source.numDays,
-        startPlaceId: source.startPlaceId,
         clonedFromId: source.id,
         tripDays: {
           create: source.tripDays.map((day) => ({

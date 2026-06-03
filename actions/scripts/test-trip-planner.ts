@@ -47,9 +47,6 @@ interface Place {
   openDays: number[];       // [0=Sun, 1=Mon, ..., 6=Sat]
   openTimeStart: number;    // minutes from 00:00 (e.g., 480 = 08:00)
   openTimeEnd: number;      // minutes from 00:00 (e.g., 1020 = 17:00)
-  hasBreak: boolean;
-  breakStart: number;
-  breakEnd: number;
   visitDurationMin: number;
 }
 
@@ -473,10 +470,7 @@ function greedyNearestNeighborWithTimeWindow(
       if (!place.alwaysOpen && arriveMin < place.openTimeStart) {
         waitMin = place.openTimeStart - arriveMin;
       }
-      // Wait through lunch break
-      if (place.hasBreak && arriveMin >= place.breakStart && arriveMin < place.breakEnd) {
-        waitMin = place.breakEnd - arriveMin;
-      }
+
 
       // Check if visit would exceed end of day
       const departMin = arriveMin + waitMin + place.visitDurationMin;
@@ -635,7 +629,6 @@ async function runTripPlanner(input: TripInput) {
   const dbPlaces = await prisma.$queryRawUnsafe<any[]>(`
     SELECT id, name, category, district, lat, lng,
            always_open, open_days, open_time_start, open_time_end,
-           has_break, break_start, break_end,
            visit_duration_min
     FROM places
     WHERE name = ANY($1)
@@ -652,9 +645,6 @@ async function runTripPlanner(input: TripInput) {
     openDays: p.open_days,
     openTimeStart: dbTimeToMin(p.open_time_start),
     openTimeEnd: dbTimeToMin(p.open_time_end),
-    hasBreak: p.has_break,
-    breakStart: dbTimeToMin(p.break_start),
-    breakEnd: dbTimeToMin(p.break_end),
     visitDurationMin: input.visitDurationOverrides?.[p.name] ?? p.visit_duration_min ?? 60,
   }));
 

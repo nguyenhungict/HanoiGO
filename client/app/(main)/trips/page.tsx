@@ -143,10 +143,9 @@ export default function TripsPage() {
       const payload = {
         title: tripTitle || `My Trip to Hanoi - ${config.travelDate}`,
         numDays: config.numDays,
-        startPlaceId: itinerary.days[0]?.stops[0]?.placeId || null,
         days: itinerary.days.map((day) => ({
           dayNumber: day.dayNumber,
-          district: day.stops[0]?.district || day.stops.find(s => s.district)?.district || 'Hanoi',
+          district: day.district || day.stops[0]?.district || 'Hanoi',
           stops: day.stops.map((stop) => ({
             placeId: stop.placeId,
             stopOrder: stop.order,

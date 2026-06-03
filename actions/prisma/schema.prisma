@@ -89,9 +89,6 @@ model Place {
   openDays         Int[]                   @map("open_days")
   openTimeStart    DateTime?               @map("open_time_start") @db.Time(6)
   openTimeEnd      DateTime?               @map("open_time_end") @db.Time(6)
-  hasBreak         Boolean                 @default(false) @map("has_break")
-  breakStart       DateTime?               @map("break_start") @db.Time(6)
-  breakEnd         DateTime?               @map("break_end") @db.Time(6)
   visitDurationMin Int?                    @map("visit_duration_min")
   imageUrl         String?                 @map("image_url")
   tags             String[]
@@ -99,7 +96,6 @@ model Place {
   activities       Activity[]
   gallery          PlaceGallery[]
   tripStops        TripStop[]
-  trips            Trip[]                  @relation("StartPlace")
 
   @@index([location], type: Gist)
   @@map("places")
@@ -121,18 +117,15 @@ model Trip {
   userId       String     @map("user_id") @db.Uuid
   title        String?
   numDays      Int        @map("num_days")
-  startPlaceId String?    @map("start_place_id") @db.Uuid
   createdAt    DateTime   @default(now()) @map("created_at") @db.Timestamptz(6)
   clonedFromId String?    @map("cloned_from_id") @db.Uuid
   activities   Activity[]
   tripDays     TripDay[]
   clonedFrom   Trip?      @relation("TripClones", fields: [clonedFromId], references: [id])
   clones       Trip[]     @relation("TripClones")
-  startPlace   Place?     @relation("StartPlace", fields: [startPlaceId], references: [id])
   user         User       @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@index([userId])
-  @@index([startPlaceId])
   @@index([clonedFromId])
   @@map("trips")
 }

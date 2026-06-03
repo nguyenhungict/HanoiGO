@@ -1,0 +1,414 @@
+{
+  "A1": {
+    "description": "Tourist nhanh – 1 ngày, 3 điểm, Hoàn Kiếm, mở 24/7",
+    "numDays": 1,
+    "travelDate": "2026-06-07",
+    "startTime": 480,
+    "endTime": 1260,
+    "startLat": 21.0285,
+    "startLng": 105.8542,
+    "placeIds": [
+      "b3c54160-ed52-40cf-8dcb-b7f547f595f1",
+      "c7855f34-ac20-4123-91e9-edcb1f53c9eb",
+      "f1c1ad60-902b-447b-ab56-35d439fa45f3"
+    ],
+    "placeLabels": [
+      "Ca Tru Thang Long (Hoàn Kiếm)",
+      "Cau The Huc (Hoàn Kiếm)",
+      "Cha Ca La Vong Street (Hoàn Kiếm)"
+    ],
+    "notes": "alwaysOpen in Hoàn Kiếm (found 18)"
+  },
+  "A2": {
+    "description": "Tourist trung – 2 ngày, 6 điểm, 2 cụm (Hoàn Kiếm + Ba Đình)",
+    "numDays": 2,
+    "travelDate": "2026-06-08",
+    "startTime": 480,
+    "endTime": 1260,
+    "startLat": 21.0285,
+    "startLng": 105.8542,
+    "placeIds": [
+      "eec5b702-9ca2-4ab8-8b8e-412bcc17456f",
+      "df6ca545-583b-48ad-a019-2b55a81419a8",
+      "dca43353-ff5d-4496-b6c2-14504466a9c5",
+      "0a4e3136-8066-418a-b1b7-0538cd8fd8b7",
+      "e7cd05dc-6fa3-4403-adf0-9243628773de",
+      "66a92819-bc25-4d94-8e59-d3af49315db4"
+    ],
+    "placeLabels": [
+      "Aeon Mall Long Bien (Hoàn Kiếm)",
+      "Bach Ma Temple (Hoàn Kiếm)",
+      "Banh Mi 25 (Hoàn Kiếm)",
+      "B52 Victory Museum (Ba Đình)",
+      "Ba Dinh Square (Ba Đình)",
+      "Dien Huu Pagoda (Ba Đình)"
+    ],
+    "notes": "Top-2 districts by count"
+  },
+  "A3": {
+    "description": "Tourist dài – 3 ngày, 10 điểm, phân tán đều",
+    "numDays": 3,
+    "travelDate": "2026-06-09",
+    "startTime": 480,
+    "endTime": 1260,
+    "startLat": 21.0285,
+    "startLng": 105.8542,
+    "placeIds": [
+      "eec5b702-9ca2-4ab8-8b8e-412bcc17456f",
+      "0a4e3136-8066-418a-b1b7-0538cd8fd8b7",
+      "e7cd05dc-6fa3-4403-adf0-9243628773de",
+      "df6ca545-583b-48ad-a019-2b55a81419a8",
+      "dca43353-ff5d-4496-b6c2-14504466a9c5",
+      "989200a1-e366-4f41-a298-16e0d27d51a5",
+      "23d08043-f24b-441f-b25d-28614bcc2c88",
+      "970e37b7-4ed4-43e3-b280-e29cb2dc9f1e",
+      "b3c54160-ed52-40cf-8dcb-b7f547f595f1",
+      "63b7b9b4-2797-4d7b-99f5-9e61419b85c5"
+    ],
+    "placeLabels": [
+      "Aeon Mall Long Bien (Hoàn Kiếm)",
+      "B52 Victory Museum (Ba Đình)",
+      "Ba Dinh Square (Ba Đình)",
+      "Bach Ma Temple (Hoàn Kiếm)",
+      "Banh Mi 25 (Hoàn Kiếm)",
+      "Bat Trang Ceramic Village (Gia Lâm)",
+      "Bun Cha Dac Kim (Hoàn Kiếm)",
+      "Bun Cha Huong Lien (Obama Bun Cha) (Đống Đa)",
+      "Ca Tru Thang Long (Hoàn Kiếm)",
+      "Cafe Pho Co (Hoàn Kiếm)"
+    ],
+    "notes": "Open on Monday, first 10"
+  },
+  "A4": {
+    "description": "Cuối tuần – 2 ngày, 5 điểm, travel date thứ Bảy",
+    "numDays": 2,
+    "travelDate": "2026-06-06",
+    "startTime": 480,
+    "endTime": 1260,
+    "startLat": 21.0285,
+    "startLng": 105.8542,
+    "placeIds": [
+      "eec5b702-9ca2-4ab8-8b8e-412bcc17456f",
+      "0a4e3136-8066-418a-b1b7-0538cd8fd8b7",
+      "e7cd05dc-6fa3-4403-adf0-9243628773de",
+      "df6ca545-583b-48ad-a019-2b55a81419a8",
+      "dca43353-ff5d-4496-b6c2-14504466a9c5"
+    ],
+    "placeLabels": [
+      "Aeon Mall Long Bien (Hoàn Kiếm)",
+      "B52 Victory Museum (Ba Đình)",
+      "Ba Dinh Square (Ba Đình)",
+      "Bach Ma Temple (Hoàn Kiếm)",
+      "Banh Mi 25 (Hoàn Kiếm)"
+    ],
+    "notes": "Open on Saturday"
+  },
+  "A5": {
+    "description": "Buổi sáng – 1 ngày, 4 điểm, 7:00–12:00",
+    "numDays": 1,
+    "travelDate": "2026-06-10",
+    "startTime": 420,
+    "endTime": 720,
+    "startLat": 21.0285,
+    "startLng": 105.8542,
+    "placeIds": [
+      "e7cd05dc-6fa3-4403-adf0-9243628773de",
+      "b3c54160-ed52-40cf-8dcb-b7f547f595f1",
+      "c7855f34-ac20-4123-91e9-edcb1f53c9eb",
+      "f1c1ad60-902b-447b-ab56-35d439fa45f3"
+    ],
+    "placeLabels": [
+      "Ba Dinh Square (Ba Đình)",
+      "Ca Tru Thang Long (Hoàn Kiếm)",
+      "Cau The Huc (Hoàn Kiếm)",
+      "Cha Ca La Vong Street (Hoàn Kiếm)"
+    ],
+    "notes": "Open before 7am and after 12pm (found 36)"
+  },
+  "B1": {
+    "description": "Đóng cửa hôm đó – 1 ngày (Chủ Nhật), 5 điểm, 3/5 đóng cửa",
+    "numDays": 1,
+    "travelDate": "2026-06-07",
+    "startTime": 480,
+    "endTime": 1260,
+    "startLat": 21.0285,
+    "startLng": 105.8542,
+    "placeIds": [
+      "97c233fb-4052-45ec-99cd-14a784219a74",
+      "e48be343-c78b-4ee8-b1f3-65402731c627",
+      "2a20952f-3449-495f-8939-c8663c9f15af",
+      "eec5b702-9ca2-4ab8-8b8e-412bcc17456f",
+      "0a4e3136-8066-418a-b1b7-0538cd8fd8b7"
+    ],
+    "placeLabels": [
+      "GOm Show (Hoàn Kiếm)",
+      "Heritage Space (Cầu Giấy)",
+      "Salon Natasha (Hoàn Kiếm)",
+      "Aeon Mall Long Bien (Hoàn Kiếm)",
+      "B52 Victory Museum (Ba Đình)"
+    ],
+    "notes": "3 closed Sunday + 2 open Sunday (closed pool: 4)"
+  },
+  "B2": {
+    "description": "Lịch chật – 1 ngày, 5 điểm, total visitDuration=450min > window 420min → buộc drop ≥1",
+    "numDays": 1,
+    "travelDate": "2026-06-10",
+    "startTime": 480,
+    "endTime": 900,
+    "startLat": 21.0285,
+    "startLng": 105.8542,
+    "placeIds": [
+      "0a4e3136-8066-418a-b1b7-0538cd8fd8b7",
+      "b3c54160-ed52-40cf-8dcb-b7f547f595f1",
+      "339aef78-361f-47be-ad6f-ba2106deec57",
+      "f8b605fe-237a-439f-a644-2b584b7b2d7f",
+      "97c233fb-4052-45ec-99cd-14a784219a74"
+    ],
+    "placeLabels": [
+      "B52 Victory Museum (Ba Đình)",
+      "Ca Tru Thang Long (Hoàn Kiếm)",
+      "Dong Kinh Nghia Thuc Square (Hoàn Kiếm)",
+      "Fine Arts Museum (Bao Tang My Thuat) (Ba Đình)",
+      "GOm Show (Hoàn Kiếm)"
+    ],
+    "notes": "Total visitDuration=450 min vs 420 min window. Ratio=107% (>100% → must drop)"
+  },
+  "B3": {
+    "description": "Outlier địa lý – 2 ngày, 4 Hoàn Kiếm + 1 Gia Lâm/Bát Tràng",
+    "numDays": 2,
+    "travelDate": "2026-06-09",
+    "startTime": 480,
+    "endTime": 1260,
+    "startLat": 21.0285,
+    "startLng": 105.8542,
+    "placeIds": [
+      "eec5b702-9ca2-4ab8-8b8e-412bcc17456f",
+      "df6ca545-583b-48ad-a019-2b55a81419a8",
+      "dca43353-ff5d-4496-b6c2-14504466a9c5",
+      "23d08043-f24b-441f-b25d-28614bcc2c88",
+      "989200a1-e366-4f41-a298-16e0d27d51a5"
+    ],
+    "placeLabels": [
+      "Aeon Mall Long Bien (Hoàn Kiếm)",
+      "Bach Ma Temple (Hoàn Kiếm)",
+      "Banh Mi 25 (Hoàn Kiếm)",
+      "Bun Cha Dac Kim (Hoàn Kiếm)",
+      "Bat Trang Ceramic Village (Gia Lâm)"
+    ],
+    "notes": "Hoàn Kiếm pool: 52, Gia Lâm pool: 1"
+  },
+  "B4": {
+    "description": "Mở buổi tối – 1 ngày, 4 điểm, tất cả mở từ 17:00+, startTime 8:00",
+    "numDays": 1,
+    "travelDate": "2026-06-10",
+    "startTime": 480,
+    "endTime": 1320,
+    "startLat": 21.0285,
+    "startLng": 105.8542,
+    "placeIds": [
+      "eec5b702-9ca2-4ab8-8b8e-412bcc17456f",
+      "29edf0b6-1c8b-41d9-a47c-e4bce8247e0e",
+      "e48be343-c78b-4ee8-b1f3-65402731c627",
+      "c7e294c4-4507-4db2-935d-5d5a3821153c"
+    ],
+    "placeLabels": [
+      "Aeon Mall Long Bien (Hoàn Kiếm)",
+      "Hanoi Police Museum (Hoàn Kiếm)",
+      "Heritage Space (Cầu Giấy)",
+      "Indochina Plaza Hanoi (Cầu Giấy)"
+    ],
+    "notes": "All openTimeStart >= 17:00 (pool: 13). Tests avgWaitTime metric — algorithm must schedule ~9h wait before venues open."
+  },
+  "B5": {
+    "description": "Mở muộn lẫn lộn – 1 ngày, 3 mở 24/7 + 2 mở từ 17:00",
+    "numDays": 1,
+    "travelDate": "2026-06-10",
+    "startTime": 480,
+    "endTime": 1260,
+    "startLat": 21.0285,
+    "startLng": 105.8542,
+    "placeIds": [
+      "e7cd05dc-6fa3-4403-adf0-9243628773de",
+      "b3c54160-ed52-40cf-8dcb-b7f547f595f1",
+      "c7855f34-ac20-4123-91e9-edcb1f53c9eb",
+      "eec5b702-9ca2-4ab8-8b8e-412bcc17456f",
+      "29edf0b6-1c8b-41d9-a47c-e4bce8247e0e"
+    ],
+    "placeLabels": [
+      "Ba Dinh Square (Ba Đình)",
+      "Ca Tru Thang Long (Hoàn Kiếm)",
+      "Cau The Huc (Hoàn Kiếm)",
+      "Aeon Mall Long Bien (Hoàn Kiếm)",
+      "Hanoi Police Museum (Hoàn Kiếm)"
+    ],
+    "notes": "openLate pool: 13"
+  },
+  "B6": {
+    "description": "Vượt quá khả năng – 2 ngày, 15 điểm, thuật toán phải drop ≥5",
+    "numDays": 2,
+    "travelDate": "2026-06-10",
+    "startTime": 480,
+    "endTime": 1260,
+    "startLat": 21.0285,
+    "startLng": 105.8542,
+    "placeIds": [
+      "eec5b702-9ca2-4ab8-8b8e-412bcc17456f",
+      "0a4e3136-8066-418a-b1b7-0538cd8fd8b7",
+      "e7cd05dc-6fa3-4403-adf0-9243628773de",
+      "df6ca545-583b-48ad-a019-2b55a81419a8",
+      "dca43353-ff5d-4496-b6c2-14504466a9c5",
+      "989200a1-e366-4f41-a298-16e0d27d51a5",
+      "23d08043-f24b-441f-b25d-28614bcc2c88",
+      "970e37b7-4ed4-43e3-b280-e29cb2dc9f1e",
+      "b3c54160-ed52-40cf-8dcb-b7f547f595f1",
+      "63b7b9b4-2797-4d7b-99f5-9e61419b85c5",
+      "c7855f34-ac20-4123-91e9-edcb1f53c9eb",
+      "f1c1ad60-902b-447b-ab56-35d439fa45f3",
+      "951b56d9-522b-4a73-a098-314063bbe71a",
+      "b24ae9c9-36ab-485f-8b2a-f2ef14975e70",
+      "66a92819-bc25-4d94-8e59-d3af49315db4"
+    ],
+    "placeLabels": [
+      "Aeon Mall Long Bien (Hoàn Kiếm)",
+      "B52 Victory Museum (Ba Đình)",
+      "Ba Dinh Square (Ba Đình)",
+      "Bach Ma Temple (Hoàn Kiếm)",
+      "Banh Mi 25 (Hoàn Kiếm)",
+      "Bat Trang Ceramic Village (Gia Lâm)",
+      "Bun Cha Dac Kim (Hoàn Kiếm)",
+      "Bun Cha Huong Lien (Obama Bun Cha) (Đống Đa)",
+      "Ca Tru Thang Long (Hoàn Kiếm)",
+      "Cafe Pho Co (Hoàn Kiếm)",
+      "Cau The Huc (Hoàn Kiếm)",
+      "Cha Ca La Vong Street (Hoàn Kiếm)",
+      "Cha Ca Thang Long (Hoàn Kiếm)",
+      "Chua Tran Quoc (Tây Hồ)",
+      "Dien Huu Pagoda (Ba Đình)"
+    ],
+    "notes": "Open on Wednesday, 15 places for 2-day window"
+  },
+  "B7": {
+    "description": "Thứ Hai – 2 ngày, 7 điểm, 4/7 đóng cửa thứ Hai",
+    "numDays": 2,
+    "travelDate": "2026-06-08",
+    "startTime": 480,
+    "endTime": 1260,
+    "startLat": 21.0285,
+    "startLng": 105.8542,
+    "placeIds": [
+      "97c233fb-4052-45ec-99cd-14a784219a74",
+      "acbdf7a4-e437-4d28-bf8f-9432358ca452",
+      "00d39414-9b88-4ccf-bab5-55dc27d7335c",
+      "113cdc30-a533-43f5-bac5-aada01d7c8c8",
+      "eec5b702-9ca2-4ab8-8b8e-412bcc17456f",
+      "0a4e3136-8066-418a-b1b7-0538cd8fd8b7",
+      "e7cd05dc-6fa3-4403-adf0-9243628773de"
+    ],
+    "placeLabels": [
+      "GOm Show (Hoàn Kiếm)",
+      "Ho Chi Minh Mausoleum (Ba Đình)",
+      "Ho Chi Minh Museum (Ba Đình)",
+      "Nguyen Van Huyen Museum (Cầu Giấy)",
+      "Aeon Mall Long Bien (Hoàn Kiếm)",
+      "B52 Victory Museum (Ba Đình)",
+      "Ba Dinh Square (Ba Đình)"
+    ],
+    "notes": "Closed Monday pool: 7, open Monday: 86"
+  },
+  "B8": {
+    "description": "Goong fail – 2 ngày, 12 điểm (>10 buộc Haversine fallback)",
+    "numDays": 2,
+    "travelDate": "2026-06-10",
+    "startTime": 480,
+    "endTime": 1260,
+    "startLat": 21.0285,
+    "startLng": 105.8542,
+    "placeIds": [
+      "eec5b702-9ca2-4ab8-8b8e-412bcc17456f",
+      "0a4e3136-8066-418a-b1b7-0538cd8fd8b7",
+      "e7cd05dc-6fa3-4403-adf0-9243628773de",
+      "df6ca545-583b-48ad-a019-2b55a81419a8",
+      "dca43353-ff5d-4496-b6c2-14504466a9c5",
+      "989200a1-e366-4f41-a298-16e0d27d51a5",
+      "23d08043-f24b-441f-b25d-28614bcc2c88",
+      "970e37b7-4ed4-43e3-b280-e29cb2dc9f1e",
+      "b3c54160-ed52-40cf-8dcb-b7f547f595f1",
+      "63b7b9b4-2797-4d7b-99f5-9e61419b85c5",
+      "c7855f34-ac20-4123-91e9-edcb1f53c9eb",
+      "f1c1ad60-902b-447b-ab56-35d439fa45f3"
+    ],
+    "placeLabels": [
+      "Aeon Mall Long Bien (Hoàn Kiếm)",
+      "B52 Victory Museum (Ba Đình)",
+      "Ba Dinh Square (Ba Đình)",
+      "Bach Ma Temple (Hoàn Kiếm)",
+      "Banh Mi 25 (Hoàn Kiếm)",
+      "Bat Trang Ceramic Village (Gia Lâm)",
+      "Bun Cha Dac Kim (Hoàn Kiếm)",
+      "Bun Cha Huong Lien (Obama Bun Cha) (Đống Đa)",
+      "Ca Tru Thang Long (Hoàn Kiếm)",
+      "Cafe Pho Co (Hoàn Kiếm)",
+      "Cau The Huc (Hoàn Kiếm)",
+      "Cha Ca La Vong Street (Hoàn Kiếm)"
+    ],
+    "notes": "Goong matrix limited to 10 waypoints, 12 places forces Haversine"
+  },
+  "C1": {
+    "description": "2-opt – 1 ngày, 5 điểm Hoàn Kiếm 24/7 (đầy cap, route 5 stop)",
+    "numDays": 1,
+    "travelDate": "2026-06-10",
+    "startTime": 480,
+    "endTime": 1260,
+    "startLat": 21.0285,
+    "startLng": 105.8542,
+    "placeIds": [
+      "b3c54160-ed52-40cf-8dcb-b7f547f595f1",
+      "c7855f34-ac20-4123-91e9-edcb1f53c9eb",
+      "f1c1ad60-902b-447b-ab56-35d439fa45f3",
+      "339aef78-361f-47be-ad6f-ba2106deec57",
+      "ec2e0a44-6215-40da-b3fb-8a601c7dde55"
+    ],
+    "placeLabels": [
+      "Ca Tru Thang Long (Hoàn Kiếm)",
+      "Cau The Huc (Hoàn Kiếm)",
+      "Cha Ca La Vong Street (Hoàn Kiếm)",
+      "Dong Kinh Nghia Thuc Square (Hoàn Kiếm)",
+      "Hang Bac Street (Hoàn Kiếm)"
+    ],
+    "notes": "Full 5-stop single-day route (= MAX_PLACES_PER_DAY). 2-opt's largest possible working set."
+  },
+  "C2": {
+    "description": "2-opt – 2 ngày, 10 điểm Hoàn Kiếm 24/7 (2 ngày đầy cap 5+5)",
+    "numDays": 2,
+    "travelDate": "2026-06-10",
+    "startTime": 480,
+    "endTime": 1260,
+    "startLat": 21.0285,
+    "startLng": 105.8542,
+    "placeIds": [
+      "b3c54160-ed52-40cf-8dcb-b7f547f595f1",
+      "c7855f34-ac20-4123-91e9-edcb1f53c9eb",
+      "f1c1ad60-902b-447b-ab56-35d439fa45f3",
+      "339aef78-361f-47be-ad6f-ba2106deec57",
+      "ec2e0a44-6215-40da-b3fb-8a601c7dde55",
+      "19376ba4-e739-4c07-932c-f5075493c914",
+      "64211d5c-ead1-4245-a5f9-1229ff23a1c3",
+      "2c5cf07b-98b1-483a-9c14-2307b470127c",
+      "2035ffa7-1887-404b-abd8-99b5bd61f5da",
+      "f598960d-a5ac-4f85-ae4a-25f7acb22cf6"
+    ],
+    "placeLabels": [
+      "Ca Tru Thang Long (Hoàn Kiếm)",
+      "Cau The Huc (Hoàn Kiếm)",
+      "Cha Ca La Vong Street (Hoàn Kiếm)",
+      "Dong Kinh Nghia Thuc Square (Hoàn Kiếm)",
+      "Hang Bac Street (Hoàn Kiếm)",
+      "Hang Dau Street (Hoàn Kiếm)",
+      "Hang Gai Silk Street (Hoàn Kiếm)",
+      "Hang Ma Street (Hoàn Kiếm)",
+      "Hanoi Old Quarter Vietnam (Hoàn Kiếm)",
+      "Hanoi Opera House (Hoàn Kiếm)"
+    ],
+    "notes": "Two full 5-stop routes. 2-opt runs on both clusters. Tests 2-opt across multiple full days."
+  }
+}

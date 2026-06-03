@@ -10,9 +10,6 @@ export interface Place {
   openDays: number[];
   openTimeStart: number;
   openTimeEnd: number;
-  hasBreak: boolean;
-  breakStart: number;
-  breakEnd: number;
   visitDurationMin: number;
 }
 
@@ -30,6 +27,7 @@ export interface ScheduledStop {
 export interface DayItinerary {
   dayNumber: number;
   dayOfWeek: number;
+  district: string | null;
   stops: ScheduledStop[];
   totalTravelSec: number;
   totalWaitMin: number;
@@ -75,6 +73,7 @@ export interface ItineraryStopResponse {
 export interface ItineraryDayResponse {
   dayNumber: number;
   dayLabel: string;
+  district: string | null;
   color: string;
   stops: ItineraryStopResponse[];
   totalTravelMin: number;
@@ -115,8 +114,5 @@ export interface DbPlace {
   open_days: number[];
   open_time_start: Date | string | null;
   open_time_end: Date | string | null;
-  has_break: boolean;
-  break_start: Date | string | null;
-  break_end: Date | string | null;
   visit_duration_min: number;
 }

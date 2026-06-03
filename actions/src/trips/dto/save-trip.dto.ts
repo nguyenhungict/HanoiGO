@@ -66,10 +66,6 @@ export class SaveTripDto {
   @Min(1)
   numDays: number;
 
-  @IsUUID()
-  @IsOptional()
-  startPlaceId?: string;
-
   @IsArray()
   @ValidateNested({ each: true })
   @Type(() => SaveTripDayDto)

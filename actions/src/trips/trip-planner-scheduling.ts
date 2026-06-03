@@ -196,9 +196,6 @@ export function calculateVisitWindow(
 
   const blockedWindows: { start: number; end: number; isLunch?: boolean }[] =
     [];
-  if (place.hasBreak && place.breakEnd > place.breakStart) {
-    blockedWindows.push({ start: place.breakStart, end: place.breakEnd });
-  }
   if (lunchEnd > lunchStart) {
     blockedWindows.push({ start: lunchStart, end: lunchEnd, isLunch: true });
   }

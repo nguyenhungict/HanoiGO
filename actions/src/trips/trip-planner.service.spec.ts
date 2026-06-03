@@ -774,40 +774,4 @@ describe('TripPlannerService', () => {
     const [cArrH, cArrM] = routeC.arriveAt.split(':').map(Number);
     expect(cArrH * 60 + cArrM).toBeGreaterThanOrEqual(aDepH * 60 + aDepM);
   });
-
-  it('pushes visits that overlap a place-specific break until after the break', async () => {
-    const breakPlace = {
-      id: 'break-overlap',
-      name: 'Break Overlap Place',
-      category: 'MUSEUM',
-      district: 'Hoan Kiem',
-      lat: 21.0285,
-      lng: 105.8542,
-      image_url: null,
-      always_open: false,
-      open_days: [0, 1, 2, 3, 4, 5, 6],
-      open_time_start: '08:00:00',
-      open_time_end: '18:00:00',
-      has_break: true,
-      break_start: '11:00:00',
-      break_end: '13:00:00',
-      visit_duration_min: 90,
-    };
-    (prismaService.$queryRawUnsafe as jest.Mock).mockResolvedValueOnce([
-      breakPlace,
-    ]);
-
-    const result = await service.generateItinerary({
-      placeNames: ['Break Overlap Place'],
-      numDays: 1,
-      startTime: 630,
-      endTime: 1080,
-      travelDate: '2026-05-01T00:00:00.000Z',
-      visitDurationMin: 90,
-      lunchBreakStart: 720,
-      lunchBreakEnd: 720,
-    });
-
-    expect(result.days[0].stops[0].departAt).toBe('14:30');
-  });
 });

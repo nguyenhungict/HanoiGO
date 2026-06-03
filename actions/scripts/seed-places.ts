@@ -40,9 +40,6 @@ interface ParsedHours {
   openDays: number[];
   openTimeStart: string | null; // HH:MM
   openTimeEnd: string | null;   // HH:MM
-  hasBreak: boolean;
-  breakStart: string | null;
-  breakEnd: string | null;
 }
 
 // ── Parse time string ────────────────────────────────────────────────────────
@@ -70,9 +67,6 @@ function parseCrawledHours(crawledHours: Record<string, string> | string[]): Par
       openDays: [0, 1, 2, 3, 4, 5, 6],
       openTimeStart: '00:00',
       openTimeEnd: '23:59',
-      hasBreak: false,
-      breakStart: null,
-      breakEnd: null,
     };
   }
 
@@ -107,9 +101,6 @@ function parseCrawledHours(crawledHours: Record<string, string> | string[]): Par
       openDays: [],
       openTimeStart: null,
       openTimeEnd: null,
-      hasBreak: false,
-      breakStart: null,
-      breakEnd: null,
     };
   }
 
@@ -125,9 +116,6 @@ function parseCrawledHours(crawledHours: Record<string, string> | string[]): Par
       openDays: [0, 1, 2, 3, 4, 5, 6],
       openTimeStart: '00:00',
       openTimeEnd: '23:59',
-      hasBreak: false,
-      breakStart: null,
-      breakEnd: null,
     };
   }
 
@@ -154,9 +142,6 @@ function parseCrawledHours(crawledHours: Record<string, string> | string[]): Par
     openDays: openDays.sort((a, b) => a - b),
     openTimeStart,
     openTimeEnd,
-    hasBreak: false,
-    breakStart: null,
-    breakEnd: null,
   };
 }
 
@@ -252,6 +237,26 @@ async function main() {
     // Parse opening hours
     const hours = parseCrawledHours(place.crawled_hours);
     const category = inferCategory(typeof place.tags === 'string' ? place.tags : null);
+
+    // Skip food & drink places
+    const tagsArray = typeof place.tags === 'string' ? place.tags.split(' • ') : [];
+    const nameL = place.name.toLowerCase();
+    const catL = category.toLowerCase();
+    const tagsL = tagsArray.map((t: string) => t.toLowerCase());
+    const FOOD_DRINK_KEYWORDS = [
+      'food', 'dining', 'cafe', 'coffee', 'bar', 'dessert', 'restaurant', 'bakery', 'drink', 'beverage', 'eating', 'bún chả', 'chả cá', 'bánh mì', 'phở', 'kem tràng tiền', 'cà phê'
+    ];
+    const isFoodDrink = FOOD_DRINK_KEYWORDS.some(kw => 
+      nameL.includes(kw) || 
+      catL.includes(kw) || 
+      tagsL.some(t => t.includes(kw))
+    );
+    if (isFoodDrink) {
+      console.log(`  ⏭️  Skipping "${place.name}" — food/drink related`);
+      skipped++;
+      continue;
+    }
+
     const district = inferDistrict(place.latitude, place.longitude);
     const visitDuration = inferVisitDuration(category);
     // Build the WKT for PostGIS
@@ -264,23 +269,18 @@ async function main() {
           id, name, category, district,
           lat, lng, location,
           always_open, open_days, open_time_start, open_time_end,
-          has_break, break_start, break_end,
           visit_duration_min, tags, created_at
         ) VALUES (
           gen_random_uuid(), $1, $2, $3,
           $4, $5, ST_GeomFromEWKT($6),
           $7, $8, $9::time, $10::time,
-          $11, $12::time, $13::time,
-          $14, $15, now()
+          $11, $12, now()
         )
         ON CONFLICT (name) DO UPDATE SET
           always_open = EXCLUDED.always_open,
           open_days = EXCLUDED.open_days,
           open_time_start = EXCLUDED.open_time_start,
           open_time_end = EXCLUDED.open_time_end,
-          has_break = EXCLUDED.has_break,
-          break_start = EXCLUDED.break_start,
-          break_end = EXCLUDED.break_end,
           visit_duration_min = EXCLUDED.visit_duration_min
         `,
         place.name,                                     // $1
@@ -293,11 +293,8 @@ async function main() {
         hours.openDays,                                 // $8
         hours.openTimeStart,                            // $9
         hours.openTimeEnd,                              // $10
-        hours.hasBreak,                                 // $11
-        hours.breakStart,                               // $12
-        hours.breakEnd,                                 // $13
-        visitDuration,                                  // $14
-        typeof place.tags === 'string' ? place.tags.split(' • ') : [],  // $15
+        visitDuration,                                  // $11
+        typeof place.tags === 'string' ? place.tags.split(' • ') : [],  // $12
       );
 
       const dayNames = ['CN', 'T2', 'T3', 'T4', 'T5', 'T6', 'T7'];

@@ -69,14 +69,12 @@ async function sync() {
           id, name, description_en, category, district, address,
           lat, lng, location,
           always_open, open_days, open_time_start, open_time_end,
-          has_break, break_start, break_end,
           visit_duration_min, image_url, tags, created_at
         ) VALUES (
           $1::uuid, $2, $3, $4, $5, $6,
           $7, $8, ST_GeomFromEWKT($9),
           $10, $11, $12::time, $13::time,
-          $14, $15::time, $16::time,
-          $17, $18, $19, $20
+          $14, $15, $16, $17
         )
         `,
         place.id,                                         // $1
@@ -92,13 +90,10 @@ async function sync() {
         place.openDays,                                   // $11
         formatTime(place.openTimeStart),                  // $12
         formatTime(place.openTimeEnd),                    // $13
-        place.hasBreak,                                   // $14
-        formatTime(place.breakStart),                     // $15
-        formatTime(place.breakEnd),                       // $16
-        place.visitDurationMin,                           // $17
-        place.imageUrl,                                   // $18
-        place.tags,                                       // $19
-        place.createdAt,                                  // $20
+        place.visitDurationMin,                           // $14
+        place.imageUrl,                                   // $15
+        place.tags,                                       // $16
+        place.createdAt,                                  // $17
       );
       insertedPlaces++;
     }
