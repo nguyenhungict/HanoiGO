@@ -51,7 +51,6 @@ const getActivityIcon = (scheduledAtStr: string, category: string) => {
   else if (category === 'Arts & Culture') iconName = 'theater_comedy';
   else if (category === 'Heritage & History') iconName = 'history_edu';
   else if (category === 'Spiritual') iconName = 'temple_buddhist';
-  else if (category === 'Eat & Shop') iconName = 'restaurant';
   else if (category === 'Sightseeing') iconName = 'photo_camera';
 
   return L.divIcon({

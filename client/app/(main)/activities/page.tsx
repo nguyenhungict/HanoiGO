@@ -22,7 +22,6 @@ const CATEGORIES = [
   { id: 'Arts & Culture',      name: 'Culture',            icon: 'theater_comedy' },
   { id: 'Heritage & History',  name: 'History',            icon: 'history_edu' },
   { id: 'Spiritual',           name: 'Spiritual',          icon: 'temple_buddhist' },
-  { id: 'Eat & Shop',          name: 'Food & Shop',        icon: 'restaurant' },
   { id: 'Sightseeing',         name: 'Sightseeing',        icon: 'photo_camera' },
 ];
 

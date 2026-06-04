@@ -30,7 +30,6 @@ const CATEGORIES = [
   { id: 'art', name: 'Arts & Culture', icon: 'theater_comedy' },
   { id: 'heritage', name: 'Heritage & History', icon: 'history_edu' },
   { id: 'spiritual', name: 'Spiritual', icon: 'temple_buddhist' },
-  { id: 'eat', name: 'Eat & Shop', icon: 'restaurant' },
   { id: 'sightseeing', name: 'Sightseeing', icon: 'photo_camera' },
 ];
 
@@ -71,7 +70,6 @@ export default function DiscoveryPage() {
         if (selectedCategory === 'spiritual') return cat.includes('spiritual') || cat.includes('temple');
         if (selectedCategory === 'nature') return cat.includes('nature') || cat.includes('outdoor');
         if (selectedCategory === 'art') return cat.includes('art') || cat.includes('museum') || cat.includes('theater');
-        if (selectedCategory === 'eat') return cat.includes('eat') || cat.includes('shop') || cat.includes('food');
         if (selectedCategory === 'sightseeing') return cat.includes('sightseeing') || cat.includes('tourist') || cat.includes('attraction');
         return cat.includes(selectedCategory);
       });

@@ -27,7 +27,6 @@ const CATEGORY_CONFIG: Record<string, { icon: string; label: string; color: stri
   'Arts & Culture':      { icon: 'museum',           label: 'Arts & Culture',     color: '#3F51B5' },
   'Heritage & History':  { icon: 'account_balance',  label: 'Heritage & History', color: '#607D8B' },
   'Spiritual':           { icon: 'temple_buddhist',  label: 'Spiritual',          color: '#FF9800' },
-  'Eat & Shop':          { icon: 'restaurant',       label: 'Eat & Shop',         color: '#F44336' },
   'Sightseeing':         { icon: 'location_on',      label: 'Sightseeing',        color: '#0288D1' },
 };
 

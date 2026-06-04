@@ -183,7 +183,7 @@ TASK: Analyze the user message + full conversation, then return EXACTLY this JSO
     "lunchBreakEnd":   <24h integer | null>,
     "visitDuration":   <minutes integer 15-120 | null>,
     "districts":       <string[] | []>,
-    "categories":      <string[] from EXACTLY these values: ["Heritage & History","Arts & Culture","Sightseeing","Eat & Shop","Nature & Outdoors","Spiritual"] | []>
+    "categories":      <string[] from EXACTLY these values: ["Heritage & History","Arts & Culture","Sightseeing","Nature & Outdoors","Spiritual"] | []>
   }
 }
 
@@ -208,7 +208,7 @@ INTENT RULES
       • numDays    → "Bạn muốn đi bao nhiêu ngày?"
       • travelDate → "Bạn dự kiến đi vào ngày nào?"
       • categories → "Bạn thích trải nghiệm loại hình nào?
-                      (Heritage & History / Arts & Culture / Sightseeing / Eat & Shop /
+                      (Heritage & History / Arts & Culture / Sightseeing /
                        Nature & Outdoors / Spiritual)"
     OPTIONAL fields — ask only if the user hasn't mentioned them AND it feels
     natural to ask in one go (don't spam):

@@ -25,7 +25,6 @@ const CATEGORY_META: Record<string, { icon: string; label: string }> = {
   'Arts & Culture': { icon: 'theater_comedy', label: 'Culture' },
   'Heritage & History': { icon: 'history_edu', label: 'History' },
   'Spiritual': { icon: 'temple_buddhist', label: 'Spiritual' },
-  'Eat & Shop': { icon: 'restaurant', label: 'Eat & Shop' },
   'Sightseeing': { icon: 'photo_camera', label: 'Sightseeing' },
 };
 
@@ -489,7 +488,6 @@ export const CreateActivityDialog: React.FC<CreateActivityDialogProps> = ({ onCl
                   { id: 'Arts & Culture',      name: 'Culture',    icon: 'theater_comedy' },
                   { id: 'Heritage & History',  name: 'History',    icon: 'history_edu' },
                   { id: 'Spiritual',           name: 'Spiritual',  icon: 'temple_buddhist' },
-                  { id: 'Eat & Shop',          name: 'Eat & Shop', icon: 'restaurant' },
                   { id: 'Sightseeing',         name: 'Sightseeing',icon: 'photo_camera' },
                 ].map(cat => (
                   <button

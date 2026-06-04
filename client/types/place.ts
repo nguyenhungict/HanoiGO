@@ -21,6 +21,5 @@ export const PLACE_CATEGORIES = [
   'Arts & Culture',
   'Heritage & History',
   'Spiritual',
-  'Eat & Shop',
   'Sightseeing'
 ];

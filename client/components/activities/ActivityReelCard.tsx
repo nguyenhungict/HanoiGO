@@ -18,7 +18,6 @@ const CATEGORY_CONFIG: Record<string, { icon: string; label: string; bg: string;
   'Arts & Culture':     { icon: 'museum',          label: 'Culture',     bg: '#3F51B51A', text: '#3F51B5' },
   'Heritage & History': { icon: 'account_balance', label: 'Heritage',    bg: '#607D8B1A', text: '#607D8B' },
   'Spiritual':          { icon: 'temple_buddhist', label: 'Spiritual',   bg: '#FF98001A', text: '#FF9800' },
-  'Eat & Shop':         { icon: 'restaurant',      label: 'Food',        bg: '#F443361A', text: '#F44336' },
   'Sightseeing':        { icon: 'location_on',     label: 'Sightseeing', bg: '#0288D11A', text: '#0288D1' },
 };
 

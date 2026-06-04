@@ -15,6 +15,153 @@ const DAY_MAP: Record<string, number> = {
   Saturday: 6,
 };
 
+const NAME_REWRITES: Record<string, string> = {
+  "Hồ Trúc Bạch": "Truc Bach Lake",
+  "Thang Long Water Puppet": "Thang Long Water Puppet Theater",
+  "Ho Chi Minh’s Stilt House": "Ho Chi Minh's Stilt House",
+  "Đền Ngọc Sơn": "Ngoc Son Temple",
+  "Dien Huu Pagoda": "One Pillar Pagoda",
+  "Huu Tiep Lake and the Downed B-52": "Huu Tiep Lake (B52 Lake)",
+  "Temple of Literature & National University": "Temple of Literature",
+  "Lake of the Restored Sword (Hoan Kiem Lake)": "Hoan Kiem Lake",
+  "Nguyen Van Huyen Museum": "Vietnam Museum of Ethnology"
+};
+
+const SCHEDULE_OVERRIDES: Record<string, { alwaysOpen: boolean; openDays: number[]; openTimeStart: string; openTimeEnd: string }> = {
+  "Ho Chi Minh Mausoleum": {
+    alwaysOpen: false,
+    openDays: [0, 2, 3, 4, 6], // Tue, Wed, Thu, Sat, Sun
+    openTimeStart: "07:30",
+    openTimeEnd: "11:00"
+  },
+  "Ho Chi Minh's Stilt House": {
+    alwaysOpen: false,
+    openDays: [0, 2, 3, 4, 6], // Tue, Wed, Thu, Sat, Sun
+    openTimeStart: "07:30",
+    openTimeEnd: "16:00"
+  },
+  "Ho Chi Minh Museum": {
+    alwaysOpen: false,
+    openDays: [0, 2, 3, 4, 6], // Tue, Wed, Thu, Sat, Sun
+    openTimeStart: "08:00",
+    openTimeEnd: "16:30"
+  },
+  "One Pillar Pagoda": {
+    alwaysOpen: false,
+    openDays: [0, 1, 2, 3, 4, 5, 6],
+    openTimeStart: "07:00",
+    openTimeEnd: "18:00"
+  },
+  "Temple of Literature": {
+    alwaysOpen: false,
+    openDays: [0, 1, 2, 3, 4, 5, 6],
+    openTimeStart: "08:00",
+    openTimeEnd: "17:00"
+  },
+  "Hoa Lo Prison": {
+    alwaysOpen: false,
+    openDays: [0, 1, 2, 3, 4, 5, 6],
+    openTimeStart: "08:00",
+    openTimeEnd: "17:00"
+  },
+  "Imperial Citadel of Thang Long": {
+    alwaysOpen: false,
+    openDays: [0, 1, 2, 3, 4, 5, 6],
+    openTimeStart: "08:00",
+    openTimeEnd: "17:00"
+  },
+  "Vietnam Museum of Ethnology": {
+    alwaysOpen: false,
+    openDays: [0, 2, 3, 4, 5, 6], // Tue-Sun
+    openTimeStart: "08:30",
+    openTimeEnd: "17:30"
+  },
+  "Vietnam Military History Museum": {
+    alwaysOpen: false,
+    openDays: [0, 2, 3, 4, 6], // Tue, Wed, Thu, Sat, Sun
+    openTimeStart: "08:00",
+    openTimeEnd: "16:30"
+  },
+  "Hanoi Flag Tower": {
+    alwaysOpen: false,
+    openDays: [0, 2, 3, 4, 5, 6], // Tue-Sun
+    openTimeStart: "09:00",
+    openTimeEnd: "17:00"
+  },
+  "Vietnam Museum of Fine Arts": {
+    alwaysOpen: false,
+    openDays: [0, 1, 2, 3, 4, 5, 6],
+    openTimeStart: "08:30",
+    openTimeEnd: "17:00"
+  },
+  "Fine Arts Museum (Bao Tang My Thuat)": {
+    alwaysOpen: false,
+    openDays: [0, 1, 2, 3, 4, 5, 6],
+    openTimeStart: "08:30",
+    openTimeEnd: "17:00"
+  },
+  "Vietnamese Women's Museum": {
+    alwaysOpen: false,
+    openDays: [0, 1, 2, 3, 4, 5, 6],
+    openTimeStart: "08:00",
+    openTimeEnd: "17:00"
+  },
+  "Ngoc Son Temple": {
+    alwaysOpen: false,
+    openDays: [0, 1, 2, 3, 4, 5, 6],
+    openTimeStart: "07:00",
+    openTimeEnd: "18:00"
+  },
+  "Chua Tran Quoc": {
+    alwaysOpen: false,
+    openDays: [0, 1, 2, 3, 4, 5, 6],
+    openTimeStart: "07:30",
+    openTimeEnd: "18:00"
+  },
+  "Phu Tay Ho": {
+    alwaysOpen: false,
+    openDays: [0, 1, 2, 3, 4, 5, 6],
+    openTimeStart: "05:00",
+    openTimeEnd: "19:00"
+  },
+  "Ho Tay Water Park": {
+    alwaysOpen: false,
+    openDays: [0, 1, 2, 3, 4, 5, 6],
+    openTimeStart: "09:00",
+    openTimeEnd: "20:00"
+  },
+  "St. Joseph's Cathedral": {
+    alwaysOpen: false,
+    openDays: [0, 1, 2, 3, 4, 5, 6],
+    openTimeStart: "08:00",
+    openTimeEnd: "18:00"
+  },
+  "Vietnam National Tuong Theatre": {
+    alwaysOpen: false,
+    openDays: [0, 1, 2, 3, 4, 5, 6],
+    openTimeStart: "19:00",
+    openTimeEnd: "22:00"
+  },
+  "Ca Tru Thang Long": {
+    alwaysOpen: false,
+    openDays: [0, 5, 6],
+    openTimeStart: "19:30",
+    openTimeEnd: "21:00"
+  },
+  "Cau The Huc": {
+    alwaysOpen: false,
+    openDays: [0, 1, 2, 3, 4, 5, 6],
+    openTimeStart: "07:00",
+    openTimeEnd: "18:00"
+  },
+  "Ta Hien Street": {
+    alwaysOpen: true,
+    openDays: [0, 1, 2, 3, 4, 5, 6],
+    openTimeStart: "00:00",
+    openTimeEnd: "23:59"
+  }
+};
+
 // Hanoi bounding box (rough)
 const HANOI_BOUNDS = {
   latMin: 20.85,
@@ -194,7 +341,7 @@ function inferVisitDuration(category: string): number {
 
 // ── Main ─────────────────────────────────────────────────────────────────────
 async function main() {
-  console.log('🌱 Seeding places from crawled data...');
+  console.log('🌱 Seeding places from crawled data (with canonical name merges and overrides)...');
 
   // Read crawled JSON
   const jsonPath = path.resolve(__dirname, '../../../dataset/popular_hanoi_landmarks_hours.json');
@@ -234,13 +381,31 @@ async function main() {
       continue;
     }
 
+    // Normalize name quotes and rewrite duplicate entries to their canonical names
+    let normalizedName = place.name.replace(/’/g, "'").trim();
+    if (NAME_REWRITES[normalizedName]) {
+      normalizedName = NAME_REWRITES[normalizedName];
+    }
+
     // Parse opening hours
-    const hours = parseCrawledHours(place.crawled_hours);
+    let hours = parseCrawledHours(place.crawled_hours);
+
+    // Apply schedule overrides for verified locations
+    if (SCHEDULE_OVERRIDES[normalizedName]) {
+      const ov = SCHEDULE_OVERRIDES[normalizedName];
+      hours = {
+        alwaysOpen: ov.alwaysOpen,
+        openDays: ov.openDays,
+        openTimeStart: ov.openTimeStart,
+        openTimeEnd: ov.openTimeEnd,
+      };
+    }
+
     const category = inferCategory(typeof place.tags === 'string' ? place.tags : null);
 
     // Skip food & drink places
     const tagsArray = typeof place.tags === 'string' ? place.tags.split(' • ') : [];
-    const nameL = place.name.toLowerCase();
+    const nameL = normalizedName.toLowerCase();
     const catL = category.toLowerCase();
     const tagsL = tagsArray.map((t: string) => t.toLowerCase());
     const FOOD_DRINK_KEYWORDS = [
@@ -252,7 +417,7 @@ async function main() {
       tagsL.some(t => t.includes(kw))
     );
     if (isFoodDrink) {
-      console.log(`  ⏭️  Skipping "${place.name}" — food/drink related`);
+      console.log(`  ⏭️  Skipping "${normalizedName}" — food/drink related`);
       skipped++;
       continue;
     }
@@ -283,7 +448,7 @@ async function main() {
           open_time_end = EXCLUDED.open_time_end,
           visit_duration_min = EXCLUDED.visit_duration_min
         `,
-        place.name,                                     // $1
+        normalizedName,                                 // $1
         category,                                       // $2
         district,                                       // $3
         place.latitude,                                 // $4
@@ -300,16 +465,16 @@ async function main() {
       const dayNames = ['CN', 'T2', 'T3', 'T4', 'T5', 'T6', 'T7'];
       const openDaysStr = hours.openDays.map((d) => dayNames[d]).join(', ');
       console.log(
-        `  ✅ ${place.name} | ${category} | ${district} | ` +
+        `  ✅ ${normalizedName} | ${category} | ${district} | ` +
         `${hours.alwaysOpen ? '24/7' : `${hours.openTimeStart}-${hours.openTimeEnd} [${openDaysStr}]`}`
       );
       inserted++;
     } catch (err: any) {
-      console.error(`  ❌ Failed to insert "${place.name}":`, err.message);
+      console.error(`  ❌ Failed to insert "${normalizedName}":`, err.message);
     }
   }
 
-  console.log(`\n📊 Summary: ${inserted} inserted, ${skipped} skipped out of ${places.length} total`);
+  console.log(`\n📊 Summary: ${inserted} inserted/updated, ${skipped} skipped out of ${places.length} total`);
 }
 
 main()

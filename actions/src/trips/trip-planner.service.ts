@@ -142,7 +142,7 @@ export class TripPlannerService {
 
         if (!window) {
           removedIdx = i;
-          dropped.push({ place, reason: `${dropReason} (${place.name})` });
+          dropped.push({ place, reason: dropReason });
           break;
         }
 
@@ -692,13 +692,26 @@ export class TripPlannerService {
     );
     const unscheduled: { place: Place; reason: string }[] = [];
 
-    for (const { place } of droppedPlaces) {
+    for (const { place, reason: originalReason } of droppedPlaces) {
       if (scheduledIds.has(place.id)) continue;
 
+      const openDays = itineraries.filter(
+        (day) => place.alwaysOpen || place.openDays.includes(day.dayOfWeek),
+      );
+
+      if (openDays.length === 0) {
+        const dayNames = itineraries
+          .map((day) => DAY_NAMES[day.dayOfWeek])
+          .join(', ');
+        unscheduled.push({
+          place,
+          reason: `Đóng cửa trong suốt chuyến đi (${dayNames})`,
+        });
+        continue;
+      }
+
       let reassigned = false;
-      for (const day of itineraries) {
-        if (!place.alwaysOpen && !place.openDays.includes(day.dayOfWeek))
-          continue;
+      for (const day of openDays) {
         reassigned = await this.tryInsertPlace(
           place,
           day,
@@ -715,7 +728,7 @@ export class TripPlannerService {
       }
 
       if (!reassigned) {
-        unscheduled.push({ place, reason: 'Could not fit in any day' });
+        unscheduled.push({ place, reason: originalReason });
       }
     }
 

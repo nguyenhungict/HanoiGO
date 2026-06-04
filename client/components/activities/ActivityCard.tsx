@@ -15,7 +15,6 @@ const CATEGORY_CONFIG: Record<string, { icon: string; color: string }> = {
   'Arts & Culture':      { icon: 'theater_comedy',   color: '#3F51B5' },
   'Heritage & History':  { icon: 'history_edu',      color: '#607D8B' },
   'Spiritual':           { icon: 'temple_buddhist',  color: '#FF9800' },
-  'Eat & Shop':          { icon: 'restaurant',       color: '#F44336' },
   'Sightseeing':         { icon: 'photo_camera',     color: '#0288D1' },
 };
 
