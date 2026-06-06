@@ -1,0 +1,98 @@
+% =========================================================================
+% Section: Trip Planner Algorithm Analysis and Limitations
+% This file contains the LaTeX code analyzing the HanoiGO Trip Planner module,
+% focusing on the Greedy Nearest Neighbor (GNN-TW) algorithm and the local
+% optimum limitations demonstrated via a real-world case study.
+% =========================================================================
+
+\section{Trip Planner Routing Analysis and Algorithmic Limitations}
+
+The trip planning module of HanoiGO resolves a variant of the Travelling Salesman Problem with Time Windows (TSPTW). To achieve low-latency scheduling suitable for a web application, the system implements a heuristic approach consisting of K-Means++ clustering followed by a Greedy Nearest Neighbor with Time Window (GNN-TW) routing algorithm. While computationally efficient ($O(N^2)$), this local heuristic exhibits standard optimization limitations. This section analyzes the routing logic, details the trade-offs between geometric distance and real street network travel time, and illustrates the local optimum trap using a concrete case study from the Hanoi Old Quarter.
+
+\subsection{Mathematical Formulation and Heuristic Search}
+
+Let $P = \{p_1, p_2, \dots, p_N\}$ be the set of places assigned to a single day cluster. Each place $p_i$ is defined by its coordinates $(\text{lat}_i, \text{lng}_i)$, visit duration $d_i$, and an opening window $[O_i, C_i]$. The departure time from the current stop $p_{\text{curr}}$ is denoted as $T_{\text{curr}}$. 
+
+When evaluating the next candidate stop $p_j$ from $p_{\text{curr}}$, the system calculates the motorbike travel time $t(\text{curr}, j)$ using a real-time distance matrix. The raw arrival time is:
+\begin{equation}
+A_j = T_{\text{curr}} + t(\text{curr}, j) + \Delta_{\text{parking}}
+\end{equation}
+where $\Delta_{\text{parking}}$ represents a fixed parking buffer (e.g., 10 minutes) simulating parking and ticketing overhead. If $A_j$ overlaps with the user's lunch break window $[L_s, L_e]$, the arrival is shifted to after lunch:
+\begin{equation}
+A'_j = L_e + t(\text{curr}, j) + \Delta_{\text{parking}}
+\end{equation}
+The visit starts at $V_j = \max(A'_j, O_j)$ and ends at $D_j = V_j + d_j$. The wait time is defined as $W_j = V_j - A'_j$. The transition is feasible if and only if the departure time satisfies the closing constraint:
+\begin{equation}
+D_j \le \min(C_j, T_{\text{end}})
+\end{equation}
+where $T_{\text{end}}$ is the user's preferred end of the day.
+
+For all feasible candidates, the algorithm calculates a transition cost prioritizing shorter travel times over wait times:
+\begin{equation}
+\text{Cost}(p_{\text{curr}} \to p_j) = t(\text{curr}, j) \times 2 + W_j \times 60
+\end{equation}
+The algorithm greedily selects the candidate $p_j$ that minimizes $\text{Cost}(p_{\text{curr}} \to p_j)$.
+
+\subsection{Geographic Distance vs. Street Network Travel Time}
+
+A key feature of HanoiGO is its reliance on the Goong Maps API for motorbike travel routing rather than Euclidean or Haversine distance fallbacks. In dense urban areas like the Hanoi Old Quarter, straight-line distance is often negatively correlated with actual travel times due to complex street networks, narrow alleys, and one-way traffic regulations.
+
+This divergence is illustrated in the case study below. Let $p_2$ be Bach Ma Temple (Hàng Buồm), $p_3$ be Hang Dau Street (Hàng Đậu), and $p_4$ be Al Noor Mosque (Hàng Lược). 
+Table~\ref{tab:distance_travel_comparison} contrasts the Haversine distances against the actual Goong API motorbike travel times.
+
+\begin{table}[H]
+\centering
+\small
+\renewcommand{\arraystretch}{1.2}
+\begin{tabular}{|l|c|c|c|}
+\hline
+\textbf{Route Segment} & \textbf{Haversine Distance} & \textbf{Real Street Distance} & \textbf{Motorbike Travel Time} \\ \hline
+Bach Ma ($p_2$) $\to$ Al Noor ($p_4$) & \textbf{0.426 km} & 853 m & 289 seconds (4.8 mins) \\ \hline
+Bach Ma ($p_2$) $\to$ Hang Dau ($p_3$) & 0.593 km & \textbf{877 m} & \textbf{283 seconds (4.7 mins)} \\ \hline
+Hang Dau ($p_3$) $\to$ Al Noor ($p_4$) & 0.231 km & 387 m & 120 seconds (2.0 mins) \\ \hline
+Al Noor ($p_4$) $\to$ Hang Dau ($p_3$) & 0.231 km & 456 m & 145 seconds (2.4 mins) \\ \hline
+\end{tabular}
+\caption{Comparison of Haversine distance vs. Goong API motorbike metrics in Hoan Kiem district.}
+\label{tab:distance_travel_comparison}
+\end{table}
+
+As shown, Al Noor Mosque is physically closer to Bach Ma Temple than Hang Dau Street by 167 meters (Haversine). However, because Hàng Buồm, Hàng Lược, and surrounding lanes are governed by strict one-way traffic directions, a motorbike departing Bach Ma Temple must take a circuitous route to reach Al Noor Mosque. This increases the street travel distance to 853m and the travel duration to \textbf{289 seconds}. Conversely, the route to Hang Dau Street is more direct, requiring only \textbf{283 seconds}.
+
+\subsection{The Local Optimum Trap (Greedy Trap): A Case Study}
+
+The greedy heuristic of GNN-TW evaluates options step-by-step without backtracking. Standing at Bach Ma Temple ($p_2$), the algorithm evaluates $p_3$ and $p_4$ as the next stop:
+\begin{itemize}
+    \item $\text{Cost}(p_2 \to p_3) = 283 \times 2 + 0 = \mathbf{566}$
+    \item $\text{Cost}(p_2 \to p_4) = 289 \times 2 + 0 = \mathbf{578}$
+\end{itemize}
+Since $\text{Cost}(p_2 \to p_3) < \text{Cost}(p_2 \to p_4)$, the algorithm greedily schedules Hang Dau Street ($p_3$) next, leaving Al Noor Mosque ($p_4$) and Ba Dinh Square ($p_5$) as the remaining stops. The final generated sequence is:
+\begin{center}
+\textbf{Sequence A (Greedy):} $p_2$ $\to$ $p_3$ $\to$ $p_4$ $\to$ $p_5$
+\end{center}
+From $p_4$ (Al Noor Mosque), the chặng to $p_5$ (Ba Dinh Square) is long, requiring **622 seconds**. The cumulative travel time for Sequence A is:
+\begin{equation}
+T_{\text{Total}}(A) = 283\text{s} + 120\text{s} + 622\text{s} = \mathbf{1025\text{s}} \quad (\approx 17.1 \text{ minutes})
+\end{equation}
+
+Now consider the alternative global sequence that schedules Al Noor Mosque ($p_4$) first:
+\begin{center}
+\textbf{Sequence B (Optimal):} $p_2$ $\to$ $p_4$ $\to$ $p_3$ $\to$ $p_5$
+\end{center}
+From $p_3$ (Hang Dau Street), the chặng to $p_5$ (Ba Dinh Square) is direct, taking only **309 seconds**. The cumulative travel time for Sequence B is:
+\begin{equation}
+T_{\text{Total}}(B) = 289\text{s} + 145\text{s} + 309\text{s} = \mathbf{743\text{s}} \quad (\approx 12.4 \text{ minutes})
+\end{equation}
+
+Although Sequence B is **282 seconds (4.7 minutes) faster** overall, the greedy algorithm misses it entirely. At the decision point $p_2$, the algorithm made a locally optimal choice, selecting $p_3$ to save 6 seconds of travel time, which ultimately incurred a global penalty of nearly 5 minutes. This represents a classic \textit{local optimum trap} inherent in greedy constructive heuristics.
+
+\subsection{Proposed Enhancements}
+
+To resolve the greedy trap without compromising real-time performance, two primary enhancements can be integrated into the HanoiGO scheduling module:
+
+\begin{enumerate}
+    \item \textbf{2-opt Local Search (Edge-Swapping Heuristic):} 
+    After the initial constructive GNN-TW phase, a local search improvement phase using the 2-opt heuristic can be applied. The algorithm systematically tests all pairs of non-adjacent route segments, swapping them (e.g., changing $p_2 \to p_3 \to p_4 \to p_5$ to $p_2 \to p_4 \to p_3 \to p_5$) and verifying time-window feasibility. If the swap reduces the total travel time, the route is updated. Given that the number of stops per day is capped at $N \le 5$, the 2-opt search space is tiny ($O(N^2) \le 10$ evaluations), executing in under 1 millisecond while guaranteeing global optimization for single-day itineraries.
+    
+    \item \textbf{Metaheuristics (Genetic Algorithms / Tabu Search):}
+    For complex multi-day routing with larger clusters, constructive heuristics can be replaced by Genetic Algorithms (GA) or Tabu Search. These approaches maintain a population of candidate itineraries, using selection, crossover, and mutation operators to search the global solution space, bypassing local traps at the expense of slightly higher CPU latency.
+\end{enumerate}

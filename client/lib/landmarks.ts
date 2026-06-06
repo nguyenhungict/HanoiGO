@@ -8,6 +8,7 @@ export interface Landmark {
   description: string;
   lat: number;
   lng: number;
+  district?: string;
 }
 
 export type PlaceStory = {
@@ -67,7 +68,8 @@ export async function fetchLandmarks(): Promise<Landmark[]> {
         category: category,
         description: p.descriptionEn || "",
         lat: p.lat,
-        lng: p.lng
+        lng: p.lng,
+        district: p.district || 'Hoàn Kiếm'
       };
     });
   } catch (error: any) {
@@ -179,8 +181,8 @@ export function getPlaceStory(landmark: Landmark): PlaceStory {
         value: landmark.rating.toFixed(1),
       },
       {
-        label: 'Map Position',
-        value: `${landmark.lat.toFixed(3)}, ${landmark.lng.toFixed(3)}`,
+        label: 'District',
+        value: landmark.district || 'Hoàn Kiếm',
       },
     ],
   };

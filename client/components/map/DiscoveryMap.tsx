@@ -15,6 +15,7 @@ interface Landmark {
   description: string;
   lat: number;
   lng: number;
+  district?: string;
 }
 
 // Map icon categories to material icons
@@ -199,6 +200,7 @@ interface DiscoveryMapProps {
   aiMarkers?: { id: string; name: string; lat: number; lng: number; category: string; distanceKm?: number }[];
   selectedCategory?: string;
   isSidebarOpen?: boolean;
+  customStartMarker?: { name: string; lat: number; lng: number } | null;
 }
 
 // Create numbered itinerary marker icon
@@ -219,17 +221,34 @@ const createItineraryIcon = (order: number, color: string) => {
   });
 };
 
+// Custom start location marker icon
+const customStartIcon = L.divIcon({
+  className: 'custom-start-marker',
+  html: `
+    <div style="position:relative;display:flex;flex-direction:column;align-items:center;">
+      <div style="width:40px;height:40px;border-radius:50%;background:#16a34a;border:3px solid white;box-shadow:0 4px 16px rgba(22,163,74,0.5);display:flex;align-items:center;justify-content:center;">
+        <span class="material-symbols-outlined" style="color:white;font-size:20px;font-variation-settings:'FILL' 1;">home_pin</span>
+      </div>
+      <div style="width:0;height:0;border-left:7px solid transparent;border-right:7px solid transparent;border-top:10px solid #16a34a;margin-top:-2px;"></div>
+    </div>
+  `,
+  iconSize: [40, 52],
+  iconAnchor: [20, 52],
+  popupAnchor: [0, -54],
+});
+
 import { fetchLandmarks } from '@/lib/landmarks';
 
-export default function DiscoveryMap({ 
-  itineraryMarkers = [], 
-  onLocationFound, 
+export default function DiscoveryMap({
+  itineraryMarkers = [],
+  onLocationFound,
   showLandmarks = true,
   focusLocation = null,
   focusedLandmarkId = null,
   aiMarkers = [],
   selectedCategory = 'all',
   isSidebarOpen = true,
+  customStartMarker = null,
 }: DiscoveryMapProps) {
   const [landmarks, setLandmarks] = useState<Landmark[]>([]);
   const [zoomLevel, setZoomLevel] = useState(13);
@@ -707,6 +726,26 @@ export default function DiscoveryMap({
           </Marker>
         ))}
 
+        {/* Custom start location marker */}
+        {customStartMarker && (
+          <Marker
+            position={[customStartMarker.lat, customStartMarker.lng]}
+            icon={customStartIcon}
+          >
+            <Popup closeButton={false} offset={[0, -10]}>
+              <div className="bg-white rounded-2xl p-4 shadow-xl min-w-[200px] border border-outline/5">
+                <div className="flex items-center gap-2 mb-1">
+                  <div className="w-6 h-6 rounded-full bg-green-600 flex items-center justify-center">
+                    <span className="material-symbols-outlined text-white text-sm" style={{ fontVariationSettings: "'FILL' 1" }}>home_pin</span>
+                  </div>
+                  <span className="text-[9px] font-black uppercase tracking-widest text-green-600">Starting Point</span>
+                </div>
+                <p className="font-bold text-sm text-on-surface">{customStartMarker.name}</p>
+              </div>
+            </Popup>
+          </Marker>
+        )}
+
         {/* Normal landmark markers (hidden when itinerary is active) */}
         {showLandmarks && !hasItinerary && landmarks
           .filter(l => {
@@ -729,47 +768,93 @@ export default function DiscoveryMap({
                 icon={createCustomIcon(landmark, showLabels, isFocused)}
               >
                 <Popup closeButton={false} offset={[0, -10]}>
-                    <div className="w-80 p-0 flex flex-col rounded-[32px] overflow-hidden shadow-[0_20px_50px_rgba(0,0,0,0.3)] bg-background/95 backdrop-blur-2xl border border-white/20">
-                        <div className="relative w-full h-44 bg-surface-container overflow-hidden">
+                    <div className="w-[340px] p-0 flex flex-col rounded-[28px] overflow-hidden shadow-[0_24px_50px_rgba(0,0,0,0.35)] bg-white/95 backdrop-blur-xl border border-white/40">
+                        {/* Image Header with Gradient Overlay */}
+                        <div className="relative w-full h-[180px] overflow-hidden">
                             <img 
                                 src={landmark.image} 
                                 alt={landmark.name}
                                 referrerPolicy="no-referrer"
-                                className="object-cover w-full h-full hover:scale-110 transition-transform duration-1000 ease-out"
+                                className="object-cover w-full h-full hover:scale-105 transition-transform duration-700 ease-out"
                                 onError={(e) => {
                                   const target = e.target as HTMLImageElement;
                                   if (target.src.includes('unsplash.com')) return;
                                   target.src = 'https://images.unsplash.com/photo-1509030450996-93f25ef2030f?w=800&q=80';
                                 }}
                             />
-                            <div className="absolute top-4 right-4 bg-background/90 backdrop-blur-md shadow-xl text-primary px-3.5 py-1.5 rounded-2xl text-xs font-black flex items-center gap-1.5 border border-white/20">
-                               <span className="material-symbols-outlined text-[16px] fill-1">star</span>
-                               {landmark.rating}
+                            {/* Gradient Fade-out */}
+                            <div className="absolute inset-0 bg-gradient-to-t from-black/50 via-black/10 to-transparent z-[1]"></div>
+                            
+                            {/* Rating Badge */}
+                            <div className="absolute top-4 right-4 bg-white/95 backdrop-blur-md shadow-lg text-[#F59E0B] px-3.5 py-1.5 rounded-2xl text-[12px] font-black flex items-center gap-1.5 border border-white/20 z-10">
+                               <span className="material-symbols-outlined text-[16px] fill-1" style={{ fontVariationSettings: "'FILL' 1" }}>star</span>
+                               <span className="font-extrabold text-on-surface">{landmark.rating}</span>
+                            </div>
+
+                            {/* Category Tag on Image Bottom */}
+                            <div className="absolute bottom-4 left-4 z-10 flex flex-wrap gap-2">
+                              <span 
+                                className="px-3 py-1 rounded-xl text-[9px] font-black uppercase tracking-wider text-white flex items-center gap-1.5 shadow-md"
+                                style={{ backgroundColor: getCategoryColor(landmark.category) }}
+                              >
+                                <span className="material-symbols-outlined text-[12px]">{getCategoryIcon(landmark.category)}</span>
+                                {landmark.category}
+                              </span>
                             </div>
                         </div>
-                        <div className="p-7 flex flex-col gap-3">
-                          <span className="text-[10px] font-black uppercase tracking-[0.25em] text-primary/70">
-                            {landmark.category}
-                          </span>
-                          <h3 className="font-extrabold text-2xl tracking-tighter text-on-surface leading-tight">{landmark.name}</h3>
-                          <p className="text-[13px] text-on-surface/70 font-medium line-clamp-2 leading-relaxed mb-4">
-                            {landmark.description || `Khám phá vẻ đẹp lịch sử và văn hóa tại ${landmark.name}, một trong những điểm đến không thể bỏ qua tại Hà Nội.`}
-                          </p>
+                        
+                        {/* Content Area */}
+                        <div className="p-6 flex flex-col gap-3.5">
+                          <div>
+                            <h3 className="font-black text-xl tracking-tight text-on-surface leading-tight mb-2 hover:text-primary transition-colors">{landmark.name}</h3>
+                            <p className="text-[12.5px] text-on-surface/75 font-medium line-clamp-3 leading-relaxed">
+                              {landmark.description || `Khám phá vẻ đẹp lịch sử và văn hóa tại ${landmark.name}, một trong những điểm đến nổi tiếng hàng đầu tại Hà Nội.`}
+                            </p>
+                          </div>
+
+                          <div className="w-full h-px bg-outline/5 my-0.5"></div>
+
+                          {/* Quick Stats Grid */}
+                          <div className="grid grid-cols-2 gap-4 text-left">
+                            <div className="flex items-center gap-2">
+                              <div className="w-8 h-8 rounded-xl bg-primary/5 flex items-center justify-center text-primary">
+                                <span className="material-symbols-outlined text-[16px]">location_on</span>
+                              </div>
+                              <div className="flex flex-col">
+                                <span className="text-[8px] font-black text-outline uppercase tracking-wider">Khu vực</span>
+                                <span className="text-[11px] font-black text-on-surface tracking-tight truncate max-w-[90px]">{landmark.district || 'Hoàn Kiếm'}</span>
+                              </div>
+                            </div>
+                            <div className="flex items-center gap-2">
+                              <div className="w-8 h-8 rounded-xl bg-[#10B981]/5 flex items-center justify-center text-[#10B981]">
+                                <span className="material-symbols-outlined text-[16px]">schedule</span>
+                              </div>
+                              <div className="flex flex-col">
+                                <span className="text-[8px] font-black text-outline uppercase tracking-wider">Thời gian</span>
+                                <span className="text-[11px] font-black text-on-surface tracking-tight">~60 phút</span>
+                              </div>
+                            </div>
+                          </div>
+
+                          <div className="w-full h-px bg-outline/5 my-0.5"></div>
+
+                          {/* Action Buttons */}
                           <div className="flex gap-3 mt-1">
                             <Link
-                              href={`/places?place=${landmark.id}`}
-                              className="flex-1 rounded-2xl border border-outline/10 bg-white/50 py-3.5 text-center text-[10px] font-black uppercase tracking-[0.15em] text-on-surface/80 transition-all hover:bg-white hover:text-on-surface active:scale-95"
+                              href={`/places/${landmark.id}`}
+                              className="flex-1 rounded-2xl border border-outline/15 bg-on-surface/5 py-3.5 text-center text-[10px] font-black uppercase tracking-[0.15em] text-on-surface hover:bg-on-surface hover:text-white transition-all active:scale-95 flex items-center justify-center gap-1.5"
                             >
-                              Detail
+                              <span className="material-symbols-outlined text-[16px]">explore</span>
+                              Chi tiết
                             </Link>
                             <button 
                               onClick={() => {
                                 setRoutingDestination(landmark);
                                 setIsRoutePanelMinimized(false);
                               }}
-                              className="flex-[1.5] py-3.5 bg-primary text-white font-black text-[10px] uppercase tracking-[0.15em] rounded-2xl transition-all shadow-xl shadow-primary/25 hover:scale-[1.03] active:scale-95 flex items-center justify-center gap-2"
+                              className="flex-[1.4] py-3.5 bg-primary text-white font-black text-[10px] uppercase tracking-[0.15em] rounded-2xl transition-all shadow-xl shadow-primary/20 hover:scale-[1.02] hover:bg-primary-hover active:scale-95 flex items-center justify-center gap-1.5"
                             >
-                              <span className="material-symbols-outlined text-[18px]">directions</span>
+                              <span className="material-symbols-outlined text-[16px]">directions</span>
                               Đường đi
                             </button>
                           </div>

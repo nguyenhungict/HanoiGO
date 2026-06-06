@@ -43,6 +43,7 @@ interface ItineraryDay {
   stops: ItineraryStop[];
   totalTravelMin: number;
   freeTimeMin: number;
+  district?: string;
 }
 
 interface ItineraryResult {
@@ -77,6 +78,13 @@ export default function TripsPage() {
   const [itinerary, setItinerary] = useState<ItineraryResult | null>(null);
   const [activeDayTab, setActiveDayTab] = useState(1);
   const [userLocation, setUserLocation] = useState<[number, number] | null>(null);
+
+  // Starting point selection
+  const [startLocationType, setStartLocationType] = useState<'current' | 'custom'>('current');
+  const [customStartLocation, setCustomStartLocation] = useState<{ name: string; lat: number; lng: number } | null>(null);
+  const [locationSearchQuery, setLocationSearchQuery] = useState('');
+  const [locationSuggestions, setLocationSuggestions] = useState<Array<{ place_id: string; description: string }>>([]);
+  const [isSearchingLocation, setIsSearchingLocation] = useState(false);
 
   const { token, setUser, setToken } = useAuthStore();
   const [savedTrips, setSavedTrips] = useState<SavedTrip[]>([]);
@@ -292,6 +300,47 @@ export default function TripsPage() {
     return h * 60 + m;
   };
 
+  const handleLocationSearch = async (query: string) => {
+    setLocationSearchQuery(query);
+    setCustomStartLocation(null);
+    if (!query || query.length < 2) {
+      setLocationSuggestions([]);
+      return;
+    }
+    setIsSearchingLocation(true);
+    try {
+      const goongKey = process.env.NEXT_PUBLIC_GOONG_API_KEY;
+      // location bias: Hanoi center, radius roughly covers Hanoi
+      const res = await fetch(
+        `https://rsapi.goong.io/Place/AutoComplete?api_key=${goongKey}&input=${encodeURIComponent(query)}&location=21.0285,105.8542&limit=5&more_compound=true`
+      );
+      const data = await res.json();
+      setLocationSuggestions(data.predictions ?? []);
+    } catch {
+      setLocationSuggestions([]);
+    } finally {
+      setIsSearchingLocation(false);
+    }
+  };
+
+  const handleSelectLocationSuggestion = async (prediction: { place_id: string; description: string }) => {
+    setLocationSearchQuery(prediction.description);
+    setLocationSuggestions([]);
+    try {
+      const goongKey = process.env.NEXT_PUBLIC_GOONG_API_KEY;
+      const res = await fetch(
+        `https://rsapi.goong.io/Place/Detail?api_key=${goongKey}&place_id=${prediction.place_id}`
+      );
+      const data = await res.json();
+      const loc = data.result?.geometry?.location;
+      if (loc) {
+        setCustomStartLocation({ name: prediction.description, lat: loc.lat, lng: loc.lng });
+      }
+    } catch {
+      // keep query displayed but no coordinates
+    }
+  };
+
   const handleGenerate = async () => {
     if (count < 2) return;
     setIsGenerating(true);
@@ -312,8 +361,8 @@ export default function TripsPage() {
             endTime: timeToMin(config.endTime),
             travelDate: config.travelDate,
             visitDurationMin: config.visitDuration,
-            startLat: userLocation?.[0],
-            startLng: userLocation?.[1],
+            startLat: startLocationType === 'custom' ? customStartLocation?.lat : userLocation?.[0],
+            startLng: startLocationType === 'custom' ? customStartLocation?.lng : userLocation?.[1],
             lunchBreakStart: timeToMin(config.lunchBreakStart),
             lunchBreakEnd: timeToMin(config.lunchBreakEnd),
           }),
@@ -828,6 +877,7 @@ export default function TripsPage() {
           itineraryMarkers={itineraryMarkers}
           onLocationFound={setUserLocation}
           showLandmarks={!itinerary}
+          customStartMarker={itinerary && startLocationType === 'custom' ? customStartLocation : null}
         />
 
         {/* Map overlay when no itinerary — shows selected place pins info */}
@@ -857,6 +907,80 @@ export default function TripsPage() {
               <p className="text-[10px] font-black text-outline uppercase tracking-widest">
                 {count} selected places
               </p>
+            </div>
+
+            {/* Starting Point */}
+            <div className="space-y-2">
+              <label className="text-[10px] font-black text-outline uppercase tracking-widest block">
+                Starting Point
+              </label>
+              <div className="flex gap-2">
+                <button
+                  type="button"
+                  onClick={() => setStartLocationType('current')}
+                  className={`flex-1 py-3 rounded-xl text-xs font-black transition-all flex items-center justify-center gap-1.5
+                    ${startLocationType === 'current'
+                      ? 'bg-primary text-white shadow-md shadow-primary/20'
+                      : 'bg-surface-container-high text-outline hover:bg-primary/10'
+                    }`}
+                >
+                  <span className="material-symbols-outlined text-sm">my_location</span>
+                  Current Location
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setStartLocationType('custom')}
+                  className={`flex-1 py-3 rounded-xl text-xs font-black transition-all flex items-center justify-center gap-1.5
+                    ${startLocationType === 'custom'
+                      ? 'bg-primary text-white shadow-md shadow-primary/20'
+                      : 'bg-surface-container-high text-outline hover:bg-primary/10'
+                    }`}
+                >
+                  <span className="material-symbols-outlined text-sm">search</span>
+                  Choose Location
+                </button>
+              </div>
+
+              {startLocationType === 'custom' && (
+                <div className="relative mt-1">
+                  <div className="relative">
+                    <span className="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-outline text-sm">location_on</span>
+                    <input
+                      type="text"
+                      value={locationSearchQuery}
+                      onChange={(e) => handleLocationSearch(e.target.value)}
+                      placeholder="Search hotel, address in Hanoi..."
+                      className="w-full pl-9 pr-4 py-3 bg-surface-container-low border border-outline/10 rounded-xl font-bold text-sm outline-none focus:border-primary/30 focus:ring-4 focus:ring-primary/5"
+                    />
+                    {isSearchingLocation && (
+                      <div className="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 border-2 border-primary/30 border-t-primary rounded-full animate-spin" />
+                    )}
+                  </div>
+
+                  {locationSuggestions.length > 0 && (
+                    <div className="absolute top-full left-0 right-0 z-50 mt-1 bg-white rounded-2xl shadow-xl border border-outline/10 overflow-hidden">
+                      {locationSuggestions.map((s) => (
+                        <button
+                          key={s.place_id}
+                          type="button"
+                          onClick={() => handleSelectLocationSuggestion(s)}
+                          className="w-full px-4 py-3 text-left text-sm font-bold text-on-surface hover:bg-primary/5 transition-colors flex items-center gap-2 border-b border-outline/5 last:border-0"
+                        >
+                          <span className="material-symbols-outlined text-outline text-sm flex-shrink-0">location_on</span>
+                          <span className="truncate">{s.description}</span>
+                        </button>
+                      ))}
+                    </div>
+                  )}
+
+                  {customStartLocation && (
+                    <div className="mt-2 px-3 py-2 bg-primary/5 border border-primary/20 rounded-xl flex items-center gap-2">
+                      <span className="material-symbols-outlined text-primary text-sm flex-shrink-0">check_circle</span>
+                      <span className="text-xs font-bold text-primary truncate">{customStartLocation.name}</span>
+                    </div>
+                  )}
+                </div>
+              )}
             </div>
 
             {/* Number of days */}
@@ -980,7 +1104,7 @@ export default function TripsPage() {
               </button>
               <button
                 onClick={handleGenerate}
-                disabled={isGenerating}
+                disabled={isGenerating || (startLocationType === 'custom' && !customStartLocation)}
                 className="flex-[2] py-3.5 bg-primary text-white rounded-2xl font-black text-[10px] uppercase tracking-widest shadow-lg shadow-primary/20 hover:scale-[1.01] active:scale-[0.99] transition-all disabled:opacity-50 flex items-center justify-center gap-2"
               >
                 {isGenerating ? (

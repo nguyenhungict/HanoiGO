@@ -25,6 +25,22 @@ function resolveImageUrl(url?: string | null): string | null {
   return `${BACKEND_URL}${cleanUrl}`;
 }
 
+const getTripPlacesList = (trip: any) => {
+  const names: string[] = [];
+  if (trip.tripDays) {
+    for (const day of trip.tripDays) {
+      if (day.tripStops) {
+        for (const stop of day.tripStops) {
+          if (stop.place && stop.place.name) {
+            names.push(stop.place.name);
+          }
+        }
+      }
+    }
+  }
+  return names;
+};
+
 export default function ProfilePage() {
   const [activeTab, setActiveTab] = useState('trips');
   const [loading, setLoading] = useState(true);
@@ -235,36 +251,83 @@ export default function ProfilePage() {
                     </div>
                   ) : (
                     <div className="grid sm:grid-cols-2 gap-6 animate-in fade-in slide-in-from-bottom-4 duration-700">
-                      {savedTrips.map(trip => (
-                        <div key={trip.id} className="group bg-white rounded-3xl border border-outline-variant/10 overflow-hidden hover:shadow-2xl transition-all duration-500 flex flex-col h-full">
-                          <div className="h-44 overflow-hidden relative shrink-0">
-                            <img 
-                              src="https://images.unsplash.com/photo-1509030450996-93f25ef2030f?w=800&q=80" 
-                              className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-700" 
-                              alt="Trip" 
-                            />
-                            <div className="absolute top-4 left-4 bg-white/90 backdrop-blur-md px-3 py-1 rounded-lg text-primary text-[10px] font-black uppercase">
-                              {trip.numDays} {trip.numDays === 1 ? 'Day' : 'Days'}
+                      {savedTrips.map(trip => {
+                        const placesList = getTripPlacesList(trip);
+                        const stopsCount = placesList.length;
+                        
+                        return (
+                          <div key={trip.id} className="group bg-white rounded-[2rem] border border-outline-variant/10 hover:shadow-xl hover:shadow-primary/5 transition-all duration-500 flex flex-col justify-between h-full hover:-translate-y-1 p-6 relative overflow-hidden">
+                            {/* Visual background gradient blob for premium look */}
+                            <div className="absolute -right-4 -top-4 w-24 h-24 rounded-full bg-gradient-to-br from-primary/10 to-rose-500/10 blur-xl group-hover:scale-125 transition-transform duration-700" />
+                            
+                            <div className="space-y-4">
+                              {/* Header: Icon & Day Badge */}
+                              <div className="flex items-center justify-between">
+                                <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-primary/10 to-rose-500/10 flex items-center justify-center text-primary group-hover:from-primary group-hover:to-rose-500 group-hover:text-white transition-all duration-500 shadow-sm">
+                                  <span className="material-symbols-outlined text-xl">map</span>
+                                </div>
+                                <div className="bg-primary/5 text-primary border border-primary/10 px-3 py-1 rounded-full text-[10px] font-black uppercase tracking-wider">
+                                  {trip.numDays} {trip.numDays === 1 ? 'Ngày' : 'Ngày'}
+                                </div>
+                              </div>
+
+                              {/* Title & Date */}
+                              <div className="space-y-1.5">
+                                <h3 className="text-xl font-black tracking-tight text-on-surface line-clamp-1 leading-snug group-hover:text-primary transition-colors">
+                                  {trip.title}
+                                </h3>
+                                <div className="flex items-center gap-1.5 text-[10px] text-outline font-bold">
+                                  <span className="material-symbols-outlined text-xs">calendar_month</span>
+                                  <span>Tạo ngày {formatDate(trip.createdAt)}</span>
+                                </div>
+                              </div>
+
+                              {/* Timeline representation of stops */}
+                              {placesList.length > 0 ? (
+                                <div className="space-y-2.5 pt-2">
+                                  <div className="text-[10px] font-black text-outline uppercase tracking-wider">Hành trình chi tiết</div>
+                                  <div className="relative pl-4 border-l border-dashed border-primary/30 space-y-3.5">
+                                    {placesList.slice(0, 3).map((name, idx) => (
+                                      <div key={idx} className="relative flex items-center gap-2 text-xs text-on-surface-variant">
+                                        {/* Dot indicator */}
+                                        <div className="absolute -left-[20.5px] w-2 h-2 rounded-full bg-primary border-2 border-white ring-1 ring-primary/20" />
+                                        <span className="font-bold truncate max-w-[240px] text-on-surface/90" title={name}>
+                                          {name}
+                                        </span>
+                                      </div>
+                                    ))}
+                                    {placesList.length > 3 && (
+                                      <div className="relative flex items-center gap-2 text-[10px] text-primary font-black uppercase tracking-wider">
+                                        <div className="absolute -left-[20.5px] w-2 h-2 rounded-full bg-rose-400 border-2 border-white ring-1 ring-rose-400/20" />
+                                        <span>+ {placesList.length - 3} điểm dừng khác</span>
+                                      </div>
+                                    )}
+                                  </div>
+                                </div>
+                              ) : (
+                                <p className="text-xs text-outline font-medium line-clamp-3 leading-relaxed pt-2">
+                                  {trip.description || 'Hành trình di sản tùy biến khám phá các dấu ấn lịch sử, văn hóa ngàn năm của thủ đô Hà Nội.'}
+                                </p>
+                              )}
                             </div>
-                          </div>
-                          <div className="p-6 space-y-3 flex-1 flex flex-col justify-between">
-                            <div className="space-y-2">
-                              <h3 className="text-lg font-black tracking-tighter text-on-surface line-clamp-1">{trip.title}</h3>
-                              <p className="text-xs text-outline font-medium line-clamp-2">
-                                {trip.description || 'Hành trình di sản tùy biến khám phá các dấu ấn lịch sử, văn hóa ngàn năm của thủ đô Hà Nội.'}
-                              </p>
-                            </div>
-                            <div className="flex items-center justify-between pt-4 border-t border-outline/5 mt-auto">
-                              <span className="text-[10px] font-bold text-on-surface-variant flex items-center gap-1">
-                                <span className="material-symbols-outlined text-sm">schedule</span> {formatDate(trip.travelDate || trip.createdAt)}
+
+                            {/* Footer Metrics & Navigation */}
+                            <div className="flex items-center justify-between pt-5 mt-6 border-t border-outline/5">
+                              <span className="text-[10px] font-black text-on-surface-variant bg-surface-container-high/60 px-3 py-1.5 rounded-xl flex items-center gap-1.5">
+                                <span className="material-symbols-outlined text-xs text-primary font-bold">location_on</span>
+                                {stopsCount} điểm dừng
                               </span>
-                              <Link href="/trips" className="text-[10px] font-black text-primary uppercase underline hover:text-primary-dark">
-                                Open Planner
+                              <Link 
+                                href="/trips" 
+                                className="text-[10px] font-black text-primary uppercase tracking-wider hover:text-primary-hover flex items-center gap-1 hover:translate-x-0.5 transition-all bg-primary/5 hover:bg-primary hover:text-white px-4 py-2 rounded-xl"
+                              >
+                                Xem bản đồ
+                                <span className="material-symbols-outlined text-[14px]">arrow_forward</span>
                               </Link>
                             </div>
                           </div>
-                        </div>
-                      ))}
+                        );
+                      })}
                     </div>
                   )}
                 </>
