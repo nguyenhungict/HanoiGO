@@ -30,13 +30,10 @@ import type {
   ItineraryResponse,
   Place,
   ScheduledStop,
-  VisitWindowResult,
 } from './trip-planner.types';
-import { SaveTripDto } from './dto/save-trip.dto';
 import {
   dbTimeToMin,
   minToTime,
-  parseTimeString,
   sleep,
 } from './trip-planner.utils';
 
@@ -44,7 +41,6 @@ import {
 export class TripPlannerService {
   private readonly logger = new Logger(TripPlannerService.name);
 
-  /** Đọc động tại runtime để tránh lỗi hằng số tĩnh bị đóng băng lúc import */
   private get goongApiKey(): string {
     return process.env.GOONG_API_KEY || '';
   }
@@ -73,6 +69,127 @@ export class TripPlannerService {
     }
   }
 
+  private async prefetchStartToPlaces(
+    dto: GenerateItineraryDto,
+    places: Place[],
+  ): Promise<Map<string, number>> {
+    const cache = new Map<string, number>();
+    if (!dto.startLat || !dto.startLng || places.length === 0) return cache;
+
+    if (this.goongApiKey) {
+      try {
+        const destinations = places.map((p) => `${p.lat},${p.lng}`).join('|');
+        const url = `https://rsapi.goong.io/DistanceMatrix?origins=${dto.startLat},${dto.startLng}&destinations=${destinations}&vehicle=bike&api_key=${this.goongApiKey}`;
+        const data = (await (await fetch(url)).json()) as GoongMatrixResponse;
+        const elements = data.rows?.[0]?.elements ?? [];
+        for (let i = 0; i < places.length; i++) {
+          const val = elements[i]?.duration?.value;
+          if (val != null) cache.set(places[i].id, val);
+        }
+        if (cache.size === places.length) return cache;
+        this.logger.warn('prefetchStartToPlaces: some elements missing, filling with Haversine.');
+      } catch {
+        this.logger.warn('prefetchStartToPlaces: API failed, falling back to Haversine.');
+      }
+    }
+
+    // Haversine fallback for any place not covered
+    for (const p of places) {
+      if (!cache.has(p.id)) {
+        const distKm = haversine(dto.startLat, dto.startLng, p.lat, p.lng);
+        cache.set(p.id, (distKm / AVG_SPEED_KMH) * 3600);
+      }
+    }
+    return cache;
+  }
+
+  // Single Goong call: origins=[start?, ...places], destinations=[...places].
+  // Returns start→place cache + full place↔place matrix for cluster slicing.
+  // Falls back to Haversine + null placeMatrix on API failure.
+  private async fetchCombinedMatrix(
+    dto: GenerateItineraryDto,
+    places: Place[],
+  ): Promise<{
+    startCache: Map<string, number>;
+    placeMatrix: Map<string, Map<string, number>> | null;
+  }> {
+    const startCache = new Map<string, number>();
+    const hasStart = dto.startLat != null && dto.startLng != null;
+
+    const fillStartHaversine = () => {
+      if (!hasStart) return;
+      for (const p of places) {
+        const distKm = haversine(dto.startLat!, dto.startLng!, p.lat, p.lng);
+        startCache.set(p.id, (distKm / AVG_SPEED_KMH) * 3600);
+      }
+    };
+
+    const originCoords: string[] = [];
+    if (hasStart) originCoords.push(`${dto.startLat},${dto.startLng}`);
+    for (const p of places) originCoords.push(`${p.lat},${p.lng}`);
+    const destCoords = places.map((p) => `${p.lat},${p.lng}`);
+
+    const url = `https://rsapi.goong.io/DistanceMatrix?origins=${originCoords.join('|')}&destinations=${destCoords.join('|')}&vehicle=bike&api_key=${this.goongApiKey}`;
+
+    try {
+      const data = (await (await fetch(url)).json()) as GoongMatrixResponse & {
+        error?: { code: string };
+      };
+      const rows = data.rows;
+      if (data.error?.code === 'OVER_RATE_LIMIT' || !rows?.length) {
+        fillStartHaversine();
+        return { startCache, placeMatrix: null };
+      }
+
+      const startOffset = hasStart ? 1 : 0;
+
+      // Row 0 → start → all places
+      if (hasStart) {
+        const startRow = rows[0]?.elements ?? [];
+        for (let j = 0; j < places.length; j++) {
+          const v = startRow[j]?.duration?.value;
+          startCache.set(
+            places[j].id,
+            v != null
+              ? v
+              : (haversine(dto.startLat!, dto.startLng!, places[j].lat, places[j].lng) /
+                  AVG_SPEED_KMH) *
+                  3600,
+          );
+        }
+      }
+
+      // Remaining rows → place ↔ place
+      const placeMatrix = new Map<string, Map<string, number>>();
+      for (let i = 0; i < places.length; i++) {
+        const row = rows[startOffset + i]?.elements ?? [];
+        const inner = new Map<string, number>();
+        for (let j = 0; j < places.length; j++) {
+          const v = row[j]?.duration?.value;
+          inner.set(places[j].id, v != null ? v : estimateTravelSec(places[i], places[j]));
+        }
+        placeMatrix.set(places[i].id, inner);
+      }
+      return { startCache, placeMatrix };
+    } catch {
+      this.logger.warn('fetchCombinedMatrix: API failed, falling back.');
+      fillStartHaversine();
+      return { startCache, placeMatrix: null };
+    }
+  }
+
+  private buildMatrixFromLookup(
+    cluster: Place[],
+    lookup: Map<string, Map<string, number>>,
+  ): number[][] {
+    return cluster.map((from) =>
+      cluster.map((to) => {
+        const v = lookup.get(from.id)?.get(to.id);
+        return v != null ? v : estimateTravelSec(from, to);
+      }),
+    );
+  }
+
   private async getRealTravelSec(from: Place, to: Place): Promise<number> {
     if (this.goongApiKey) {
       const sec = await this.fetchGoongTravelSec(
@@ -89,12 +206,6 @@ export class TripPlannerService {
     return estimateTravelSec(from, to);
   }
 
-  /**
-   * Cascade GPS travel time offset through a GNN route.
-   * Reuses Goong matrix travel times already stored in each stop (travelFromPrevSec).
-   * Only calls the API again when a stop is dropped and its successor needs a new travel
-   * time from a different predecessor.
-   */
   private async cascadeRouteTimes(
     dto: GenerateItineraryDto,
     route: ScheduledStop[],
@@ -102,6 +213,7 @@ export class TripPlannerService {
     lunchStart: number,
     lunchEnd: number,
     dropReason: string,
+    startCache?: Map<string, number>,
   ): Promise<{
     route: ScheduledStop[];
     dropped: { place: Place; reason: string }[];
@@ -123,7 +235,7 @@ export class TripPlannerService {
         // First stop: real GPS travel from user location (Goong API).
         // Subsequent stops: reuse the matrix travel time already stored from the GNN run.
         const travelFromPrevSec = isFirst
-          ? await this.getTravelToFirstStop(dto, place)
+          ? await this.getTravelToFirstStop(dto, place, startCache)
           : stop.travelFromPrevSec;
 
         const arriveMin = isFirst
@@ -168,129 +280,6 @@ export class TripPlannerService {
         };
       }
     }
-  }
-
-  // ── PUBLIC: Save Itinerary to Database ───────────────────────────────────
-  async saveTrip(userId: string, dto: SaveTripDto) {
-    return this.prisma.trip.create({
-      data: {
-        userId,
-        title: dto.title || 'My Trip to Hanoi',
-        numDays: dto.numDays,
-        tripDays: {
-          create: dto.days.map((day) => ({
-            dayNumber: day.dayNumber,
-            district: day.district,
-            tripStops: {
-              create: day.stops.map((stop) => ({
-                placeId: stop.placeId,
-                stopOrder: stop.stopOrder,
-                arriveAt: parseTimeString(stop.arriveAt),
-                departAt: parseTimeString(stop.departAt),
-                distanceFromPrevM: stop.distanceFromPrevM,
-                durationFromPrevS: stop.durationFromPrevS,
-                isSkipped: stop.isSkipped || false,
-              })),
-            },
-          })),
-        },
-      },
-      include: {
-        tripDays: { include: { tripStops: true } },
-      },
-    });
-  }
-
-  async getUserTrips(userId: string) {
-    return this.prisma.trip.findMany({
-      where: { userId },
-      include: {
-        tripDays: {
-          include: {
-            tripStops: {
-              include: {
-                place: {
-                  select: {
-                    id: true,
-                    name: true,
-                    imageUrl: true,
-                    category: true,
-                    lat: true,
-                    lng: true,
-                    district: true,
-                  },
-                },
-              },
-              orderBy: { stopOrder: 'asc' },
-            },
-          },
-          orderBy: { dayNumber: 'asc' },
-        },
-      },
-      orderBy: { createdAt: 'desc' },
-    });
-  }
-
-  async deleteTrip(userId: string, tripId: string) {
-    // Verify ownership before deleting
-    const trip = await this.prisma.trip.findFirst({
-      where: { id: tripId, userId },
-    });
-
-    if (!trip) {
-      throw new Error('Trip not found or unauthorized');
-    }
-
-    return this.prisma.trip.delete({
-      where: { id: tripId },
-    });
-  }
-
-  async cloneTrip(userId: string, sourceTripId: string) {
-    const source = await this.prisma.trip.findUnique({
-      where: { id: sourceTripId },
-      include: {
-        tripDays: {
-          include: {
-            tripStops: { orderBy: { stopOrder: 'asc' } },
-          },
-          orderBy: { dayNumber: 'asc' },
-        },
-      },
-    });
-
-    if (!source) {
-      throw new Error('Source trip not found');
-    }
-
-    return this.prisma.trip.create({
-      data: {
-        userId,
-        title: `${source.title || 'Hanoi Trip'} (Cloned)`,
-        numDays: source.numDays,
-        clonedFromId: source.id,
-        tripDays: {
-          create: source.tripDays.map((day) => ({
-            dayNumber: day.dayNumber,
-            district: day.district,
-            tripStops: {
-              create: day.tripStops.map((stop) => ({
-                placeId: stop.placeId,
-                stopOrder: stop.stopOrder,
-                arriveAt: stop.arriveAt,
-                departAt: stop.departAt,
-                distanceFromPrevM: stop.distanceFromPrevM,
-                durationFromPrevS: stop.durationFromPrevS,
-                isSkipped: stop.isSkipped,
-              })),
-            },
-          })),
-        },
-      },
-      include: {
-        tripDays: { include: { tripStops: true } },
-      },
-    });
   }
 
   private async fetchAndMapPlaces(dto: GenerateItineraryDto): Promise<Place[]> {
@@ -375,6 +364,7 @@ export class TripPlannerService {
     dto: GenerateItineraryDto,
     lunchStart: number,
     lunchEnd: number,
+    startCache?: Map<string, number>,
   ): Promise<{
     itinerary: DayItinerary;
     dropped: { place: Place; reason: string } | null;
@@ -395,7 +385,7 @@ export class TripPlannerService {
       };
     }
 
-    const travelToFirstSec = await this.getTravelToFirstStop(dto, place);
+    const travelToFirstSec = await this.getTravelToFirstStop(dto, place, startCache);
     const arriveMin =
       dto.startTime + travelToFirstSec / 60 + PARKING_BUFFER_MIN;
     const window = calculateVisitWindow(
@@ -469,6 +459,25 @@ export class TripPlannerService {
     const itineraries: DayItinerary[] = [];
     const allDropped: { place: Place; reason: string }[] = [];
 
+    // Fetch travel times. Common case: ONE combined API call returning both the
+    // start→places row and the full place↔place matrix; cluster matrices are then
+    // sliced locally with no further calls. For very large N (undocumented Goong
+    // matrix-size limit), fall back to the proven per-cluster path.
+    const MAX_BATCH_PLACES = 24; // keep origins (start + places) within a safe matrix size
+    let startCache: Map<string, number>;
+    let placeMatrix: Map<string, Map<string, number>> | null = null;
+    if (
+      this.goongApiKey &&
+      feasible.length >= 1 &&
+      feasible.length <= MAX_BATCH_PLACES
+    ) {
+      const combined = await this.fetchCombinedMatrix(dto, feasible);
+      startCache = combined.startCache;
+      placeMatrix = combined.placeMatrix;
+    } else {
+      startCache = await this.prefetchStartToPlaces(dto, feasible);
+    }
+
     for (let d = 0; d < clusters.length; d++) {
       const cluster = clusters[d];
       const dayDate = new Date(travelDate);
@@ -495,13 +504,16 @@ export class TripPlannerService {
           dto,
           lunchStart,
           lunchEnd,
+          startCache,
         );
         if (dropped) allDropped.push(dropped);
         itineraries.push(itinerary);
         continue;
       }
 
-      const matrix = await this.getDurationMatrix(cluster);
+      const matrix = placeMatrix
+        ? this.buildMatrixFromLookup(cluster, placeMatrix)
+        : await this.getDurationMatrix(cluster);
       const gnnResult = greedyNearestNeighborWithTimeWindow(
         cluster,
         matrix,
@@ -524,6 +536,7 @@ export class TripPlannerService {
           lunchStart,
           lunchEnd,
           'Exceeds time limit after GPS adjustment',
+          startCache,
         );
         route = cascaded.route;
         allDropped.push(...cascaded.dropped);
@@ -550,6 +563,7 @@ export class TripPlannerService {
       dto.startTime,
       lunchStart,
       lunchEnd,
+      startCache,
     );
 
     return this.buildItineraryResponse(resolved, infeasible, unscheduled, dto);
@@ -623,6 +637,7 @@ export class TripPlannerService {
     endTimeMin: number,
     lunchStart: number,
     lunchEnd: number,
+    startCache?: Map<string, number>,
   ): Promise<boolean> {
     for (let i = 0; i <= day.stops.length; i++) {
       const prevStop = i > 0 ? day.stops[i - 1] : null;
@@ -635,7 +650,7 @@ export class TripPlannerService {
         arriveMin =
           prevStop.departMin + travelFromPrevSec / 60 + PARKING_BUFFER_MIN;
       } else {
-        travelFromPrevSec = await this.getTravelToFirstStop(dto, place);
+        travelFromPrevSec = await this.getTravelToFirstStop(dto, place, startCache);
         arriveMin = startTimeMin + travelFromPrevSec / 60 + PARKING_BUFFER_MIN;
       }
 
@@ -686,6 +701,7 @@ export class TripPlannerService {
     startTimeMin: number,
     lunchStart: number,
     lunchEnd: number,
+    startCache?: Map<string, number>,
   ) {
     const scheduledIds = new Set<string>(
       itineraries.flatMap((day) => day.stops.map((stop) => stop.place.id)),
@@ -720,6 +736,7 @@ export class TripPlannerService {
           endTimeMin,
           lunchStart,
           lunchEnd,
+          startCache,
         );
         if (reassigned) {
           scheduledIds.add(place.id);
@@ -738,8 +755,15 @@ export class TripPlannerService {
   private async getTravelToFirstStop(
     dto: GenerateItineraryDto,
     firstPlace: Place,
+    startCache?: Map<string, number>,
   ): Promise<number> {
     if (!dto.startLat || !dto.startLng) return 0;
+
+    // Use pre-fetched cache if available — no extra API call needed
+    if (startCache?.has(firstPlace.id)) {
+      return startCache.get(firstPlace.id)!;
+    }
+
     if (this.goongApiKey) {
       const sec = await this.fetchGoongTravelSec(
         dto.startLat,

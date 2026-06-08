@@ -576,11 +576,15 @@ hoạt động đúng mà không cần thêm code đặc biệt.
 % ── Giai đoạn 3 ─────────────────────────────────────────────────────────────
 \paragraph{Giai đoạn 3 --- Định tuyến Tham lam có Ràng buộc Thời gian (Time-Window GNN)}
 
-\textit{Kỹ thuật:} Trong mỗi cụm, hệ thống gọi \textbf{Goong Distance Matrix
-API} một lần duy nhất để lấy ma trận $N \times N$ thời gian di chuyển thực tế
-bằng xe máy giữa tất cả các cặp địa điểm. Ma trận này được lưu lại để tái sử
-dụng ở các giai đoạn sau. Thuật toán GNN sau đó chọn điểm tiếp theo theo hàm
-chi phí:
+\textit{Kỹ thuật:} \textbf{Trước khi phân cụm}, hệ thống gọi \textbf{Goong
+Distance Matrix API} một lần duy nhất cho toàn bộ $N$ địa điểm (hàm
+\texttt{fetchCombinedMatrix}). Ma trận tổng hợp có dạng $(N{+}1) \times N$,
+trong đó hàng đầu là thời gian từ điểm xuất phát GPS đến từng địa điểm, còn
+$N$ hàng sau là thời gian di chuyển giữa tất cả các cặp địa điểm. Sau khi
+K-Means phân cụm xong, mỗi cụm ngày chỉ cần \textit{cắt} (slice) các hàng và
+cột tương ứng từ ma trận đã có --- không phát sinh thêm lời gọi API nào cho
+từng cụm. Ma trận này được tái sử dụng xuyên suốt các giai đoạn sau. Thuật toán
+GNN sau đó chọn điểm tiếp theo theo hàm chi phí:
 \begin{equation}
   Cost(j) = 2 \times \Delta T(i \to j) + T_{wait}(j) \times 60
 \end{equation}
@@ -656,9 +660,12 @@ Haversine (fallback) & Khi Goong API thất bại & Đảm bảo hệ thống kh
 \caption{Phân tầng khoảng cách trong Trip Planner}
 \end{table}
 
-\textbf{Xử lý giới hạn tốc độ API:} Khi nhận mã lỗi \texttt{OVER\_RATE\_LIMIT},
-hệ thống áp dụng \textbf{Exponential Backoff} --- thử lại 3 lần với độ trễ
-tăng dần 1s $\to$ 2s $\to$ 4s trước khi chuyển sang Haversine fallback.
+\textbf{Xử lý giới hạn tốc độ API:} Lời gọi \texttt{fetchCombinedMatrix} (luồng
+chính) không retry --- nếu thất bại, hệ thống ném lỗi ngay để Frontend hiển thị
+thông báo. Lời gọi đơn lẻ trong \texttt{cascadeRouteTimes} (bổ sung offset GPS)
+mới áp dụng \textbf{Exponential Backoff} --- thử lại 3 lần với độ trễ tăng dần
+1s $\to$ 2s $\to$ 4s khi nhận \texttt{OVER\_RATE\_LIMIT}, sau đó chuyển sang
+Haversine fallback nếu vẫn thất bại.
 
 \subsubsection{Cơ sở dữ liệu Trip}
 

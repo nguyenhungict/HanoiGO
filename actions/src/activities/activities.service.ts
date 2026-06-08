@@ -161,6 +161,10 @@ export class ActivitiesService {
         `Finding activities for user ${userId ?? 'guest'}. Location: ${lat}, ${lng}`,
       );
 
+      // Use LEFT JOIN aggregation instead of 5 correlated subqueries per row.
+      // This reduces DB CPU from O(n×5 index seeks) to O(5 aggregation scans).
+      // The ms LEFT JOIN also replaces the NOT EXISTS check — if ms.activity_id
+      // is NOT NULL the user already has a membership record, so we exclude it.
       const geoFilter =
         lat !== undefined && lng !== undefined
           ? this.prisma.$queryRaw<any[]>`
@@ -173,33 +177,46 @@ export class ActivitiesService {
                 a.saves_count as "savesCount", a.created_at as "createdAt",
                 u.username as "hostName", u.avatar_url as "hostAvatar",
                 u.nationality as "hostNationality",
-                (SELECT COUNT(*)::int FROM "activity_members" am
-                 WHERE am.activity_id = a.id
-                   AND am.status = 'APPROVED'::"MemberStatus") as "memberCount",
-                (SELECT COUNT(*)::int FROM "activity_likes" al
-                 WHERE al.activity_id = a.id) as "likesCount",
-                (SELECT COUNT(*)::int FROM "messages" m
-                 WHERE m.activity_id = a.id) as "commentsCount",
-                EXISTS(
-                  SELECT 1 FROM "activity_likes" al2
-                  WHERE al2.activity_id = a.id AND al2.user_id = ${userUuid}::uuid
-                ) as "isLiked",
-                (SELECT status::text FROM "activity_members" am2
-                 WHERE am2.activity_id = a.id
-                   AND am2.user_id = ${userUuid}::uuid LIMIT 1) as "myStatus"
+                COALESCE(mc.cnt, 0) as "memberCount",
+                COALESCE(lc.cnt, 0) as "likesCount",
+                COALESCE(cc.cnt, 0) as "commentsCount",
+                (ul.activity_id IS NOT NULL) as "isLiked",
+                ms.status as "myStatus"
               FROM "activities" a
               JOIN "users" u ON a.host_id = u.id
+              LEFT JOIN (
+                SELECT activity_id, COUNT(*)::int as cnt
+                FROM "activity_members"
+                WHERE status = 'APPROVED'::"MemberStatus"
+                GROUP BY activity_id
+              ) mc ON mc.activity_id = a.id
+              LEFT JOIN (
+                SELECT activity_id, COUNT(*)::int as cnt
+                FROM "activity_likes"
+                GROUP BY activity_id
+              ) lc ON lc.activity_id = a.id
+              LEFT JOIN (
+                SELECT activity_id, COUNT(*)::int as cnt
+                FROM "messages"
+                GROUP BY activity_id
+              ) cc ON cc.activity_id = a.id
+              LEFT JOIN (
+                SELECT activity_id
+                FROM "activity_likes"
+                WHERE user_id = ${userUuid}::uuid
+              ) ul ON ul.activity_id = a.id
+              LEFT JOIN (
+                SELECT activity_id, status::text as status
+                FROM "activity_members"
+                WHERE user_id = ${userUuid}::uuid
+              ) ms ON ms.activity_id = a.id
               WHERE a.status = 'OPEN'::"ActivityStatus"
                 AND ST_DWithin(
                   a.location,
                   ST_SetSRID(ST_MakePoint(${lng}, ${lat}), 4326),
                   ${radius}
                 )
-                AND NOT EXISTS (
-                  SELECT 1 FROM "activity_members" am3
-                  WHERE am3.activity_id = a.id
-                    AND am3.user_id = ${userUuid}::uuid
-                )
+                AND ms.activity_id IS NULL
               ORDER BY a.scheduled_at ASC;
             `
           : this.prisma.$queryRaw<any[]>`
@@ -212,28 +229,41 @@ export class ActivitiesService {
                 a.saves_count as "savesCount", a.created_at as "createdAt",
                 u.username as "hostName", u.avatar_url as "hostAvatar",
                 u.nationality as "hostNationality",
-                (SELECT COUNT(*)::int FROM "activity_members" am
-                 WHERE am.activity_id = a.id
-                   AND am.status = 'APPROVED'::"MemberStatus") as "memberCount",
-                (SELECT COUNT(*)::int FROM "activity_likes" al
-                 WHERE al.activity_id = a.id) as "likesCount",
-                (SELECT COUNT(*)::int FROM "messages" m
-                 WHERE m.activity_id = a.id) as "commentsCount",
-                EXISTS(
-                  SELECT 1 FROM "activity_likes" al2
-                  WHERE al2.activity_id = a.id AND al2.user_id = ${userUuid}::uuid
-                ) as "isLiked",
-                (SELECT status::text FROM "activity_members" am2
-                 WHERE am2.activity_id = a.id
-                   AND am2.user_id = ${userUuid}::uuid LIMIT 1) as "myStatus"
+                COALESCE(mc.cnt, 0) as "memberCount",
+                COALESCE(lc.cnt, 0) as "likesCount",
+                COALESCE(cc.cnt, 0) as "commentsCount",
+                (ul.activity_id IS NOT NULL) as "isLiked",
+                ms.status as "myStatus"
               FROM "activities" a
               JOIN "users" u ON a.host_id = u.id
+              LEFT JOIN (
+                SELECT activity_id, COUNT(*)::int as cnt
+                FROM "activity_members"
+                WHERE status = 'APPROVED'::"MemberStatus"
+                GROUP BY activity_id
+              ) mc ON mc.activity_id = a.id
+              LEFT JOIN (
+                SELECT activity_id, COUNT(*)::int as cnt
+                FROM "activity_likes"
+                GROUP BY activity_id
+              ) lc ON lc.activity_id = a.id
+              LEFT JOIN (
+                SELECT activity_id, COUNT(*)::int as cnt
+                FROM "messages"
+                GROUP BY activity_id
+              ) cc ON cc.activity_id = a.id
+              LEFT JOIN (
+                SELECT activity_id
+                FROM "activity_likes"
+                WHERE user_id = ${userUuid}::uuid
+              ) ul ON ul.activity_id = a.id
+              LEFT JOIN (
+                SELECT activity_id, status::text as status
+                FROM "activity_members"
+                WHERE user_id = ${userUuid}::uuid
+              ) ms ON ms.activity_id = a.id
               WHERE a.status = 'OPEN'::"ActivityStatus"
-                AND NOT EXISTS (
-                  SELECT 1 FROM "activity_members" am3
-                  WHERE am3.activity_id = a.id
-                    AND am3.user_id = ${userUuid}::uuid
-                )
+                AND ms.activity_id IS NULL
               ORDER BY a.scheduled_at ASC;
             `;
 
@@ -330,9 +360,22 @@ export class ActivitiesService {
     const today = new Date();
     today.setHours(0, 0, 0, 0);
 
-    const requestCount = await this.prisma.activityMember.count({
-      where: { userId, joinedAt: { gte: today } },
-    });
+    // Run all validation reads in parallel to avoid sequential round-trips
+    const [requestCount, existing, activities, requester] = await Promise.all([
+      this.prisma.activityMember.count({
+        where: { userId, joinedAt: { gte: today } },
+      }),
+      this.prisma.activityMember.findUnique({
+        where: { activityId_userId: { activityId, userId } },
+      }),
+      this.prisma.$queryRaw<any[]>`
+        SELECT host_id as "hostId", title, status FROM activities WHERE id = ${activityId}::uuid
+      `,
+      this.prisma.user.findUnique({
+        where: { id: userId },
+        select: { username: true },
+      }),
+    ]);
 
     if (requestCount >= 5) {
       throw new ForbiddenException(
@@ -340,19 +383,11 @@ export class ActivitiesService {
       );
     }
 
-    const existing = await this.prisma.activityMember.findUnique({
-      where: { activityId_userId: { activityId, userId } },
-    });
-
     if (existing) {
       throw new BadRequestException(
         'You have already sent a request or are a member of this activity.',
       );
     }
-
-    const activities = await this.prisma.$queryRaw<any[]>`
-      SELECT host_id as "hostId", title, status FROM activities WHERE id = ${activityId}::uuid
-    `;
 
     if (activities.length === 0) throw new NotFoundException('Activity not found');
     if (activities[0].status !== 'OPEN') {
@@ -361,24 +396,21 @@ export class ActivitiesService {
 
     const activity = activities[0];
 
-    const requester = await this.prisma.user.findUnique({
-      where: { id: userId },
-      select: { username: true },
-    });
-
     const member = await this.prisma.activityMember.create({
       data: { activityId, userId, status: MemberStatus.PENDING },
     });
 
-    // Notify the host
-    await this.notificationsService.create(
-      activity.hostId,
-      NotificationType.ACTIVITY_REQUEST,
-      'Join Request',
-      `${requester?.username || 'Someone'} wants to join "${activity.title}"`,
-      'ACTIVITY',
-      activityId,
-    );
+    // Fire-and-forget: don't block the response waiting for notification
+    this.notificationsService
+      .create(
+        activity.hostId,
+        NotificationType.ACTIVITY_REQUEST,
+        'Join Request',
+        `${requester?.username || 'Someone'} wants to join "${activity.title}"`,
+        'ACTIVITY',
+        activityId,
+      )
+      .catch((err) => this.logger.error('Failed to send join notification:', err));
 
     return member;
   }
@@ -486,29 +518,41 @@ export class ActivitiesService {
           a.saves_count as "savesCount", a.created_at as "createdAt",
           u.username as "hostName", u.avatar_url as "hostAvatar",
           u.nationality as "hostNationality",
-          (SELECT COUNT(*)::int FROM "activity_members" am
-           WHERE am.activity_id = a.id
-             AND am.status = 'APPROVED'::"MemberStatus") as "memberCount",
-          (SELECT COUNT(*)::int FROM "activity_likes" al
-           WHERE al.activity_id = a.id) as "likesCount",
-          (SELECT COUNT(*)::int FROM "messages" m
-           WHERE m.activity_id = a.id) as "commentsCount",
-          EXISTS(
-            SELECT 1 FROM "activity_likes" al2
-            WHERE al2.activity_id = a.id AND al2.user_id = ${userId}::uuid
-          ) as "isLiked",
-          (SELECT status::text FROM "activity_members" am2
-           WHERE am2.activity_id = a.id
-             AND am2.user_id = ${userId}::uuid LIMIT 1) as "myStatus"
+          COALESCE(mc.cnt, 0) as "memberCount",
+          COALESCE(lc.cnt, 0) as "likesCount",
+          COALESCE(cc.cnt, 0) as "commentsCount",
+          (ul.activity_id IS NOT NULL) as "isLiked",
+          ms.status as "myStatus"
         FROM "activities" a
         JOIN "users" u ON a.host_id = u.id
+        LEFT JOIN (
+          SELECT activity_id, COUNT(*)::int as cnt
+          FROM "activity_members"
+          WHERE status = 'APPROVED'::"MemberStatus"
+          GROUP BY activity_id
+        ) mc ON mc.activity_id = a.id
+        LEFT JOIN (
+          SELECT activity_id, COUNT(*)::int as cnt
+          FROM "activity_likes"
+          GROUP BY activity_id
+        ) lc ON lc.activity_id = a.id
+        LEFT JOIN (
+          SELECT activity_id, COUNT(*)::int as cnt
+          FROM "messages"
+          GROUP BY activity_id
+        ) cc ON cc.activity_id = a.id
+        LEFT JOIN (
+          SELECT activity_id
+          FROM "activity_likes"
+          WHERE user_id = ${userId}::uuid
+        ) ul ON ul.activity_id = a.id
+        LEFT JOIN (
+          SELECT activity_id, status::text as status
+          FROM "activity_members"
+          WHERE user_id = ${userId}::uuid
+        ) ms ON ms.activity_id = a.id
         WHERE a.host_id = ${userId}::uuid
-           OR EXISTS (
-             SELECT 1 FROM "activity_members" m2
-             WHERE m2.activity_id = a.id
-               AND m2.user_id = ${userId}::uuid
-               AND m2.status IN ('APPROVED'::"MemberStatus", 'PENDING'::"MemberStatus")
-           )
+           OR (ms.activity_id IS NOT NULL AND ms.status IN ('APPROVED', 'PENDING'))
         ORDER BY a.scheduled_at ASC;
       `;
     } catch (error) {

@@ -128,40 +128,28 @@ export default function ProfilePage() {
   };
 
   return (
-    <div className="w-full bg-surface-container-lowest animate-in fade-in duration-1000">
-      {/* Hero Header Section */}
-      <div className="relative h-80 w-full overflow-hidden">
-        <img
-          src="https://images.unsplash.com/photo-1509030450996-93f25ef2030f?w=1600&q=80"
-          className="w-full h-full object-cover brightness-75 scale-105"
-          alt="Hanoi Cover"
-        />
-        <div className="absolute inset-0 bg-gradient-to-t from-surface-container-lowest via-transparent to-black/20" />
-      </div>
-
-      <div className="max-w-6xl mx-auto px-8 -mt-24 relative z-10 pb-20">
+    <div className="w-full bg-background min-h-screen animate-in fade-in duration-1000">
+      <div className="max-w-6xl mx-auto px-8 pt-12 pb-20 relative z-10">
         <div className="flex flex-col lg:flex-row gap-10">
 
           {/* Left Column: User Card */}
           <aside className="w-full lg:w-1/3 space-y-6">
-            <div className="bg-white rounded-[2.5rem] p-10 shadow-2xl shadow-rose-900/10 border border-outline-variant/10 relative">
-              <div className="absolute -top-16 left-1/2 -translate-x-1/2">
-                <div className="w-32 h-32 rounded-full border-[6px] border-white bg-surface-container-high overflow-hidden shadow-xl ring-4 ring-primary/5 capitalize flex items-center justify-center">
-                  {user?.avatarUrl ? (
-                    <img 
-                      src={resolveImageUrl(user.avatarUrl) || ''} 
-                      alt="Avatar" 
-                      className="w-full h-full object-cover"
-                    />
-                  ) : (
-                    <div className="w-full h-full bg-primary flex items-center justify-center text-white text-4xl font-black">
-                      {user?.username?.charAt(0) || 'H'}
-                    </div>
-                  )}
-                </div>
+            <div className="bg-white rounded-[2.5rem] p-10 shadow-xl shadow-rose-900/5 border border-outline-variant/10 flex flex-col items-center">
+              <div className="w-32 h-32 rounded-full border-[6px] border-white bg-surface-container-high overflow-hidden shadow-xl ring-4 ring-primary/5 capitalize flex items-center justify-center mb-6">
+                {user?.avatarUrl ? (
+                  <img 
+                    src={resolveImageUrl(user.avatarUrl) || ''} 
+                    alt="Avatar" 
+                    className="w-full h-full object-cover"
+                  />
+                ) : (
+                  <div className="w-full h-full bg-primary flex items-center justify-center text-white text-4xl font-black">
+                    {user?.username?.charAt(0) || 'H'}
+                  </div>
+                )}
               </div>
 
-              <div className="pt-16 text-center space-y-4">
+              <div className="text-center space-y-4 w-full">
                 <div className="space-y-1">
                   <h1 className="text-3xl font-black tracking-tighter text-on-surface leading-none decoration-primary/30">
                     {user?.fullName || user?.username || 'Traveler'}

@@ -4,7 +4,9 @@ import {
   UseInterceptors,
   UploadedFile,
   BadRequestException,
+  Body,
 } from '@nestjs/common';
+import { deleteFileFromStorage } from '../common/storage.utils';
 import { FileInterceptor } from '@nestjs/platform-express';
 import { memoryStorage } from 'multer';
 import { extname } from 'path';
@@ -33,9 +35,17 @@ export class MediaController {
       throw new BadRequestException('File is required');
     }
 
-    const supabaseUrl = process.env.SUPABASE_URL;
+    let supabaseUrl = process.env.SUPABASE_URL;
     const supabaseKey = process.env.SUPABASE_KEY;
     const supabaseBucket = process.env.SUPABASE_BUCKET || 'hanoigo-uploads';
+
+    if (!supabaseUrl && process.env.DATABASE_URL) {
+      const match = process.env.DATABASE_URL.match(/postgres\.([a-z0-9]+)/i);
+      if (match && match[1]) {
+        supabaseUrl = `https://${match[1]}.supabase.co`;
+        console.log(`Auto-inferred SUPABASE_URL: ${supabaseUrl}`);
+      }
+    }
 
     const uniqueSuffix = Date.now() + '-' + Math.round(Math.random() * 1e9);
     const ext = extname(file.originalname);
@@ -77,5 +87,14 @@ export class MediaController {
 
     const url = `/uploads/${filename}`;
     return { url };
+  }
+
+  @Post('delete')
+  async deleteFile(@Body('url') url: string) {
+    if (!url) {
+      throw new BadRequestException('URL is required');
+    }
+    const success = await deleteFileFromStorage(url);
+    return { success };
   }
 }

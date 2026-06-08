@@ -27,11 +27,17 @@ export async function GET(request: Request) {
     });
 
     if (!backendResponse.ok) {
-      const response = NextResponse.json({ authenticated: false }, { status: 401 });
-      response.cookies.delete('accessToken');
-      response.cookies.delete('username');
-      response.cookies.delete('user_role');
-      return response;
+      if (backendResponse.status === 401 || backendResponse.status === 403) {
+        const response = NextResponse.json({ authenticated: false }, { status: 401 });
+        response.cookies.delete('accessToken');
+        response.cookies.delete('username');
+        response.cookies.delete('user_role');
+        return response;
+      }
+      return NextResponse.json(
+        { authenticated: false, message: 'Backend service temporarily unavailable' },
+        { status: backendResponse.status || 500 }
+      );
     }
 
     return NextResponse.json({ authenticated: true });

@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useMemo, useCallback, useEffect } from 'react';
+import React, { useState, useMemo, useCallback, useEffect, useRef } from 'react';
 import dynamic from 'next/dynamic';
 import Link from 'next/link';
 import { useTripStore } from '@/store/useTripStore';
@@ -76,7 +76,7 @@ export default function TripsPage() {
   const [showConfigModal, setShowConfigModal] = useState(false);
   const [isGenerating, setIsGenerating] = useState(false);
   const [itinerary, setItinerary] = useState<ItineraryResult | null>(null);
-  const [activeDayTab, setActiveDayTab] = useState(1);
+  const [activeDayTab, setActiveDayTab] = useState<number | null>(null);
   const [userLocation, setUserLocation] = useState<[number, number] | null>(null);
 
   // Starting point selection
@@ -85,6 +85,7 @@ export default function TripsPage() {
   const [locationSearchQuery, setLocationSearchQuery] = useState('');
   const [locationSuggestions, setLocationSuggestions] = useState<Array<{ place_id: string; description: string }>>([]);
   const [isSearchingLocation, setIsSearchingLocation] = useState(false);
+  const locationSearchDebounce = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   const { token, setUser, setToken } = useAuthStore();
   const [savedTrips, setSavedTrips] = useState<SavedTrip[]>([]);
@@ -102,7 +103,7 @@ export default function TripsPage() {
       if (session) { setUser(session.user); setToken(session.token); }
       else { setUser(null); setToken(null); }
     });
-  // eslint-disable-next-line react-hooks/exhaustive-deps
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   const fetchSavedTrips = useCallback(async () => {
@@ -196,7 +197,7 @@ export default function TripsPage() {
             if (errJson.message) {
               errMsg = Array.isArray(errJson.message) ? errJson.message.join(', ') : errJson.message;
             }
-          } catch {}
+          } catch { }
         }
 
         show({
@@ -256,14 +257,14 @@ export default function TripsPage() {
     };
 
     setItinerary(formattedItinerary);
-    setActiveDayTab(1);
+    setActiveDayTab(null);
     setViewMode('create');
   };
 
   const handleDeleteTrip = async (e: React.MouseEvent, tripId: string) => {
     e.stopPropagation();
     if (!token) return;
-    
+
     const isConfirmed = await confirm({
       title: 'Delete Trip',
       message: 'Are you sure you want to delete this trip? This action cannot be undone.',
@@ -300,27 +301,32 @@ export default function TripsPage() {
     return h * 60 + m;
   };
 
-  const handleLocationSearch = async (query: string) => {
+  const handleLocationSearch = (query: string) => {
     setLocationSearchQuery(query);
     setCustomStartLocation(null);
+
+    if (locationSearchDebounce.current) clearTimeout(locationSearchDebounce.current);
+
     if (!query || query.length < 2) {
       setLocationSuggestions([]);
       return;
     }
+
     setIsSearchingLocation(true);
-    try {
-      const goongKey = process.env.NEXT_PUBLIC_GOONG_API_KEY;
-      // location bias: Hanoi center, radius roughly covers Hanoi
-      const res = await fetch(
-        `https://rsapi.goong.io/Place/AutoComplete?api_key=${goongKey}&input=${encodeURIComponent(query)}&location=21.0285,105.8542&limit=5&more_compound=true`
-      );
-      const data = await res.json();
-      setLocationSuggestions(data.predictions ?? []);
-    } catch {
-      setLocationSuggestions([]);
-    } finally {
-      setIsSearchingLocation(false);
-    }
+    locationSearchDebounce.current = setTimeout(async () => {
+      try {
+        const goongKey = process.env.NEXT_PUBLIC_GOONG_API_KEY;
+        const res = await fetch(
+          `https://rsapi.goong.io/Place/AutoComplete?api_key=${goongKey}&input=${encodeURIComponent(query)}&location=21.0285,105.8542&limit=5&more_compound=true`
+        );
+        const data = await res.json();
+        setLocationSuggestions(data.predictions ?? []);
+      } catch {
+        setLocationSuggestions([]);
+      } finally {
+        setIsSearchingLocation(false);
+      }
+    }, 500);
   };
 
   const handleSelectLocationSuggestion = async (prediction: { place_id: string; description: string }) => {
@@ -343,19 +349,31 @@ export default function TripsPage() {
 
   const handleGenerate = async () => {
     if (count < 2) return;
+
+    let authToken = token;
+    if (!authToken) {
+      const session = await getSessionAction();
+      if (session?.token) { authToken = session.token; setUser(session.user); setToken(session.token); }
+    }
+    if (!authToken) {
+      show({ type: 'error', title: 'Authentication Required', message: 'Please log in to generate a trip!' });
+      return;
+    }
+
     setIsGenerating(true);
     setShowConfigModal(false);
 
     try {
-      const selectedIds = places.map((l) => l.id);
-
       const res = await fetch(
         `${process.env.NEXT_PUBLIC_ACTIONS_URL}/trips/generate-itinerary`,
         {
           method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
+          headers: {
+            'Content-Type': 'application/json',
+            Authorization: `Bearer ${authToken}`,
+          },
           body: JSON.stringify({
-            placeIds: selectedIds,
+            placeIds: places.map((l) => l.id),
             numDays: config.numDays,
             startTime: timeToMin(config.startTime),
             endTime: timeToMin(config.endTime),
@@ -369,11 +387,22 @@ export default function TripsPage() {
         }
       );
 
+      if (!res.ok) {
+        let errMsg = 'Could not generate itinerary. Please try again.';
+        try {
+          const errJson = await res.json();
+          if (errJson.message) errMsg = Array.isArray(errJson.message) ? errJson.message.join(', ') : errJson.message;
+        } catch {}
+        show({ type: 'error', title: `Error (${res.status})`, message: errMsg });
+        return;
+      }
+
       const data: ItineraryResult = await res.json();
       setItinerary(data);
-      setActiveDayTab(1);
+      setActiveDayTab(null);
     } catch (err) {
       console.error('Failed to generate itinerary:', err);
+      show({ type: 'error', title: 'Connection Error', message: 'Could not reach the server. Please check your connection.' });
     } finally {
       setIsGenerating(false);
     }
@@ -383,26 +412,28 @@ export default function TripsPage() {
     setItinerary(null);
   };
 
-  // Build itinerary markers for the map — memoized to avoid recreating on every render
+  // Build itinerary markers — all days when no tab selected, filtered when tab active
   const itineraryMarkers = useMemo(() =>
-    itinerary?.days?.flatMap((day) =>
-      day.stops.map((stop) => ({
-        placeId: stop.placeId,
-        lat: stop.lat,
-        lng: stop.lng,
-        name: stop.name,
-        order: stop.order,
-        color: day.color,
-        dayNumber: day.dayNumber,
-        arriveAt: stop.arriveAt,
-        departAt: stop.departAt,
-      }))
-    ) || []
-  , [itinerary]);
+    itinerary?.days
+      ?.filter((day) => activeDayTab === null || day.dayNumber === activeDayTab)
+      .flatMap((day) =>
+        day.stops.map((stop) => ({
+          placeId: stop.placeId,
+          lat: stop.lat,
+          lng: stop.lng,
+          name: stop.name,
+          order: stop.order,
+          color: day.color,
+          dayNumber: day.dayNumber,
+          arriveAt: stop.arriveAt,
+          departAt: stop.departAt,
+        }))
+      ) || []
+    , [itinerary, activeDayTab]);
 
   const activeDay = useMemo(() =>
     itinerary?.days?.find((d) => d.dayNumber === activeDayTab)
-  , [itinerary, activeDayTab]);
+    , [itinerary, activeDayTab]);
 
   const freeH = activeDay ? Math.floor(activeDay.freeTimeMin / 60) : 0;
   const freeM = activeDay ? activeDay.freeTimeMin % 60 : 0;
@@ -438,15 +469,27 @@ export default function TripsPage() {
 
               {/* Day Tabs */}
               <div className="flex gap-2">
+                {(itinerary.days?.length ?? 0) > 1 && (
+                  <button
+                    onClick={() => setActiveDayTab(null)}
+                    className={`px-3 py-2.5 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all flex items-center justify-center gap-1.5
+                      ${activeDayTab === null
+                        ? 'bg-on-surface text-white shadow-md'
+                        : 'bg-surface-container-high text-outline hover:brightness-95'
+                      }`}
+                  >
+                    <span className="material-symbols-outlined text-sm">map</span>
+                    All
+                  </button>
+                )}
                 {itinerary.days?.map((day) => (
                   <button
                     key={day.dayNumber}
                     onClick={() => setActiveDayTab(day.dayNumber)}
                     className={`flex-1 py-2.5 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all flex items-center justify-center gap-2
-                      ${
-                        activeDayTab === day.dayNumber
-                          ? 'text-white shadow-md'
-                          : 'bg-surface-container-high text-outline hover:brightness-95'
+                      ${activeDayTab === day.dayNumber
+                        ? 'text-white shadow-md'
+                        : 'bg-surface-container-high text-outline hover:brightness-95'
                       }`}
                     style={
                       activeDayTab === day.dayNumber
@@ -500,17 +543,17 @@ export default function TripsPage() {
                     Timeline
                   </label>
                   {activeDay.stops.map((stop, idx) => {
-                    const prevDepartMin = idx > 0 
-                      ? timeToMin(activeDay.stops[idx - 1].departAt) 
+                    const prevDepartMin = idx > 0
+                      ? timeToMin(activeDay.stops[idx - 1].departAt)
                       : timeToMin(config.startTime);
-                    
+
                     const currentArriveMin = timeToMin(stop.arriveAt);
                     const currentStartVisitMin = currentArriveMin + stop.waitMin;
                     const lunchStartMin = timeToMin(config.lunchBreakStart);
                     const lunchEndMin = timeToMin(config.lunchBreakEnd);
 
-                    const showsLunchBreakBefore = 
-                      prevDepartMin <= lunchStartMin && 
+                    const showsLunchBreakBefore =
+                      prevDepartMin <= lunchStartMin &&
                       currentStartVisitMin >= lunchEndMin;
 
                     // Calculate real wait time excluding lunch break
@@ -561,52 +604,114 @@ export default function TripsPage() {
                             </div>
                             {idx < activeDay.stops.length - 1 && (
                               <div
-                                className="w-0.5 flex-1 my-1 rounded-full"
-                                style={{
-                                  backgroundColor: activeDay.color,
-                                  opacity: 0.2,
-                                }}
-                              ></div>
-                            )}
-                          </div>
+                                  className="w-0.5 flex-1 my-1 rounded-full"
+                                  style={{
+                                    backgroundColor: activeDay.color,
+                                    opacity: 0.2,
+                                  }}
+                                ></div>
+                              )}
+                            </div>
 
-                          {/* Right — card */}
-                          <div className="flex-1 pb-4">
-                            {stop.travelFromPrevMin > 0 && (
-                              <div className="flex items-center gap-1.5 mb-2 text-[10px] font-bold text-outline">
-                                <span className="material-symbols-outlined text-[14px]">
-                                  two_wheeler
-                                </span>
-                                {stop.travelFromPrevMin} min travel
-                                {displayWait > 0 && (
-                                  <span className="text-amber-600">
-                                    {' '}
-                                    • ⏳ wait {displayWait}m
+                            {/* Right — card */}
+                            <div className="flex-1 pb-4">
+                              {stop.travelFromPrevMin > 0 && (
+                                <div className="flex items-center gap-1.5 mb-2 text-[10px] font-bold text-outline">
+                                  <span className="material-symbols-outlined text-[14px]">
+                                    two_wheeler
                                   </span>
-                                )}
-                              </div>
-                            )}
-                            <div className="bg-surface-container-lowest border border-outline/5 p-4 rounded-2xl hover:border-primary/20 hover:shadow-lg transition-all relative z-0">
-                              <div className="flex justify-between items-start mb-1">
-                                <h3 className="font-black text-base tracking-tight text-on-surface leading-tight">
-                                  {stop.name}
-                                </h3>
-                              </div>
-                              <div className="flex items-center gap-3 mt-2">
-                                <span className="px-2.5 py-1 bg-primary/5 text-primary text-[9px] font-black rounded-lg uppercase tracking-wider">
-                                  {/* Format depart time from min to time */}
-                                  {Math.floor(currentStartVisitMin / 60).toString().padStart(2, '0')}:{Math.floor(currentStartVisitMin % 60).toString().padStart(2, '0')} — {stop.departAt}
-                                </span>
-                                <span className="text-[9px] font-bold text-outline uppercase tracking-wider">
-                                  {stop.district}
-                                </span>
+                                  {stop.travelFromPrevMin} min travel
+                                  {displayWait > 0 && (
+                                    <span className="text-amber-600">
+                                      {' '}
+                                      • ⏳ wait {displayWait}m
+                                    </span>
+                                  )}
+                                </div>
+                              )}
+                              <div className="bg-surface-container-lowest border border-outline/5 p-4 rounded-2xl hover:border-primary/20 hover:shadow-lg transition-all relative z-0">
+                                <div className="flex justify-between items-start mb-1">
+                                  <h3 className="font-black text-base tracking-tight text-on-surface leading-tight">
+                                    {stop.name}
+                                  </h3>
+                                </div>
+                                <div className="flex items-center gap-3 mt-2">
+                                  <span className="px-2.5 py-1 bg-primary/5 text-primary text-[9px] font-black rounded-lg uppercase tracking-wider">
+                                    {/* Format depart time from min to time */}
+                                    {Math.floor(currentStartVisitMin / 60).toString().padStart(2, '0')}:{Math.floor(currentStartVisitMin % 60).toString().padStart(2, '0')} — {stop.departAt}
+                                  </span>
+                                  <span className="text-[9px] font-bold text-outline uppercase tracking-wider">
+                                    {stop.district}
+                                  </span>
+                                </div>
                               </div>
                             </div>
                           </div>
+                        </React.Fragment>
+                      );
+                    })}
+                  </div>
+                )}
+
+              {/* Summary for "All" Tab (3 places per day overview, showing all days) */}
+              {activeDayTab === null && itinerary.days && (
+                <div className="space-y-6 animate-in fade-in duration-300">
+                  <label className="font-label text-[10px] font-black uppercase tracking-widest text-outline block mb-1">
+                    Trip Overview
+                  </label>
+                  <div className="space-y-4">
+                    {itinerary.days.map((day) => (
+                      <div
+                        key={day.dayNumber}
+                        className="bg-surface-container-lowest border border-outline/5 p-4 rounded-2xl shadow-sm hover:border-primary/20 hover:shadow-md transition-all duration-300 hover:scale-[1.01]"
+                      >
+                        <div className="flex items-center gap-2 mb-3">
+                          <div
+                            className="w-2.5 h-2.5 rounded-full animate-pulse"
+                            style={{ backgroundColor: day.color }}
+                          />
+                          <h3 className="font-black text-sm text-on-surface tracking-tight">
+                            Day {day.dayNumber} ({day.dayLabel})
+                          </h3>
+                          <span className="text-[10px] font-black text-outline uppercase ml-auto bg-surface-container-high px-2 py-0.5 rounded-lg">
+                            {day.stops.length} places
+                          </span>
                         </div>
-                      </React.Fragment>
-                    );
-                  })}
+                        <div className="space-y-2.5">
+                          {day.stops.slice(0, 3).map((stop, sIdx) => (
+                            <div key={stop.placeId} className="flex items-center gap-3 pl-2 relative">
+                              {/* Connector line for the stops */}
+                              {sIdx < Math.min(day.stops.length, 3) - 1 && (
+                                <div
+                                  className="absolute left-[17px] top-4 bottom-0 w-0.5"
+                                  style={{ backgroundColor: day.color, opacity: 0.2 }}
+                                />
+                              )}
+                              <div
+                                className="w-5 h-5 rounded-full flex items-center justify-center text-[10px] font-black text-white shrink-0 z-10 shadow-sm"
+                                style={{ backgroundColor: day.color }}
+                              >
+                                {stop.order}
+                              </div>
+                              <div className="flex-1 min-w-0">
+                                <p className="text-xs font-black text-on-surface truncate">
+                                  {stop.name}
+                                </p>
+                                <p className="text-[9px] text-outline font-bold uppercase tracking-wider">
+                                  {stop.arriveAt} — {stop.departAt}
+                                </p>
+                              </div>
+                            </div>
+                          ))}
+                          {day.stops.length > 3 && (
+                            <div className="text-[9px] font-black text-primary uppercase tracking-widest pl-[32px] pt-0.5">
+                              + {day.stops.length - 3} more places
+                            </div>
+                          )}
+                        </div>
+                      </div>
+                    ))}
+                  </div>
                 </div>
               )}
 
@@ -664,21 +769,19 @@ export default function TripsPage() {
               <div className="flex bg-surface-container-high rounded-xl p-1 mb-6">
                 <button
                   onClick={() => setViewMode('create')}
-                  className={`flex-1 py-2 text-[10px] font-black uppercase tracking-widest rounded-lg transition-all ${
-                    viewMode === 'create'
-                      ? 'bg-white shadow-sm text-on-surface'
-                      : 'text-outline hover:text-on-surface'
-                  }`}
+                  className={`flex-1 py-2 text-[10px] font-black uppercase tracking-widest rounded-lg transition-all ${viewMode === 'create'
+                    ? 'bg-white shadow-sm text-on-surface'
+                    : 'text-outline hover:text-on-surface'
+                    }`}
                 >
                   New Trip
                 </button>
                 <button
                   onClick={() => setViewMode('saved')}
-                  className={`flex-1 py-2 text-[10px] font-black uppercase tracking-widest rounded-lg transition-all flex items-center justify-center gap-1.5 ${
-                    viewMode === 'saved'
-                      ? 'bg-white shadow-sm text-on-surface'
-                      : 'text-outline hover:text-on-surface'
-                  }`}
+                  className={`flex-1 py-2 text-[10px] font-black uppercase tracking-widest rounded-lg transition-all flex items-center justify-center gap-1.5 ${viewMode === 'saved'
+                    ? 'bg-white shadow-sm text-on-surface'
+                    : 'text-outline hover:text-on-surface'
+                    }`}
                 >
                   Saved
                   <span className="bg-primary/10 text-primary px-1.5 py-0.5 rounded text-[8px]">
@@ -737,7 +840,7 @@ export default function TripsPage() {
                           </span>
                         </div>
                         <div className="flex items-center gap-2 mt-4">
-                          <button 
+                          <button
                             onClick={(e) => {
                               e.stopPropagation();
                               handleViewSavedTrip(trip);
@@ -746,7 +849,7 @@ export default function TripsPage() {
                           >
                             View Details
                           </button>
-                          <button 
+                          <button
                             onClick={(e) => {
                               e.stopPropagation();
                               setTripToShare(trip.id);
@@ -994,10 +1097,9 @@ export default function TripsPage() {
                     key={n}
                     onClick={() => setConfig({ numDays: n })}
                     className={`flex-1 py-3 rounded-xl text-sm font-black transition-all
-                      ${
-                        config.numDays === n
-                          ? 'bg-primary text-white shadow-md shadow-primary/20'
-                          : 'bg-surface-container-high text-outline hover:bg-primary/10'
+                      ${config.numDays === n
+                        ? 'bg-primary text-white shadow-md shadow-primary/20'
+                        : 'bg-surface-container-high text-outline hover:bg-primary/10'
                       }`}
                   >
                     {n}
@@ -1129,9 +1231,6 @@ export default function TripsPage() {
             <p className="text-sm font-black text-on-surface">
               Optimizing itinerary...
             </p>
-            <p className="text-[10px] font-bold text-outline uppercase tracking-widest">
-              Goong Distance Matrix API
-            </p>
           </div>
         </div>
       )}
@@ -1146,7 +1245,7 @@ export default function TripsPage() {
             <p className="text-xs font-medium text-outline mb-5">
               Give this itinerary a name to find it easily later.
             </p>
-            
+
             <div className="space-y-2 mb-6">
               <label className="text-[10px] font-black text-outline uppercase tracking-widest block">
                 Itinerary Name

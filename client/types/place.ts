@@ -11,6 +11,10 @@ export interface Place {
   alwaysOpen: boolean;
   openTimeStart?: string | Date;
   openTimeEnd?: string | Date;
+  descriptionEn?: string | null;
+  gallery?: Array<{ id: string; url: string }> | null;
+  openDays?: number[] | null;
+  visitDurationMin?: number | null;
   _count?: {
     tripStops: number;
   };

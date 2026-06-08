@@ -1,3 +1,5 @@
+import { resolveImageUrl } from './actions/config';
+
 export interface Landmark {
   id: string;
   name: string;
@@ -22,14 +24,27 @@ export type PlaceStory = {
 // Default static data for fallback
 export const staticLandmarks: Landmark[] = [];
 
+const CLIENT_CACHE_KEY = 'hanoigo_landmarks_v1';
+const CLIENT_CACHE_TTL = 5 * 60 * 1000; // 5 minutes
+
 // API fetch function
 export async function fetchLandmarks(): Promise<Landmark[]> {
+  // Client-side: return from sessionStorage if fresh (avoids refetch on navigation)
+  if (typeof window !== 'undefined') {
+    try {
+      const raw = sessionStorage.getItem(CLIENT_CACHE_KEY);
+      if (raw) {
+        const { data, ts } = JSON.parse(raw) as { data: Landmark[]; ts: number };
+        if (Date.now() - ts < CLIENT_CACHE_TTL) return data;
+      }
+    } catch { /* ignore parse errors */ }
+  }
+
   try {
     const baseUrl = process.env.NEXT_PUBLIC_ACTIONS_URL || 'http://localhost:8888';
-    // Force revalidation to bypass any Next.js or browser cache
-    const response = await fetch(`${baseUrl}/places`, { 
-      cache: 'no-store',
-      headers: { 'Pragma': 'no-cache', 'Cache-Control': 'no-cache' }
+    // Server-side: Next.js caches this for 1 hour; client-side: browser HTTP cache applies
+    const response = await fetch(`${baseUrl}/places`, {
+      next: { revalidate: 3600, tags: ['landmarks'] },
     });
     
     if (!response.ok) throw new Error('Failed to fetch from API');
@@ -50,19 +65,21 @@ export async function fetchLandmarks(): Promise<Landmark[]> {
       return "https://images.unsplash.com/photo-1509030450996-93f25ef2030f?w=800&q=80";
     };
 
-    return data.map((p: any) => {
+    const landmarks = data.map((p: any) => {
       const category = p.category || 'Sightseeing';
       const placeholder = getPlaceholder(category);
-      
+
       // Defensive check: if imageUrl exists but is a broken/deprecated link, use placeholder
       const isValidImage = p.imageUrl && !p.imageUrl.includes('source.unsplash.com');
-      
+
       return {
         id: p.id,
         name: p.name,
-        image: isValidImage ? p.imageUrl : placeholder,
-        gallery: (p.gallery && p.gallery.length > 0) 
-          ? p.gallery.map((img: any) => img.url).filter((url: string) => !url.includes('source.unsplash.com'))
+        image: isValidImage ? (resolveImageUrl(p.imageUrl) || placeholder) : placeholder,
+        gallery: (p.gallery && p.gallery.length > 0)
+          ? p.gallery
+              .map((img: any) => resolveImageUrl(img.url) || placeholder)
+              .filter((url: string) => !url.includes('source.unsplash.com'))
           : [placeholder],
         rating: 4.5,
         category: category,
@@ -72,6 +89,15 @@ export async function fetchLandmarks(): Promise<Landmark[]> {
         district: p.district || 'Hoàn Kiếm'
       };
     });
+
+    // Persist to sessionStorage so subsequent navigations skip the fetch
+    if (typeof window !== 'undefined') {
+      try {
+        sessionStorage.setItem(CLIENT_CACHE_KEY, JSON.stringify({ data: landmarks, ts: Date.now() }));
+      } catch { /* ignore quota errors */ }
+    }
+
+    return landmarks;
   } catch (error: any) {
     if (error?.digest === 'DYNAMIC_SERVER_USAGE' || error?.message?.includes('DYNAMIC_SERVER_USAGE')) {
       throw error;
@@ -159,16 +185,8 @@ export function getPlaceStory(landmark: Landmark): PlaceStory {
     archiveNote: `From the discovery map, ${landmark.name} should feel less like a pin and more like a chapter: a place where route, memory, and atmosphere overlap.`,
     sections: [
       {
-        title: 'Opening Frame',
+        title: 'About This Place',
         body: baseDescription,
-      },
-      {
-        title: 'Why It Matters',
-        body: `${landmark.name} is best understood through ${lens.focus}. It works not only as a destination, but as a lens on the surrounding district and its cultural tempo.`,
-      },
-      {
-        title: 'How To Read The Place',
-        body: `Arrive with enough time to notice transitions in sound, movement, and material detail. The strongest experience here comes from observing how visitors, locals, and the setting shape one another in real time.`,
       },
     ],
     facts: [

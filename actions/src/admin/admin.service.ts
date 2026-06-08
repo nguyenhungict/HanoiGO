@@ -6,17 +6,18 @@ import {
 import { PrismaService } from '../prisma/prisma.service';
 import { ViolationType, ReportStatus, Role, UserStatus, NotificationType } from '@prisma/client';
 import * as bcrypt from 'bcrypt';
-import * as crypto from 'crypto';
 import { CreatePlaceDto } from './dto/create-place.dto';
 import { UpdatePlaceDto } from './dto/update-place.dto';
 import { CreateUserDto } from './dto/create-user.dto';
 import { NotificationsService } from '../notifications/notifications.service';
+import { PlacesService } from '../places/places.service';
 
 @Injectable()
 export class AdminService {
   constructor(
     private prisma: PrismaService,
     private notificationsService: NotificationsService,
+    private placesService: PlacesService,
   ) {}
 
   // ── Dashboard Stats ────────────────────────────────────────────────
@@ -333,121 +334,21 @@ export class AdminService {
     return user;
   }
 
-  // ── Place Management ───────────────────────────────────────────────
-  async getPlaces(page = 1, limit = 10, search?: string, category?: string) {
-    const skip = (page - 1) * limit;
-    const where: any = {};
-
-    if (search) {
-      where.name = { contains: search, mode: 'insensitive' };
-    }
-    if (category && category !== 'All') {
-      where.category = category;
-    }
-
-    const [places, total] = await Promise.all([
-      this.prisma.place.findMany({
-        where,
-        skip,
-        take: limit,
-        orderBy: { name: 'asc' },
-        include: { _count: { select: { tripStops: true } } },
-      }),
-      this.prisma.place.count({ where }),
-    ]);
-
-    return { places, total, page, lastPage: Math.ceil(total / limit) || 1 };
+  // ── Place Management (delegated to PlacesService) ─────────────────
+  getPlaces(page = 1, limit = 10, search?: string, category?: string) {
+    return this.placesService.findAllAdmin(page, limit, search, category);
   }
 
-  private parseTime(timeStr?: string): Date | null {
-    if (!timeStr) return null;
-    const [hours, minutes] = timeStr.split(':').map(Number);
-    const date = new Date();
-    date.setHours(hours, minutes, 0, 0);
-    return date;
+  createPlace(dto: CreatePlaceDto) {
+    return this.placesService.createPlace(dto);
   }
 
-  async createPlace(dto: CreatePlaceDto) {
-    const wkt = `SRID=4326;POINT(${dto.lng} ${dto.lat})`;
-
-    // We use executeRaw for the geometry field because Prisma doesn't support it directly
-    // But first we create the record without the geometry to get an ID if needed,
-    // or just use executeRaw for the whole thing like the seed script.
-
-    try {
-      const id = crypto.randomUUID();
-      await this.prisma.$executeRawUnsafe(
-        `INSERT INTO places (
-          id, name, category, district, address, lat, lng, location, image_url, tags, always_open, 
-          open_time_start, open_time_end, created_at
-        ) VALUES (
-          $1::uuid, $2, $3, $4, $5, $6, $7, ST_GeomFromEWKT($8), $9, $10, $11, $12, $13, now()
-        )`,
-        id,
-        dto.name,
-        dto.category,
-        dto.district,
-        dto.address || null,
-        dto.lat,
-        dto.lng,
-        wkt,
-        dto.imageUrl || null,
-        dto.tags || [],
-        dto.alwaysOpen || false,
-        this.parseTime(dto.openTimeStart),
-        this.parseTime(dto.openTimeEnd),
-      );
-
-      return this.prisma.place.findUnique({ where: { id } });
-    } catch (error) {
-      if (error.code === 'P2002')
-        throw new BadRequestException('Place with this name already exists');
-      throw error;
-    }
+  updatePlace(id: string, dto: UpdatePlaceDto) {
+    return this.placesService.updatePlace(id, dto);
   }
 
-  async updatePlace(id: string, dto: UpdatePlaceDto) {
-    const place = await this.prisma.place.findUnique({ where: { id } });
-    if (!place) throw new NotFoundException('Place not found');
-
-    const updateData: any = { ...dto };
-    delete updateData.lat;
-    delete updateData.lng;
-
-    if (dto.openTimeStart)
-      updateData.openTimeStart = this.parseTime(dto.openTimeStart);
-    if (dto.openTimeEnd)
-      updateData.openTimeEnd = this.parseTime(dto.openTimeEnd);
-
-    await this.prisma.place.update({
-      where: { id },
-      data: updateData,
-    });
-
-    if (dto.lat !== undefined || dto.lng !== undefined) {
-      const newLat = dto.lat ?? place.lat;
-      const newLng = dto.lng ?? place.lng;
-      const wkt = `SRID=4326;POINT(${newLng} ${newLat})`;
-
-      await this.prisma.$executeRawUnsafe(
-        `UPDATE places SET lat = $1, lng = $2, location = ST_GeomFromEWKT($3) WHERE id = $4::uuid`,
-        newLat,
-        newLng,
-        wkt,
-        id,
-      );
-    }
-
-    return this.prisma.place.findUnique({ where: { id } });
-  }
-
-  async deletePlace(id: string) {
-    try {
-      await this.prisma.place.delete({ where: { id } });
-      return { success: true };
-    } catch (error) {
-      throw new NotFoundException('Place not found or cannot be deleted');
-    }
+  deletePlace(id: string) {
+    return this.placesService.deletePlace(id);
   }
 
   // ── User Creation ──────────────────────────────────────────────────

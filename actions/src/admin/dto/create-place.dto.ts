@@ -46,4 +46,22 @@ export class CreatePlaceDto {
   @IsOptional()
   @IsString()
   openTimeEnd?: string; // Format "HH:mm"
+
+  @IsOptional()
+  @IsString()
+  descriptionEn?: string;
+
+  @IsOptional()
+  @IsArray()
+  @IsString({ each: true })
+  galleryUrls?: string[];
+
+  @IsOptional()
+  @IsArray()
+  @IsNumber({}, { each: true })
+  openDays?: number[];
+
+  @IsOptional()
+  @IsNumber()
+  visitDurationMin?: number;
 }

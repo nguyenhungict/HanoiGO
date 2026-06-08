@@ -1,5 +1,6 @@
 import Link from 'next/link';
 import { getPlaceStory, fetchLandmarks } from '@/lib/landmarks';
+import PlaceDetailsContent from '@/components/places/PlaceDetailsContent';
 
 export const dynamic = 'force-dynamic';
 
@@ -87,97 +88,7 @@ export default async function PlaceDetailsPage({ params, searchParams }: PlaceDe
 
       <main className="mx-auto flex max-w-7xl flex-col gap-8 px-8 py-8">
         <section className="grid gap-8 xl:grid-cols-[minmax(0,1.45fr)_24rem]">
-          <article className="overflow-hidden rounded-3xl border border-outline/10 bg-white shadow-sm">
-            <div className="relative h-[24rem] overflow-hidden bg-secondary-container">
-              <img
-                src={selectedLandmark.image}
-                alt={selectedLandmark.name}
-                referrerPolicy="no-referrer"
-                className="h-full w-full object-cover"
-              />
-              <div className="absolute inset-0 bg-gradient-to-t from-on-surface/90 via-on-surface/20 to-transparent" />
-              <div className="absolute inset-x-0 bottom-0 p-8 text-white">
-                <div className="mb-4 flex flex-wrap items-center gap-3">
-                  <span className="rounded-lg border border-white/20 bg-white/10 px-3 py-1 text-[10px] font-black uppercase tracking-[0.24em] backdrop-blur-xl">
-                    {story.eyebrow}
-                  </span>
-                  <span className="rounded-lg border border-white/20 bg-white/10 px-3 py-1 text-[10px] font-black uppercase tracking-[0.24em] backdrop-blur-xl">
-                    {selectedLandmark.category}
-                  </span>
-                </div>
-                <h2 className="max-w-3xl text-4xl font-extrabold tracking-tighter">
-                  {story.intro}
-                </h2>
-              </div>
-            </div>
-
-            <div className="grid gap-8 p-8 lg:grid-cols-[minmax(0,1fr)_18rem]">
-              <div className="space-y-8">
-                {selectedLandmark.gallery && selectedLandmark.gallery.length > 0 && (
-                  <div className="space-y-4">
-                    <p className="text-[10px] font-black uppercase tracking-[0.24em] text-primary">
-                      Visual Archive
-                    </p>
-                    <div className="grid grid-cols-3 gap-3">
-                      {selectedLandmark.gallery.slice(1, 4).map((img, idx) => (
-                        <div key={idx} className="aspect-[4/3] overflow-hidden rounded-2xl border border-outline/10 group">
-                          <img 
-                            src={img} 
-                            alt={`${selectedLandmark.name} gallery ${idx + 1}`} 
-                            referrerPolicy="no-referrer"
-                            className="h-full w-full object-cover transition-transform hover:scale-110 duration-500"
-                          />
-                        </div>
-                      ))}
-                    </div>
-                  </div>
-                )}
-
-                {story.sections.map((section) => (
-                  <div key={section.title} className="space-y-2">
-                    <p className="text-[10px] font-black uppercase tracking-[0.24em] text-primary">
-                      {section.title}
-                    </p>
-                    <p className="text-[15px] font-medium leading-8 text-on-surface-variant">
-                      {section.body}
-                    </p>
-                  </div>
-                ))}
-              </div>
-
-              <div className="space-y-4">
-                <div className="rounded-3xl bg-secondary-container p-6 border border-secondary">
-                  <p className="text-[10px] font-black uppercase tracking-[0.24em] text-primary">
-                    Archive Note
-                  </p>
-                  <p className="mt-3 text-sm font-medium leading-7 text-on-secondary">
-                    {story.archiveNote}
-                  </p>
-                </div>
-
-                <div className="rounded-3xl border border-outline/10 bg-background p-6">
-                  <p className="text-[10px] font-black uppercase tracking-[0.24em] text-outline">
-                    Quick Facts
-                  </p>
-                  <div className="mt-4 space-y-4">
-                    {story.facts.map((fact) => (
-                      <div
-                        key={fact.label}
-                        className="border-b border-outline/10 pb-4 last:border-b-0 last:pb-0"
-                      >
-                        <p className="text-[9px] font-black uppercase tracking-[0.22em] text-outline">
-                          {fact.label}
-                        </p>
-                        <p className="mt-1 text-sm font-bold text-on-surface">
-                          {fact.value}
-                        </p>
-                      </div>
-                    ))}
-                  </div>
-                </div>
-              </div>
-            </div>
-          </article>
+          <PlaceDetailsContent landmark={selectedLandmark} story={story} />
 
           <aside className="space-y-4">
             <div className="rounded-3xl border border-outline/10 bg-white p-6 shadow-sm">

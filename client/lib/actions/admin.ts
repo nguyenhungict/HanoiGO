@@ -1,6 +1,6 @@
 'use server';
 
-import { revalidatePath } from 'next/cache';
+import { revalidatePath, revalidateTag } from 'next/cache';
 import { api } from './config';
 import { authHeaders } from './client';
 
@@ -151,6 +151,7 @@ export async function createAdminPlaceAction(data: any) {
     const response = await api.post('/admin/places', data, { headers });
     revalidatePath('/admin/places');
     revalidatePath('/discovery'); 
+    revalidateTag('landmarks');
     return { success: true, data: response.data };
   } catch (error: any) {
     return { error: error.response?.data?.message || 'Không thể tạo địa điểm' };
@@ -163,6 +164,7 @@ export async function updateAdminPlaceAction(id: string, data: any) {
     const response = await api.patch(`/admin/places/${id}`, data, { headers });
     revalidatePath('/admin/places');
     revalidatePath('/discovery');
+    revalidateTag('landmarks');
     return { success: true, data: response.data };
   } catch (error: any) {
     return { error: error.response?.data?.message || 'Không thể cập nhật địa điểm' };
@@ -175,6 +177,7 @@ export async function deleteAdminPlaceAction(id: string) {
     const response = await api.delete(`/admin/places/${id}`, { headers });
     revalidatePath('/admin/places');
     revalidatePath('/discovery');
+    revalidateTag('landmarks');
     return { success: true, data: response.data };
   } catch (error: any) {
     return { error: error.response?.data?.message || 'Không thể xóa địa điểm' };

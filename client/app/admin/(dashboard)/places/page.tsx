@@ -2,11 +2,11 @@
 
 import React, { useState, useEffect } from 'react';
 import { 
-  getAdminPlacesAction, 
   createAdminPlaceAction, 
   updateAdminPlaceAction, 
   deleteAdminPlaceAction,
-  uploadImageAction
+  uploadImageAction,
+  resolveImageUrl
 } from '@/lib/actions';
 import { useNotification } from '@/hooks/use-notification';
 import { useConfirm } from '@/hooks/use-confirm';
@@ -17,13 +17,15 @@ const DISTRICTS = [
   'Hoàn Kiếm', 'Ba Đình', 'Tây Hồ', 'Đống Đa', 'Hai Bà Trưng', 'Cầu Giấy', 'Thanh Xuân', 'Long Biên', 'Nam Từ Liêm', 'Bắc Từ Liêm'
 ];
 
-// Helper to format time from Date or string to HH:mm
-const formatTimeForInput = (time: any) => {
+// Extract HH:mm from a @db.Time(6) value (stored as UTC epoch 1970-01-01THH:mm:ssZ)
+const formatTimeForInput = (time: any): string => {
   if (!time) return '';
-  if (typeof time === 'string' && time.length === 5 && time.includes(':')) return time; // Already HH:mm
+  if (typeof time === 'string' && /^\d{2}:\d{2}$/.test(time)) return time;
   const date = new Date(time);
   if (isNaN(date.getTime())) return '';
-  return date.toTimeString().slice(0, 5);
+  const h = date.getUTCHours().toString().padStart(2, '0');
+  const m = date.getUTCMinutes().toString().padStart(2, '0');
+  return `${h}:${m}`;
 };
 
 export default function PlaceManagement() {
@@ -49,25 +51,56 @@ export default function PlaceManagement() {
     lat: 21.0285,
     lng: 105.8542,
     imageUrl: '',
-    tags: [],
     alwaysOpen: false,
     openTimeStart: '08:00',
-    openTimeEnd: '17:00'
+    openTimeEnd: '17:00',
+    descriptionEn: '',
+    galleryUrls: [],
+    openDays: [0, 1, 2, 3, 4, 5, 6],
+    visitDurationMin: 60
   });
+
+  const [debouncedSearch, setDebouncedSearch] = useState('');
+
+  // Debounce search input to avoid hitting database on every keystroke
+  useEffect(() => {
+    const handler = setTimeout(() => {
+      setDebouncedSearch(search);
+      setPage(1); // Reset page to 1 when search query changes
+    }, 400);
+
+    return () => {
+      clearTimeout(handler);
+    };
+  }, [search]);
+
+  // Reset page to 1 when category filter changes
+  useEffect(() => {
+    setPage(1);
+  }, [categoryFilter]);
 
   const fetchPlaces = async () => {
     setLoading(true);
-    const data = await getAdminPlacesAction(page, limit, search, categoryFilter);
-    if (data) {
-      setPlaces(data.places || []);
-      setTotal(data.total || 0);
+    try {
+      const params = new URLSearchParams({ page: String(page), limit: String(limit) });
+      if (debouncedSearch) params.set('search', debouncedSearch);
+      if (categoryFilter) params.set('category', categoryFilter);
+
+      const response = await fetch(`/api/admin/places?${params}`);
+      if (response.ok) {
+        const data = await response.json();
+        setPlaces(data.places || []);
+        setTotal(data.total || 0);
+      }
+    } catch (err) {
+      console.error('Failed to fetch places:', err);
     }
     setLoading(false);
   };
 
   useEffect(() => {
     fetchPlaces();
-  }, [page, search, categoryFilter]);
+  }, [page, debouncedSearch, categoryFilter]);
 
   const handleOpenModal = (place?: Place) => {
     if (place) {
@@ -75,7 +108,11 @@ export default function PlaceManagement() {
       setFormData({ 
         ...place,
         openTimeStart: formatTimeForInput(place.openTimeStart) || '08:00',
-        openTimeEnd: formatTimeForInput(place.openTimeEnd) || '17:00'
+        openTimeEnd: formatTimeForInput(place.openTimeEnd) || '17:00',
+        descriptionEn: place.descriptionEn || '',
+        galleryUrls: place.gallery?.map(img => img.url) || [],
+        openDays: place.openDays || [0, 1, 2, 3, 4, 5, 6],
+        visitDurationMin: place.visitDurationMin || 60
       });
     } else {
       setEditingPlace(null);
@@ -87,10 +124,13 @@ export default function PlaceManagement() {
         lat: 21.0285,
         lng: 105.8542,
         imageUrl: '',
-        tags: [],
         alwaysOpen: false,
         openTimeStart: '08:00',
-        openTimeEnd: '17:00'
+        openTimeEnd: '17:00',
+        descriptionEn: '',
+        galleryUrls: [],
+        openDays: [0, 1, 2, 3, 4, 5, 6],
+        visitDurationMin: 60
       });
     }
     setIsModalOpen(true);
@@ -113,12 +153,48 @@ export default function PlaceManagement() {
     if (res.success && res.url) {
       // Base URL should be the actions URL
       const actionsUrl = process.env.NEXT_PUBLIC_ACTIONS_URL || 'http://localhost:8888';
-      setFormData({ ...formData, imageUrl: `${actionsUrl}${res.url}` });
+      const finalUrl = res.url.startsWith('http') ? res.url : `${actionsUrl}${res.url}`;
+      setFormData({ ...formData, imageUrl: finalUrl });
       show({ type: 'success', title: 'Asset Captured', message: 'The visual representation has been archived.' });
     } else {
       show({ type: 'error', title: 'Transmission Error', message: res.error || 'Failed to capture visual asset.' });
     }
     setUploading(false);
+  };
+
+  const [galleryUploading, setGalleryUploading] = useState(false);
+
+  const handleGalleryImageUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const files = e.target.files;
+    if (!files || files.length === 0) return;
+
+    setGalleryUploading(true);
+    const newUrls: string[] = [...(formData.galleryUrls || [])];
+    const actionsUrl = process.env.NEXT_PUBLIC_ACTIONS_URL || 'http://localhost:8888';
+
+    for (let i = 0; i < files.length; i++) {
+      const file = files[i];
+      const uploadData = new FormData();
+      uploadData.append('file', file);
+      const res = await uploadImageAction(uploadData);
+      if (res.success && res.url) {
+        const finalUrl = res.url.startsWith('http') ? res.url : `${actionsUrl}${res.url}`;
+        newUrls.push(finalUrl);
+      } else {
+        show({ type: 'error', title: 'Transmission Error', message: res.error || `Failed to upload ${file.name}` });
+      }
+    }
+
+    setFormData({ ...formData, galleryUrls: newUrls });
+    setGalleryUploading(false);
+    show({ type: 'success', title: 'Assets Captured', message: 'The gallery images have been archived.' });
+  };
+
+  const handleRemoveGalleryImage = (indexToRemove: number) => {
+    setFormData({
+      ...formData,
+      galleryUrls: (formData.galleryUrls || []).filter((_: any, idx: number) => idx !== indexToRemove)
+    });
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -130,14 +206,17 @@ export default function PlaceManagement() {
       name: formData.name,
       category: formData.category,
       district: formData.district,
-      address: formData.address || undefined,
+      address: formData.address || null,
       lat: Number(formData.lat),
       lng: Number(formData.lng),
-      imageUrl: formData.imageUrl || undefined,
-      tags: formData.tags || [],
+      imageUrl: formData.imageUrl || null,
       alwaysOpen: Boolean(formData.alwaysOpen),
-      openTimeStart: formData.alwaysOpen ? undefined : (formData.openTimeStart || '08:00'),
-      openTimeEnd: formData.alwaysOpen ? undefined : (formData.openTimeEnd || '17:00'),
+      openTimeStart: formData.alwaysOpen ? null : (formData.openTimeStart || '08:00'),
+      openTimeEnd: formData.alwaysOpen ? null : (formData.openTimeEnd || '17:00'),
+      openDays: formData.alwaysOpen ? [] : (formData.openDays || [0, 1, 2, 3, 4, 5, 6]),
+      descriptionEn: formData.descriptionEn || null,
+      galleryUrls: formData.galleryUrls || [],
+      visitDurationMin: Number(formData.visitDurationMin) || 60,
     };
     
     let res;
@@ -254,7 +333,7 @@ export default function PlaceManagement() {
                         <div className="flex items-center gap-4">
                           <div className="w-16 h-12 rounded-xl bg-secondary/30 overflow-hidden shrink-0 border border-outline/5">
                             {place.imageUrl ? (
-                              <img src={place.imageUrl} alt="" className="w-full h-full object-cover" referrerPolicy="no-referrer" />
+                              <img src={resolveImageUrl(place.imageUrl) || ''} alt="" className="w-full h-full object-cover" referrerPolicy="no-referrer" />
                             ) : (
                               <div className="w-full h-full flex items-center justify-center text-primary/30">
                                 <span className="material-symbols-outlined">image</span>
@@ -452,7 +531,17 @@ export default function PlaceManagement() {
                     )}
 
                     <div className="space-y-3 md:col-span-2">
-                      <label className="text-[9px] font-bold text-outline uppercase tracking-widest ml-1">Landmark Photography</label>
+                      <label className="text-[9px] font-bold text-outline uppercase tracking-widest ml-1">Landmark Description</label>
+                      <textarea 
+                        value={formData.descriptionEn || ''}
+                        onChange={(e) => setFormData({...formData, descriptionEn: e.target.value})}
+                        className="w-full h-32 p-5 bg-background rounded-xl border border-transparent focus:border-primary/20 outline-none text-[12px] font-bold resize-none custom-scrollbar"
+                        placeholder="Provide detailed description of the cultural heritage site..."
+                      />
+                    </div>
+
+                    <div className="space-y-3 md:col-span-2">
+                      <label className="text-[9px] font-bold text-outline uppercase tracking-widest ml-1">Landmark Photography (Main Cover)</label>
                       <div className="flex flex-col sm:flex-row gap-6 items-start">
                         <div className="flex-1 w-full">
                           <label className="flex flex-col items-center justify-center w-full h-28 border-2 border-dashed border-outline/20 rounded-2xl bg-background/50 hover:bg-background hover:border-primary/40 transition-all cursor-pointer group relative overflow-hidden">
@@ -469,19 +558,10 @@ export default function PlaceManagement() {
                             )}
                             <input type="file" className="hidden" accept="image/*" onChange={handleImageUpload} disabled={uploading} />
                           </label>
-                          <div className="mt-3 flex gap-2 items-center">
-                            <input 
-                              type="text" 
-                              value={formData.imageUrl || ''}
-                              onChange={(e) => setFormData({...formData, imageUrl: e.target.value})}
-                              className="flex-1 h-10 px-4 bg-background rounded-lg border border-transparent focus:border-primary/20 outline-none text-[10px] font-bold text-outline"
-                              placeholder="Or paste external image URL..."
-                            />
-                          </div>
                         </div>
                         {formData.imageUrl && (
                           <div className="w-28 h-28 rounded-2xl bg-secondary overflow-hidden border border-outline/10 shrink-0 shadow-xl relative group">
-                            <img src={formData.imageUrl} alt="Preview" className="w-full h-full object-cover" referrerPolicy="no-referrer" />
+                            <img src={resolveImageUrl(formData.imageUrl) || ''} alt="Preview" className="w-full h-full object-cover" referrerPolicy="no-referrer" />
                             <button 
                               type="button"
                               onClick={() => setFormData({...formData, imageUrl: ''})}
@@ -493,6 +573,86 @@ export default function PlaceManagement() {
                         )}
                       </div>
                     </div>
+
+                    <div className="space-y-3 md:col-span-2 border-t border-outline/5 pt-6">
+                      <label className="text-[9px] font-bold text-outline uppercase tracking-widest ml-1">Landmark Gallery (Multiple Images)</label>
+                      <div className="space-y-6">
+                        <label className="flex flex-col items-center justify-center w-full h-24 border-2 border-dashed border-outline/20 rounded-2xl bg-background/50 hover:bg-background hover:border-primary/40 transition-all cursor-pointer group relative overflow-hidden">
+                          {galleryUploading ? (
+                            <div className="flex flex-col items-center gap-2">
+                              <div className="w-6 h-6 border-4 border-primary border-t-transparent rounded-full animate-spin" />
+                              <span className="text-[9px] font-bold uppercase tracking-widest text-outline">Uploading Gallery Images...</span>
+                            </div>
+                          ) : (
+                            <div className="flex flex-col items-center gap-1.5">
+                              <span className="material-symbols-outlined text-2xl text-outline group-hover:text-primary transition-colors">collections</span>
+                              <span className="text-[9px] font-bold uppercase tracking-widest text-outline group-hover:text-on-surface">Click to add multiple images to gallery</span>
+                            </div>
+                          )}
+                          <input type="file" className="hidden" accept="image/*" multiple onChange={handleGalleryImageUpload} disabled={galleryUploading} />
+                        </label>
+
+                        {formData.galleryUrls && formData.galleryUrls.length > 0 && (
+                          <div className="grid grid-cols-3 sm:grid-cols-5 gap-4">
+                            {formData.galleryUrls.map((url: string, index: number) => (
+                              <div key={index} className="aspect-square rounded-2xl bg-secondary overflow-hidden border border-outline/10 shadow-md relative group">
+                                <img src={resolveImageUrl(url) || ''} alt={`Gallery ${index}`} className="w-full h-full object-cover" referrerPolicy="no-referrer" />
+                                <button 
+                                  type="button"
+                                  onClick={() => handleRemoveGalleryImage(index)}
+                                  className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center text-white"
+                                >
+                                  <span className="material-symbols-outlined text-xl">delete</span>
+                                </button>
+                              </div>
+                            ))}
+                          </div>
+                        )}
+                      </div>
+                    </div>
+
+                    <div className="space-y-3 col-span-1">
+                      <label className="text-[9px] font-bold text-outline uppercase tracking-widest ml-1">Visit Duration (Minutes)</label>
+                      <input 
+                        required
+                        type="number" 
+                        value={formData.visitDurationMin || 60}
+                        onChange={(e) => setFormData({...formData, visitDurationMin: parseInt(e.target.value) || 60})}
+                        className="w-full h-12 px-5 bg-background rounded-xl border border-transparent focus:border-primary/20 outline-none text-[12px] font-bold"
+                        placeholder="e.g., 60"
+                        min={15}
+                      />
+                    </div>
+
+                    {!formData.alwaysOpen && (
+                      <div className="space-y-3 md:col-span-2">
+                        <label className="text-[9px] font-bold text-outline uppercase tracking-widest ml-1">Open Days</label>
+                        <div className="flex flex-wrap gap-3 p-4 bg-background/50 rounded-2xl border border-outline/5">
+                          {['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'].map((dayName, idx) => {
+                            const isChecked = (formData.openDays || []).includes(idx);
+                            const handleToggleDay = () => {
+                              const currentDays = formData.openDays || [];
+                              const nextDays = isChecked 
+                                ? currentDays.filter((d: number) => d !== idx)
+                                : [...currentDays, idx];
+                              setFormData({ ...formData, openDays: nextDays });
+                            };
+
+                            return (
+                              <label key={idx} className="flex items-center gap-2 text-xs font-bold text-on-surface cursor-pointer select-none px-3 py-1.5 bg-white rounded-lg border border-outline/5 hover:border-primary/20 transition-all">
+                                <input 
+                                  type="checkbox" 
+                                  checked={isChecked}
+                                  onChange={handleToggleDay}
+                                  className="accent-primary"
+                                />
+                                {dayName}
+                              </label>
+                            );
+                          })}
+                        </div>
+                      </div>
+                    )}
 
                     <div className="flex items-center gap-4 md:col-span-2 bg-background/30 p-4 rounded-2xl">
                       <button 
