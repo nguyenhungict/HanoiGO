@@ -10,13 +10,26 @@ import {
 import { useNotification } from '@/hooks/use-notification';
 import { useConfirm } from '@/hooks/use-confirm';
 
+interface ReportUser {
+  id: string;
+  username: string;
+  email: string;
+  fullName: string | null;
+  avatarUrl: string | null;
+}
+
+interface ReportActivity {
+  id: string;
+  title: string;
+  status: string;
+  hostId: string;
+  host?: { username: string };
+}
+
 interface Report {
   id: string;
   reporterId: string;
-  reporterName: string;
-  reporterEmail: string;
-  entityType: string;
-  entityId: string;
+  targetId: string;
   reason: string;
   description: string | null;
   status: 'PENDING' | 'RESOLVED' | 'DISMISSED';
@@ -24,13 +37,11 @@ interface Report {
   adminNotes: string | null;
   createdAt: string;
   resolvedAt: string | null;
-  entityDetails?: {
-    id: string;
-    title: string;
-    hostName: string;
-    hostId: string;
-    status: string;
-  };
+  entityType: string | null;
+  entityId: string | null;
+  reporter?: ReportUser;
+  targetUser?: ReportUser;
+  activity?: ReportActivity | null;
 }
 
 const BACKEND_URL = process.env.NEXT_PUBLIC_ACTIONS_URL || 'http://localhost:8888';
@@ -57,7 +68,7 @@ export default function AdminReportsPage() {
   const [selectedReport, setSelectedReport] = useState<Report | null>(null);
   const [loadingDetails, setLoadingDetails] = useState(false);
   const [actionNotes, setActionNotes] = useState('');
-  const [hideActivity, setHideActivity] = useState(true);
+  const [contentAction, setContentAction] = useState<'NONE' | 'HIDE' | 'DELETE'>('NONE');
   const [submittingAction, setSubmittingAction] = useState(false);
 
   // Lightbox modal for evidence screenshots
@@ -86,7 +97,7 @@ export default function AdminReportsPage() {
     setSelectedReportId(reportId);
     setLoadingDetails(true);
     setActionNotes('');
-    setHideActivity(true);
+    setContentAction('NONE');
     
     try {
       const reportData = await getAdminReportDetailAction(reportId);
@@ -105,17 +116,16 @@ export default function AdminReportsPage() {
   const handleResolve = async () => {
     if (!selectedReport) return;
     setSubmittingAction(true);
-    
+
     try {
-      const result = await resolveReportAction(selectedReport.id, actionNotes.trim(), hideActivity);
+      const result = await resolveReportAction(selectedReport.id, actionNotes.trim(), contentAction);
       if (result.success) {
-        show({ 
-          type: 'success', 
-          title: 'Report Resolved', 
-          message: hideActivity 
-            ? 'Report marked as resolved and activity suspended.' 
-            : 'Report marked as resolved.' 
-        });
+        const actionMsg = {
+          NONE: 'Report marked as resolved. No action taken on content.',
+          HIDE: 'Report resolved and activity suspended from public feed.',
+          DELETE: 'Report resolved and activity permanently deleted.',
+        }[contentAction];
+        show({ type: 'success', title: 'Report Resolved', message: actionMsg });
         setSelectedReport(null);
         setSelectedReportId(null);
         fetchReports();
@@ -251,18 +261,18 @@ export default function AdminReportsPage() {
                     >
                       <td className="py-4 px-2">
                         <div className="font-bold text-xs text-on-surface truncate max-w-[140px]">
-                          {report.reporterName}
+                          {report.reporter?.fullName || report.reporter?.username || '—'}
                         </div>
                         <div className="text-[9px] text-on-surface-variant/80 font-bold max-w-[140px] truncate">
-                          {report.reporterEmail}
+                          {report.reporter?.email || '—'}
                         </div>
                       </td>
                       <td className="py-4 px-2">
                         <div className="font-bold text-xs text-on-surface truncate max-w-[180px]">
-                          {report.entityDetails?.title || 'Unknown Activity'}
+                          {report.activity?.title || 'Unknown Activity'}
                         </div>
                         <div className="text-[9px] text-on-surface-variant/60 font-bold uppercase tracking-wide">
-                          Host: {report.entityDetails?.hostName || 'Unknown'}
+                          Host: {report.activity?.host?.username || 'Unknown'}
                         </div>
                       </td>
                       <td className="py-4 px-2">
@@ -383,8 +393,12 @@ export default function AdminReportsPage() {
                         Reporter Context
                       </span>
                       <div className="bg-white border border-outline/10 p-4 rounded-xl shadow-sm space-y-0.5">
-                        <p className="font-bold text-on-surface">{selectedReport.reporterName}</p>
-                        <p className="text-[10px] text-on-surface-variant font-bold">{selectedReport.reporterEmail}</p>
+                        <p className="font-bold text-on-surface">
+                          {selectedReport.reporter?.fullName || selectedReport.reporter?.username || '—'}
+                        </p>
+                        <p className="text-[10px] text-on-surface-variant font-bold">
+                          {selectedReport.reporter?.email || '—'}
+                        </p>
                         <p className="text-[9px] text-on-surface-variant/50 mt-1 font-bold uppercase">
                           Reported: {new Date(selectedReport.createdAt).toLocaleString()}
                         </p>
@@ -397,12 +411,12 @@ export default function AdminReportsPage() {
                       </span>
                       <div className="bg-white border border-outline/10 p-4 rounded-xl space-y-1.5 shadow-sm">
                         <p className="font-bold text-on-surface">
-                          {selectedReport.entityDetails?.title || 'Unknown Title'}
+                          {selectedReport.activity?.title || 'Unknown Title'}
                         </p>
                         <p className="text-[9px] text-on-surface-variant/60 font-bold uppercase">
-                          Host: {selectedReport.entityDetails?.hostName || 'Unknown'} (Status: {selectedReport.entityDetails?.status})
+                          Host: {selectedReport.activity?.host?.username || 'Unknown'} · Status: {selectedReport.activity?.status || '—'}
                         </p>
-                        {selectedReport.entityDetails?.status === 'CANCELLED' && (
+                        {selectedReport.activity?.status === 'CANCELLED' && (
                           <span className="inline-block px-2 py-0.5 bg-primary/5 text-primary text-[9px] font-bold uppercase rounded-full border border-primary/10">
                             Activity Suspended
                           </span>
@@ -458,21 +472,36 @@ export default function AdminReportsPage() {
 
                     {/* Past Admin Action History */}
                     {selectedReport.status !== 'PENDING' && (
-                      <div className="bg-primary/5 border border-primary/10 p-4 rounded-xl space-y-1.5 mt-4 shadow-sm">
-                        <span className="text-[9px] font-bold text-primary uppercase tracking-wider block">
+                      <div className={`p-4 rounded-xl space-y-2 mt-4 shadow-sm border ${
+                        selectedReport.status === 'RESOLVED'
+                          ? 'bg-tertiary/5 border-tertiary/15'
+                          : 'bg-on-surface/5 border-outline/15'
+                      }`}>
+                        <span className={`text-[9px] font-bold uppercase tracking-wider block ${
+                          selectedReport.status === 'RESOLVED' ? 'text-tertiary' : 'text-on-surface-variant'
+                        }`}>
                           Moderation Outcome
                         </span>
-                        <p className="font-bold text-on-surface text-[11px]">
-                          Outcome: {selectedReport.status}
-                        </p>
+                        <div className="flex items-center gap-2">
+                          <span className={`px-2.5 py-0.5 border rounded-full text-[9px] font-bold uppercase inline-block ${
+                            getStatusBadgeStyles(selectedReport.status)
+                          }`}>
+                            {selectedReport.status}
+                          </span>
+                          {selectedReport.activity?.status === 'CANCELLED' && (
+                            <span className="px-2.5 py-0.5 bg-amber-50 border border-amber-200 text-amber-700 rounded-full text-[9px] font-bold uppercase inline-block">
+                              Post Hidden
+                            </span>
+                          )}
+                        </div>
                         {selectedReport.adminNotes && (
-                          <p className="text-on-surface-variant italic mt-1 font-medium bg-white p-3 rounded-lg border border-outline/10">
+                          <p className="text-on-surface-variant italic font-medium bg-white p-3 rounded-lg border border-outline/10 text-[11px]">
                             &ldquo;{selectedReport.adminNotes}&rdquo;
                           </p>
                         )}
                         {selectedReport.resolvedAt && (
-                          <p className="text-[9px] text-on-surface-variant/50 font-bold uppercase mt-1">
-                            Action Taken: {new Date(selectedReport.resolvedAt).toLocaleString()}
+                          <p className="text-[9px] text-on-surface-variant/50 font-bold uppercase">
+                            Closed: {new Date(selectedReport.resolvedAt).toLocaleString()}
                           </p>
                         )}
                       </div>
@@ -485,12 +514,86 @@ export default function AdminReportsPage() {
                           Moderation Verdict
                         </span>
 
+                        {/* Step 1: Content Action */}
+                        <div className="space-y-2">
+                          <div className="flex items-center gap-2">
+                            <span className="w-5 h-5 rounded-full bg-primary/10 text-primary flex items-center justify-center text-[10px] font-extrabold shrink-0">1</span>
+                            <label className="text-[9px] font-extrabold text-on-surface-variant/50 uppercase tracking-widest">
+                              Action on Content
+                            </label>
+                          </div>
+                          <div className="grid grid-cols-3 gap-2">
+                            <button
+                              type="button"
+                              onClick={() => setContentAction('NONE')}
+                              className={`py-3 px-2 rounded-xl border text-center transition-all duration-200 ${
+                                contentAction === 'NONE'
+                                  ? 'bg-secondary-container border-outline/30 text-on-surface shadow-sm'
+                                  : 'bg-white border-outline/15 text-outline hover:bg-surface-container-low'
+                              }`}
+                            >
+                              <span className="material-symbols-outlined text-base block mx-auto mb-1">
+                                do_not_disturb_on
+                              </span>
+                              <span className="text-[9px] font-extrabold uppercase tracking-wider block">
+                                No Action
+                              </span>
+                            </button>
+                            <button
+                              type="button"
+                              onClick={() => setContentAction('HIDE')}
+                              className={`py-3 px-2 rounded-xl border text-center transition-all duration-200 ${
+                                contentAction === 'HIDE'
+                                  ? 'bg-amber-50 border-amber-300 text-amber-700 shadow-sm'
+                                  : 'bg-white border-outline/15 text-outline hover:bg-amber-50/60'
+                              }`}
+                            >
+                              <span className="material-symbols-outlined text-base block mx-auto mb-1">
+                                visibility_off
+                              </span>
+                              <span className="text-[9px] font-extrabold uppercase tracking-wider block">
+                                Hide Post
+                              </span>
+                            </button>
+                            <button
+                              type="button"
+                              onClick={() => setContentAction('DELETE')}
+                              className={`py-3 px-2 rounded-xl border text-center transition-all duration-200 ${
+                                contentAction === 'DELETE'
+                                  ? 'bg-red-50 border-red-300 text-red-600 shadow-sm'
+                                  : 'bg-white border-outline/15 text-outline hover:bg-red-50/60'
+                              }`}
+                            >
+                              <span className="material-symbols-outlined text-base block mx-auto mb-1">
+                                delete_forever
+                              </span>
+                              <span className="text-[9px] font-extrabold uppercase tracking-wider block">
+                                Delete Post
+                              </span>
+                            </button>
+                          </div>
+                          {/* Context description for selected action */}
+                          <p className={`text-[9px] font-medium px-1 leading-snug ${
+                            contentAction === 'DELETE' ? 'text-red-500' :
+                            contentAction === 'HIDE' ? 'text-amber-600' :
+                            'text-on-surface-variant/50'
+                          }`}>
+                            {contentAction === 'NONE' && 'Report will be closed. The activity remains visible to users.'}
+                            {contentAction === 'HIDE' && 'Activity will be set to CANCELLED and removed from public feeds. The data is preserved.'}
+                            {contentAction === 'DELETE' && 'Activity will be permanently and irreversibly deleted from the database.'}
+                          </p>
+                        </div>
+
+                        {/* Step 2: Notes */}
                         <div className="space-y-1.5">
-                          <label className="text-[9px] font-extrabold text-on-surface-variant/50 uppercase tracking-widest">
-                            Moderator Notes / Rationale
-                          </label>
+                          <div className="flex items-center gap-2">
+                            <span className="w-5 h-5 rounded-full bg-primary/10 text-primary flex items-center justify-center text-[10px] font-extrabold shrink-0">2</span>
+                            <label className="text-[9px] font-extrabold text-on-surface-variant/50 uppercase tracking-widest">
+                              Moderator Notes / Rationale
+                            </label>
+                          </div>
                           <textarea
-                            placeholder="State the findings (e.g. Scammer profiles, spam activity, group resolved)..."
+                            placeholder="State the findings (e.g. Confirmed spam, misleading info, resolved)..."
                             rows={3}
                             value={actionNotes}
                             onChange={(e) => setActionNotes(e.target.value)}
@@ -498,42 +601,42 @@ export default function AdminReportsPage() {
                           />
                         </div>
 
-                        {/* Suspension Toggle */}
-                        <label className="flex items-center gap-3 cursor-pointer bg-white border border-outline/10 hover:border-primary/30 p-4 rounded-xl transition-all duration-300 shadow-sm">
-                          <input
-                            type="checkbox"
-                            checked={hideActivity}
-                            onChange={(e) => setHideActivity(e.target.checked)}
-                            className="accent-primary w-4 h-4 cursor-pointer"
-                          />
-                          <div>
-                            <p className="font-bold text-xs text-on-surface uppercase tracking-wide leading-none">
-                              Suspend Activity
-                            </p>
-                            <p className="text-[10px] text-on-surface-variant/70 mt-1 font-medium leading-tight">
-                              Set activity status to CANCELLED and hide from all public feeds.
-                            </p>
+                        {/* Step 3: Final Decision */}
+                        <div className="space-y-2">
+                          <div className="flex items-center gap-2">
+                            <span className="w-5 h-5 rounded-full bg-primary/10 text-primary flex items-center justify-center text-[10px] font-extrabold shrink-0">3</span>
+                            <label className="text-[9px] font-extrabold text-on-surface-variant/50 uppercase tracking-widest">
+                              Close Report
+                            </label>
                           </div>
-                        </label>
-
-                        {/* Resolve / Dismiss buttons */}
-                        <div className="flex gap-3">
-                          <button
-                            type="button"
-                            disabled={submittingAction}
-                            onClick={handleDismiss}
-                            className="flex-1 bg-white border border-outline/30 text-on-surface py-2.5 rounded-xl font-bold text-xs hover:bg-on-surface/5 transition-all"
-                          >
-                            Dismiss Report
-                          </button>
-                          <button
-                            type="button"
-                            disabled={submittingAction}
-                            onClick={handleResolve}
-                            className="flex-1 bg-primary text-white py-2.5 rounded-xl font-bold text-xs hover:bg-primary-container shadow-md shadow-primary/10 hover:shadow-lg transition-all"
-                          >
-                            {submittingAction ? 'Saving...' : 'Resolve & Close'}
-                          </button>
+                          <div className="flex gap-3">
+                            <button
+                              type="button"
+                              disabled={submittingAction}
+                              onClick={handleDismiss}
+                              className="flex-1 bg-white border border-outline/30 text-on-surface py-2.5 rounded-xl font-bold text-xs hover:bg-on-surface/5 transition-all disabled:opacity-50"
+                            >
+                              Dismiss (No Violation)
+                            </button>
+                            <button
+                              type="button"
+                              disabled={submittingAction}
+                              onClick={handleResolve}
+                              className={`flex-1 text-white py-2.5 rounded-xl font-bold text-xs shadow-md transition-all disabled:opacity-50 ${
+                                contentAction === 'DELETE'
+                                  ? 'bg-red-500 hover:bg-red-600 shadow-red-100'
+                                  : contentAction === 'HIDE'
+                                  ? 'bg-amber-500 hover:bg-amber-600 shadow-amber-100'
+                                  : 'bg-primary hover:bg-primary/90 shadow-primary/10'
+                              }`}
+                            >
+                              {submittingAction ? 'Saving...' : (
+                                contentAction === 'DELETE' ? 'Resolve & Delete' :
+                                contentAction === 'HIDE' ? 'Resolve & Hide' :
+                                'Resolve & Close'
+                              )}
+                            </button>
+                          </div>
                         </div>
                       </div>
                     )}

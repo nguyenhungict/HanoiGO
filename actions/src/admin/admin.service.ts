@@ -459,7 +459,13 @@ export class AdminService {
     const activities = activityIds.length > 0
       ? await this.prisma.activity.findMany({
           where: { id: { in: activityIds } },
-          select: { id: true, title: true, status: true, hostId: true },
+          select: {
+            id: true,
+            title: true,
+            status: true,
+            hostId: true,
+            host: { select: { username: true } },
+          },
         })
       : [];
 
@@ -519,7 +525,7 @@ export class AdminService {
     adminId: string,
     reportId: string,
     adminNotes?: string,
-    hideActivity?: boolean,
+    contentAction: 'NONE' | 'HIDE' | 'DELETE' = 'NONE',
   ) {
     const report = await this.prisma.report.findUnique({
       where: { id: reportId },
@@ -539,12 +545,16 @@ export class AdminService {
           },
         });
 
-        // 2. Hide activity if requested
-        if (hideActivity && report.entityType === 'ACTIVITY' && report.entityId) {
-          await tx.activity.update({
-            where: { id: report.entityId },
-            data: { status: 'CANCELLED' },
-          });
+        // 2. Act on content based on explicit action choice
+        if (contentAction !== 'NONE' && report.entityType === 'ACTIVITY' && report.entityId) {
+          if (contentAction === 'HIDE') {
+            await tx.activity.update({
+              where: { id: report.entityId },
+              data: { status: 'CANCELLED' },
+            });
+          } else if (contentAction === 'DELETE') {
+            await tx.activity.delete({ where: { id: report.entityId } });
+          }
         }
 
         // 3. Log admin action
@@ -557,7 +567,7 @@ export class AdminService {
               reportId,
               entityType: report.entityType,
               entityId: report.entityId,
-              hideActivity,
+              contentAction,
               timestamp: new Date().toISOString(),
             }),
           },
@@ -568,6 +578,92 @@ export class AdminService {
     } catch (error) {
       throw new BadRequestException(`Failed to resolve report: ${error.message}`);
     }
+  }
+
+  // ── Activity Management ─────────────────────────────────────────────
+  async getActivities(page = 1, limit = 10, search?: string, status?: string) {
+    const skip = (page - 1) * limit;
+    const where: any = {};
+
+    if (search) {
+      where.OR = [
+        { title: { contains: search, mode: 'insensitive' } },
+        { address: { contains: search, mode: 'insensitive' } },
+        { host: { username: { contains: search, mode: 'insensitive' } } },
+      ];
+    }
+
+    if (status) where.status = status;
+
+    const [activities, total] = await Promise.all([
+      this.prisma.activity.findMany({
+        where,
+        skip,
+        take: limit,
+        orderBy: { createdAt: 'desc' },
+        include: {
+          host: { select: { id: true, username: true, avatarUrl: true } },
+          _count: { select: { activityMembers: true, likes: true } },
+        },
+      }),
+      this.prisma.activity.count({ where }),
+    ]);
+
+    const activityIds = activities.map(a => a.id);
+    const reportCounts = activityIds.length > 0
+      ? await this.prisma.report.groupBy({
+          by: ['entityId'],
+          where: { entityType: 'ACTIVITY', entityId: { in: activityIds } },
+          _count: { entityId: true },
+        })
+      : [];
+
+    const reportMap = new Map(reportCounts.map(r => [r.entityId, r._count.entityId]));
+
+    return {
+      activities: activities.map(a => ({ ...a, reportCount: reportMap.get(a.id) ?? 0 })),
+      total,
+      page,
+      lastPage: Math.ceil(total / limit) || 1,
+    };
+  }
+
+  async cancelActivity(adminId: string, activityId: string) {
+    const activity = await this.prisma.activity.findUnique({ where: { id: activityId } });
+    if (!activity) throw new NotFoundException('Activity not found');
+
+    await this.prisma.$transaction(async (tx) => {
+      await tx.activity.update({ where: { id: activityId }, data: { status: 'CANCELLED' } });
+      await tx.adminLog.create({
+        data: {
+          adminId,
+          action: 'CANCEL_ACTIVITY',
+          targetId: activityId,
+          details: JSON.stringify({ activityId, timestamp: new Date().toISOString() }),
+        },
+      });
+    });
+
+    return { success: true };
+  }
+
+  async deleteActivity(adminId: string, activityId: string) {
+    const activity = await this.prisma.activity.findUnique({ where: { id: activityId } });
+    if (!activity) throw new NotFoundException('Activity not found');
+
+    await this.prisma.$transaction(async (tx) => {
+      await tx.activity.delete({ where: { id: activityId } });
+      await tx.adminLog.create({
+        data: {
+          adminId,
+          action: 'DELETE_ACTIVITY',
+          targetId: activityId,
+          details: JSON.stringify({ activityId, title: activity.title, timestamp: new Date().toISOString() }),
+        },
+      });
+    });
+
+    return { success: true };
   }
 
   async dismissReport(adminId: string, reportId: string, adminNotes?: string) {

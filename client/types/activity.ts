@@ -17,6 +17,10 @@ export interface Activity {
   maxMembers: number;
   myStatus?: 'APPROVED' | 'PENDING' | 'NONE';
   
+  // Optional fields returned by backend
+  placeId?: string | null;
+  status?: string;
+
   // Trip sharing fields
   tripId?: string;
   likesCount?: number;

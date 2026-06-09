@@ -184,6 +184,43 @@ export async function deleteAdminPlaceAction(id: string) {
   }
 }
 
+export async function getAdminActivitiesAction(page = 1, limit = 10, search?: string, status?: string) {
+  try {
+    const headers = await authHeaders();
+    const params = new URLSearchParams({ page: String(page), limit: String(limit) });
+    if (search) params.set('search', search);
+    if (status) params.set('status', status);
+
+    const response = await api.get(`/admin/activities?${params}`, { headers });
+    return response.data;
+  } catch (error: any) {
+    return { activities: [], total: 0, page: 1, lastPage: 1 };
+  }
+}
+
+export async function cancelAdminActivityAction(activityId: string) {
+  try {
+    const headers = await authHeaders();
+    const response = await api.patch(`/admin/activities/${activityId}/cancel`, {}, { headers });
+    revalidatePath('/admin/activities');
+    return { success: true, ...response.data };
+  } catch (error: any) {
+    return { error: error.response?.data?.message || 'Không thể ẩn activity' };
+  }
+}
+
+export async function deleteAdminActivityAction(activityId: string) {
+  try {
+    const headers = await authHeaders();
+    const response = await api.delete(`/admin/activities/${activityId}`, { headers });
+    revalidatePath('/admin/activities');
+    revalidatePath('/admin/dashboard');
+    return { success: true, ...response.data };
+  } catch (error: any) {
+    return { error: error.response?.data?.message || 'Không thể xóa activity' };
+  }
+}
+
 export async function getAdminReportsAction(page = 1, limit = 10, status?: string, search?: string) {
   try {
     const headers = await authHeaders();
@@ -208,11 +245,20 @@ export async function getAdminReportDetailAction(reportId: string) {
   }
 }
 
-export async function resolveReportAction(reportId: string, adminNotes?: string, hideActivity?: boolean) {
+export async function resolveReportAction(
+  reportId: string,
+  adminNotes?: string,
+  contentAction: 'NONE' | 'HIDE' | 'DELETE' = 'NONE',
+) {
   try {
     const headers = await authHeaders();
-    const response = await api.patch(`/admin/reports/${reportId}/resolve`, { adminNotes, hideActivity }, { headers });
+    const response = await api.patch(
+      `/admin/reports/${reportId}/resolve`,
+      { adminNotes, contentAction },
+      { headers },
+    );
     revalidatePath('/admin/reports');
+    revalidatePath('/admin/activities');
     revalidatePath('/admin/dashboard');
     return { success: true, ...response.data };
   } catch (error: any) {

@@ -289,21 +289,20 @@ Figure \ref{fig:usecase_tourist} shows how tourists interact with the HanoiGO sy
 9 & View Place Detail & See description and coordinates, extending Browse Places. \\ \hline
 10 & Like Places & Bookmark landmarks to basket, extending View Place List. \\ \hline
 11 & Plan Trip & Access itinerary planning and scheduling. \\ \hline
-12 & Configure Trip & Input dates and duration, included in Plan Trip. \\ \hline
-13 & Generate Trip & Calculate optimized daily routes, included in Configure Trip. \\ \hline
-14 & Save Trip & Save computed schedule to profile, extending Generate Trip. \\ \hline
-15 & View My Trips & Browse saved itineraries, extending Plan Trip. \\ \hline
-16 & Delete Trip & Permanently remove a saved trip, extending View My Trips. \\ \hline
-17 & Share Saved Trip & Start activity from saved trip, extending View My Trips. \\ \hline
-18 & Manage Activities & Access activity hosting and joining options. \\ \hline
-19 & Host Activity & Access hosting features, included in Manage Activities. \\ \hline
-20 & Create activity & Create a map-based activity, included in Host Activity. \\ \hline
-21 & Manage Join Requests & Approve or reject participant requests, extending Host Activity. \\ \hline
-22 & Join Activity & Request to join another group, extending Manage Activities. \\ \hline
-23 & Request to Join & Submit request to join, included in Join Activity. \\ \hline
-24 & Browse Activities & View active events on the map, extending Manage Activities. \\ \hline
-25 & Report Activities & Flag an activity for violations, extending Browse Activities. \\ \hline
-26 & Chat Group & Send real-time messages, extending Create activity and Join Activity. \\ \hline
+12 & Generate Trip & Calculate optimized daily routes, included in Plan Trip. \\ \hline
+13 & Save Trip & Save computed schedule to profile, extending Generate Trip. \\ \hline
+14 & View My Trips & Browse saved itineraries, extending Plan Trip. \\ \hline
+15 & Delete Trip & Permanently remove a saved trip, extending View My Trips. \\ \hline
+16 & Share Saved Trip & Start activity from saved trip, extending View My Trips. \\ \hline
+17 & Manage Activities & Access activity hosting and joining options. \\ \hline
+18 & Host Activity & Access hosting features, included in Manage Activities. \\ \hline
+19 & Create activity & Create a map-based activity, included in Host Activity. \\ \hline
+20 & Manage Join Requests & Approve or reject participant requests, extending Host Activity. \\ \hline
+21 & Join Activity & Request to join another group, extending Manage Activities. \\ \hline
+22 & Request to Join & Submit request to join, included in Join Activity. \\ \hline
+23 & Browse Activities & View active events on the map, extending Manage Activities. \\ \hline
+24 & Report Activities & Flag an activity for violations, extending Browse Activities. \\ \hline
+25 & Chat Group & Send real-time messages, extending Create activity and Join Activity. \\ \hline
 \end{tabular}
 \caption{Descriptions of Tourist Use Cases}
 \label{tab:tourist_use_cases}
@@ -311,7 +310,7 @@ Figure \ref{fig:usecase_tourist} shows how tourists interact with the HanoiGO sy
 
 \subsubsection{Admin Use Case}
 
-Figure \ref{fig:usecase_admin} outlines the administrative functions provided by the HanoiGO platform. The Admin actor manages the system through four main sub-systems: Dashboard, User Management, Place Management, and Report Management. The primary administrative features are directly linked to the Admin actor, while secondary actions are connected using standard UML include and extend relationships. This modular design helps the administrator monitor platform activities, moderate content, update landmark information, and maintain a safe community environment.
+Figure \ref{fig:usecase_admin} outlines the administrative functions provided by the HanoiGO platform. The Admin actor manages the system through five main sub-systems: Dashboard, User Management, Place Management, Activity Management, and Report Management. The primary administrative features are directly linked to the Admin actor, while secondary actions are connected using standard UML include and extend relationships. This modular design helps the administrator monitor platform activities, moderate content, update landmark information, and maintain a safe community environment.
 
 \begin{figure}[H]
     \centering
@@ -342,9 +341,11 @@ Figure \ref{fig:usecase_admin} outlines the administrative functions provided by
 12 & Update Place & Edit descriptions, categories, or opening hours of a place, extending View Place List. \\ \hline
 13 & Delete Place & Permanently remove a landmark entry from the database, extending View Place List. \\ \hline
 14 & Create Place & Add new landmarks with GPS coordinates and spatial data, extending Manage Places. \\ \hline
-15 & Manage Reports & Access system moderation and community safety tools. \\ \hline
-16 & Review Reports & Inspect complaints and violation flags submitted by users, included in Manage Reports. \\ \hline
-17 & Handle Reports & Resolve reported violations and take disciplinary actions, extending Review Reports. \\ \hline
+15 & Manage Activities & Access activity moderation and administration tools. \\ \hline
+16 & View Activities List & Browse all active group activities on the map, included in Manage Activities. \\ \hline
+17 & Manage Reports & Access system moderation and community safety tools. \\ \hline
+18 & Review Reports & Inspect complaints and violation flags submitted by users, included in Manage Reports. \\ \hline
+19 & Handle Reports & Resolve reported violations and take disciplinary actions, extending Review Reports and Manage Activities. \\ \hline
 \end{tabular}
 \caption{Descriptions of Admin Use Cases}
 \label{tab:admin_use_cases}

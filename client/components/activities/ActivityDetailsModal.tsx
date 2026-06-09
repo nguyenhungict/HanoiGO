@@ -13,6 +13,7 @@ import { useAuthStore } from '@/store/useAuthStore';
 import { MemberManager } from './MemberManager';
 import { Activity } from '@/types';
 import { ReportActivityDialog } from './ReportActivityDialog';
+import { EditActivityDialog } from './EditActivityDialog';
 import { useNotification } from '@/hooks/use-notification';
 
 interface ActivityDetailsModalProps {
@@ -43,6 +44,7 @@ export const ActivityDetailsModal: React.FC<ActivityDetailsModalProps> = ({ acti
   const [showConfirmDelete, setShowConfirmDelete] = useState(false);
   const [showDropdown, setShowDropdown] = useState(false);
   const [showReportDialog, setShowReportDialog] = useState(false);
+  const [showEditDialog, setShowEditDialog]     = useState(false);
   const { user } = useAuthStore();
   const router = useRouter();
   const { show } = useNotification();
@@ -101,6 +103,11 @@ export const ActivityDetailsModal: React.FC<ActivityDetailsModalProps> = ({ acti
       setStatus('error');
       setMessage(result.error || 'Failed to send join request.');
     }
+  };
+
+  const handleUpdated = (updated: Activity) => {
+    setDetailActivity(updated);
+    setShowEditDialog(false);
   };
 
   const handleDelete = async () => {
@@ -393,9 +400,16 @@ export const ActivityDetailsModal: React.FC<ActivityDetailsModalProps> = ({ acti
                       )}
                     </button>
                   ) : (
-                    <div className="pt-2">
+                    <div className="pt-2 space-y-3">
+                      <button
+                        onClick={() => setShowEditDialog(true)}
+                        className="w-full flex items-center justify-center gap-2 py-3 rounded-xl text-primary font-bold text-[9px] uppercase tracking-widest hover:bg-primary/5 border border-primary/20 transition-colors active:scale-95 shadow-sm"
+                      >
+                        <span className="material-symbols-outlined text-sm">edit</span>
+                        <span>Edit Shared Trip</span>
+                      </button>
                       {!showConfirmDelete ? (
-                        <button 
+                        <button
                           onClick={() => setShowConfirmDelete(true)}
                           className="w-full flex items-center justify-center gap-2 py-3 rounded-xl text-red-500 font-bold text-[9px] uppercase tracking-widest hover:bg-red-50 border border-dashed border-red-200 transition-colors active:scale-95 shadow-sm"
                         >
@@ -449,9 +463,16 @@ export const ActivityDetailsModal: React.FC<ActivityDetailsModalProps> = ({ acti
                    <MemberManager activityId={currentActivity.id} />
                  </div>
                  
-                 <div className="pt-2">
+                 <div className="pt-2 space-y-3">
+                   <button
+                     onClick={() => setShowEditDialog(true)}
+                     className="w-full flex items-center justify-center gap-2 py-3 rounded-xl text-primary font-bold text-[9px] uppercase tracking-widest hover:bg-primary/5 border border-primary/20 transition-colors active:scale-95 shadow-sm"
+                   >
+                     <span className="material-symbols-outlined text-sm">edit</span>
+                     <span>Edit Group Activity</span>
+                   </button>
                    {!showConfirmDelete ? (
-                     <button 
+                     <button
                        onClick={() => setShowConfirmDelete(true)}
                        className="w-full flex items-center justify-center gap-2 py-3 rounded-xl text-red-500 font-bold text-[9px] uppercase tracking-widest hover:bg-red-50 border border-dashed border-red-200 transition-colors active:scale-95 shadow-sm"
                      >
@@ -544,6 +565,14 @@ export const ActivityDetailsModal: React.FC<ActivityDetailsModalProps> = ({ acti
           </div>
         </div>
       </div>
+
+      {showEditDialog && (
+        <EditActivityDialog
+          activity={currentActivity}
+          onClose={() => setShowEditDialog(false)}
+          onUpdated={handleUpdated}
+        />
+      )}
 
       {showReportDialog && (
         <ReportActivityDialog

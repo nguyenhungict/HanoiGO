@@ -7,6 +7,7 @@ import {
 } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
 import { CreateActivityDto } from './dto/create-activity.dto';
+import { UpdateActivityDto } from './dto/update-activity.dto';
 import { ReportActivityDto } from './dto/report-activity.dto';
 import { MemberStatus, ActivityStatus, NotificationType } from '@prisma/client';
 import { v4 as uuidv4 } from 'uuid';
@@ -503,6 +504,37 @@ export class ActivitiesService {
     }
 
     return this.prisma.activity.delete({ where: { id: activityId } });
+  }
+
+  // ── Update Activity ───────────────────────────────────────────────────────────
+  async update(userId: string, activityId: string, dto: UpdateActivityDto) {
+    const activity = await this.prisma.activity.findUnique({ where: { id: activityId } });
+    if (!activity) throw new NotFoundException('Activity not found');
+    if (activity.hostId !== userId) throw new ForbiddenException('Only the host can edit this activity');
+
+    const data: any = {};
+    if (dto.title !== undefined) data.title = dto.title;
+    if (dto.description !== undefined) data.description = dto.description;
+    if (dto.address !== undefined) data.address = dto.address;
+    if (dto.placeId !== undefined) data.placeId = dto.placeId || null;
+    if (dto.scheduledAt !== undefined) data.scheduledAt = new Date(dto.scheduledAt);
+    if (dto.maxMembers !== undefined) data.maxMembers = dto.maxMembers;
+    if (dto.category !== undefined) data.category = dto.category;
+    if (dto.imageUrl !== undefined) data.imageUrl = dto.imageUrl || null;
+    if (dto.lat !== undefined) data.lat = dto.lat;
+    if (dto.lng !== undefined) data.lng = dto.lng;
+
+    await this.prisma.activity.update({ where: { id: activityId }, data });
+
+    if (dto.lat !== undefined && dto.lng !== undefined) {
+      await this.prisma.$executeRaw`
+        UPDATE activities
+        SET location = ST_SetSRID(ST_MakePoint(${dto.lng}, ${dto.lat}), 4326)
+        WHERE id = ${activityId}::uuid
+      `;
+    }
+
+    return this.findOne(activityId, userId);
   }
 
   // ── My Activities (hosted + joined) ──────────────────────────────────────────

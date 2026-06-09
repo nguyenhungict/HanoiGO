@@ -12,6 +12,7 @@ import {
 } from '@nestjs/common';
 import { ActivitiesService } from './activities.service';
 import { CreateActivityDto } from './dto/create-activity.dto';
+import { UpdateActivityDto } from './dto/update-activity.dto';
 import { ReportActivityDto } from './dto/report-activity.dto';
 import { AuthGuard } from '@nestjs/passport';
 import { OptionalJwtAuthGuard } from '../auth/guards/jwt-auth.guard';
@@ -132,6 +133,14 @@ export class ActivitiesController {
   @ApiOperation({ summary: 'Save (clone) the trip plan from an activity into my trips' })
   async cloneActivityTrip(@Request() req: any, @Param('id') id: string) {
     return this.activitiesService.cloneActivityTrip(req.user.id, id);
+  }
+
+  @Patch(':id')
+  @UseGuards(AuthGuard('jwt'))
+  @ApiBearerAuth()
+  @ApiOperation({ summary: 'Update an activity (Host only)' })
+  async update(@Request() req: any, @Param('id') id: string, @Body() dto: UpdateActivityDto) {
+    return this.activitiesService.update(req.user.id, id, dto);
   }
 
   @Delete(':id')

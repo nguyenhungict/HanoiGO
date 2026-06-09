@@ -132,6 +132,32 @@ export class AdminController {
     return this.adminService.deleteUser(userId);
   }
 
+  // ── Activity Management ────────────────────────────────────────────
+  @Get('activities')
+  getActivities(
+    @Query('page') page?: string,
+    @Query('limit') limit?: string,
+    @Query('search') search?: string,
+    @Query('status') status?: string,
+  ) {
+    return this.adminService.getActivities(
+      page ? parseInt(page) : 1,
+      limit ? parseInt(limit) : 10,
+      search,
+      status,
+    );
+  }
+
+  @Patch('activities/:id/cancel')
+  cancelActivity(@Param('id') id: string, @Request() req: any) {
+    return this.adminService.cancelActivity(req.user.id, id);
+  }
+
+  @Delete('activities/:id')
+  deleteActivity(@Param('id') id: string, @Request() req: any) {
+    return this.adminService.deleteActivity(req.user.id, id);
+  }
+
   // ── Report Management ───────────────────────────────────────────────
   @Get('reports')
   getReports(
@@ -156,14 +182,14 @@ export class AdminController {
   @Patch('reports/:id/resolve')
   resolveReport(
     @Param('id') reportId: string,
-    @Body() body: { adminNotes?: string; hideActivity?: boolean },
+    @Body() body: { adminNotes?: string; contentAction?: 'NONE' | 'HIDE' | 'DELETE' },
     @Request() req: any,
   ) {
     return this.adminService.resolveReport(
       req.user.id,
       reportId,
       body.adminNotes,
-      body.hideActivity,
+      body.contentAction || 'NONE',
     );
   }
 

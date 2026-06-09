@@ -104,6 +104,19 @@ export async function getMyActivitiesAction() {
   }
 }
 
+export async function updateActivityAction(id: string, data: any) {
+  try {
+    const headers = await authHeaders();
+    if (!headers.Authorization) return { error: 'Chưa đăng nhập' };
+
+    const response = await api.patch(`/activities/${id}`, data, { headers });
+    revalidatePath('/activities');
+    return { success: true, data: response.data };
+  } catch (error: any) {
+    return { error: error.response?.data?.message || 'Cập nhật hoạt động thất bại' };
+  }
+}
+
 export async function deleteActivityAction(id: string) {
   try {
     const headers = await authHeaders();
