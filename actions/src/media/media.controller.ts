@@ -15,26 +15,9 @@ import * as path from 'path';
 
 @Controller('media')
 export class MediaController {
-  @Post('upload')
-  @UseInterceptors(
-    FileInterceptor('file', {
-      storage: memoryStorage(),
-      fileFilter: (req, file, callback) => {
-        if (!file.originalname.match(/\.(jpg|jpeg|png|gif|webp)$/)) {
-          return callback(
-            new BadRequestException('Only image files are allowed!'),
-            false,
-          );
-        }
-        callback(null, true);
-      },
-    }),
-  )
-  async uploadFile(@UploadedFile() file: Express.Multer.File) {
-    if (!file) {
-      throw new BadRequestException('File is required');
-    }
-
+  private async _uploadToSupabaseOrLocal(
+    file: Express.Multer.File,
+  ): Promise<string> {
     let supabaseUrl = process.env.SUPABASE_URL;
     const supabaseKey = process.env.SUPABASE_KEY;
     const supabaseBucket = process.env.SUPABASE_BUCKET || 'hanoigo-uploads';
@@ -58,22 +41,24 @@ export class MediaController {
         const response = await fetch(uploadUrl, {
           method: 'POST',
           headers: {
-            'Authorization': `Bearer ${supabaseKey}`,
+            Authorization: `Bearer ${supabaseKey}`,
             'Content-Type': file.mimetype,
           },
-          body: file.buffer as any,
+          body: file.buffer as unknown as BodyInit,
         });
 
-        if (!response.ok) {
+        if (response.ok) {
+          // Return the Supabase public URL
+          return `${supabaseUrl}/storage/v1/object/public/${supabaseBucket}/${filename}`;
+        } else {
           const errText = await response.text();
-          throw new Error(`Supabase Storage upload failed: ${errText}`);
+          console.error(`Supabase Storage upload failed: ${errText}`);
         }
-
-        // Return the Supabase public URL
-        const publicUrl = `${supabaseUrl}/storage/v1/object/public/${supabaseBucket}/${filename}`;
-        return { url: publicUrl };
       } catch (err) {
-        console.error('Supabase upload failed, falling back to local storage:', err);
+        console.error(
+          'Supabase upload failed, falling back to local storage:',
+          err,
+        );
       }
     }
 
@@ -85,8 +70,65 @@ export class MediaController {
     const localPath = path.join(uploadDir, filename);
     fs.writeFileSync(localPath, file.buffer);
 
-    const url = `/uploads/${filename}`;
+    return `/uploads/${filename}`;
+  }
+
+  @Post('upload')
+  @UseInterceptors(
+    FileInterceptor('file', {
+      storage: memoryStorage(),
+      fileFilter: (req, file, callback) => {
+        if (!file.originalname.match(/\.(jpg|jpeg|png|gif|webp)$/)) {
+          return callback(
+            new BadRequestException('Only image files are allowed!'),
+            false,
+          );
+        }
+        callback(null, true);
+      },
+    }),
+  )
+  async uploadFile(@UploadedFile() file: Express.Multer.File) {
+    if (!file) {
+      throw new BadRequestException('File is required');
+    }
+    const url = await this._uploadToSupabaseOrLocal(file);
     return { url };
+  }
+
+  @Post('upload-chat')
+  @UseInterceptors(
+    FileInterceptor('file', {
+      storage: memoryStorage(),
+    }),
+  )
+  async uploadChatAttachment(@UploadedFile() file: Express.Multer.File) {
+    if (!file) {
+      throw new BadRequestException('File is required');
+    }
+
+    const ext = extname(file.originalname).toLowerCase();
+    const isImage = /\.(jpg|jpeg|png|gif|webp)$/i.test(ext);
+    const isDoc = /\.(pdf|doc|docx|zip|txt)$/i.test(ext);
+
+    if (!isImage && !isDoc) {
+      throw new BadRequestException('Unsupported file type');
+    }
+
+    const maxSize = isImage ? 5 * 1024 * 1024 : 10 * 1024 * 1024;
+    if (file.size > maxSize) {
+      throw new BadRequestException(
+        `File is too large. Maximum size for ${isImage ? 'images is 5MB' : 'documents is 10MB'}`,
+      );
+    }
+
+    const url = await this._uploadToSupabaseOrLocal(file);
+    return {
+      url,
+      fileName: file.originalname,
+      fileSize: file.size,
+      mediaType: isImage ? 'IMAGE' : 'FILE',
+    };
   }
 
   @Post('delete')

@@ -1,0 +1,49 @@
+@startuml
+skinparam dpi 300
+skinparam monochrome true
+skinparam shadowing false
+skinparam defaultFontName Arial
+skinparam sequenceMessageAlign left
+skinparam SequenceBoxBorderColor black
+
+actor User
+participant "Frontend\n(Next.js)" as FE
+participant "Backend\n(API)" as API
+database "Database" as DB
+
+group Browse Activities
+    User -> FE : Open activities map
+    FE -> API : GET /activities?lat&lng&radius
+    API -> DB : Proximity query (ST_DWithin)
+    DB --> API : Activity list
+    API --> FE : 200 OK + activities
+    FE --> User : Display markers on map
+end
+
+group Host Activity
+    User -> FE : Fill form (title, date,\nlocation, max members)
+    FE -> API : POST /activities
+    API -> DB : INSERT activity with geometry
+    API -> DB : INSERT host as member (APPROVED)
+    DB --> API : Activity created
+    API --> FE : 201 Created
+    FE --> User : New marker appears on map
+
+    User -> FE : Approve / reject request
+    FE -> API : PATCH /activities/:id/approve/:userId
+    API -> DB : UPDATE member status
+    API -> API : Notify requester (async)
+    API --> FE : 200 OK
+    FE --> User : Member list updated
+end
+
+group Join Activity
+    User -> FE : Click "Request to Join"
+    FE -> API : POST /activities/:id/join
+    API -> DB : INSERT member (PENDING)
+    API -> API : Notify host (async)
+    API --> FE : 200 OK
+    FE --> User : Status shown as Pending
+end
+
+@enduml

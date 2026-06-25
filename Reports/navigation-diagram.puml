@@ -1,0 +1,209 @@
+@startuml
+hide circles
+skinparam dpi 220
+skinparam shadowing false
+skinparam defaultFontName Arial
+skinparam defaultFontSize 11
+skinparam ArrowColor #333333
+skinparam ArrowThickness 1.5
+
+skinparam class {
+    BackgroundColor #D6EAF8
+    BorderColor #2980B9
+    BorderThickness 1.5
+    HeaderBackgroundColor #2980B9
+    HeaderFontColor white
+    HeaderFontStyle bold
+    FontColor #1a1a1a
+    AttributeFontSize 10
+    StereotypeFontColor #555555
+}
+
+skinparam note {
+    BackgroundColor #FFF9C4
+    BorderColor #F9A825
+}
+
+' ============================
+' LANDING PAGE (unauthenticated)
+' ============================
+class "**LandingPage**\n<color:#555>(Route: /)</color>" as Landing {
+    isAuthenticated: Boolean
+    --
+    navigateTo()
+}
+
+' ============================
+' AUTH GROUP
+' ============================
+class "**RegisterPage**\n<color:#555>(Route: /register)</color>" as Register {
+    email, password, name
+    showOtpStep: Boolean
+    --
+    register()
+    verifyOtp()
+}
+
+class "**LoginPage**\n<color:#555>(Route: /login)</color>" as Login {
+    email, password
+    error: string
+    --
+    login()
+}
+
+class "**VerifyEmailPage**\n<color:#555>(Route: /verify-email)</color>" as Verify {
+    token, status
+    --
+    verify()
+}
+
+class "**ForgotPasswordPage**\n<color:#555>(Route: /forgot-password)</color>" as ForgotPwd {
+    email
+    --
+    sendResetEmail()
+}
+
+class "**ResetPasswordPage**\n<color:#555>(Route: /reset-password)</color>" as ResetPwd {
+    token, newPassword
+    --
+    resetPassword()
+}
+
+' ============================
+' MAIN LAYOUT (authenticated)
+' ============================
+note as NavNote
+  **Header**
+  (Authenticated users only)
+  ..
+  Links: /discovery, /trips
+  /activities, /profile
+  + unread chat badge
+end note
+
+class "**DiscoveryPage**\n<color:#555>(Route: /discovery)</color>" as Discovery {
+    places[], selectedFilters
+    basketItems[]
+    --
+    filterPlaces()
+    addToBasket()
+    openPlaceDetail()
+}
+
+class "**PlaceDetailPage**\n<color:#555>(Route: /places/[id])</color>" as PlaceDetail {
+    place, reviews[]
+    --
+    addToBasket()
+}
+
+class "**TripsPage**\n<color:#555>(Route: /trips)</color>" as Trips {
+    trips[], activeTrip
+    tripSettings
+    --
+    generateTrip()
+    saveTrip()
+    shareAsActivity()
+}
+
+class "**ActivitiesPage**\n<color:#555>(Route: /activities)</color>" as Activities {
+    activities[], viewMode
+    activeTab: group|trips|joined
+    --
+    hostActivity()
+    joinActivity()
+    cloneTrip()
+    openGroupChat()
+}
+
+class "**ProfilePage**\n<color:#555>(Route: /profile)</color>" as Profile {
+    userProfile
+    --
+    editProfile()
+    changePassword()
+    viewMyTrips()
+}
+
+' ============================
+' ADMIN GROUP
+' ============================
+class "**AdminLoginPage**\n<color:#555>(Route: /admin/login)</color>" as AdminLogin {
+    email, password
+    --
+    adminSignin()
+}
+
+class "**DashboardPage**\n<color:#555>(Route: /admin/dashboard)</color>" as Dashboard {
+    stats, charts[]
+    --
+    navigateTo()
+}
+
+class "**UsersPage**\n<color:#555>(Route: /admin/users)</color>" as AdminUsers {
+    users[], filters
+    --
+    blockUser()
+    deleteUser()
+    viewDetail()
+}
+
+class "**PlacesPage**\n<color:#555>(Route: /admin/places)</color>" as AdminPlaces {
+    places[]
+    --
+    createPlace()
+    updatePlace()
+    deletePlace()
+}
+
+class "**ActivitiesAdminPage**\n<color:#555>(Route: /admin/activities)</color>" as AdminActivities {
+    activities[]
+    --
+    cancelActivity()
+    deleteActivity()
+}
+
+class "**ReportsPage**\n<color:#555>(Route: /admin/reports)</color>" as AdminReports {
+    reports[], status
+    --
+    resolveReport()
+    dismissReport()
+}
+
+' ============================
+' CONNECTIONS: Landing → Auth
+' ============================
+Landing --> Register : /register
+Landing --> Login    : /login (redirect\nif not logged in)
+
+Register --> Verify  : email link
+Verify   --> Login   : /login
+Login    --> ForgotPwd : /forgot-password
+ForgotPwd --> ResetPwd : email link
+Login    -down-> Discovery : /discovery\n<i>after authentication</i>
+
+' ============================
+' CONNECTIONS: Main Nav
+' ============================
+Discovery --> PlaceDetail : /places/[id]
+Discovery --> Trips        : addToBasket\nthen /trips
+Trips    --> Activities    : shareAsActivity\n→ /activities
+Activities --> Activities  : openGroupChat\n(inline chat panel)
+Login    --> AdminLogin    : if role=ADMIN\n→ /admin/login
+
+' ============================
+' CONNECTIONS: Admin
+' ============================
+AdminLogin --> Dashboard : /admin/dashboard\n<i>after auth</i>
+Dashboard  --> AdminUsers
+Dashboard  --> AdminPlaces
+Dashboard  --> AdminActivities
+Dashboard  --> AdminReports
+
+' ============================
+' LAYOUT
+' ============================
+NavNote .. Discovery
+NavNote .. Trips
+NavNote .. Activities
+NavNote .. Profile
+
+@enduml

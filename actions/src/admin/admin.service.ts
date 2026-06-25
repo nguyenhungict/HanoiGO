@@ -4,7 +4,13 @@ import {
   BadRequestException,
 } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
-import { ViolationType, ReportStatus, Role, UserStatus, NotificationType } from '@prisma/client';
+import {
+  ViolationType,
+  ReportStatus,
+  Role,
+  UserStatus,
+  NotificationType,
+} from '@prisma/client';
 import * as bcrypt from 'bcrypt';
 import { CreatePlaceDto } from './dto/create-place.dto';
 import { UpdatePlaceDto } from './dto/update-place.dto';
@@ -56,7 +62,10 @@ export class AdminService {
 
     if (Array.isArray(growth)) {
       growth.forEach((row: any) => {
-        const dateKey = row.date instanceof Date ? row.date.toISOString().split('T')[0] : String(row.date);
+        const dateKey =
+          row.date instanceof Date
+            ? row.date.toISOString().split('T')[0]
+            : String(row.date);
         growthMap.set(dateKey, row.count);
       });
     }
@@ -442,10 +451,22 @@ export class AdminService {
         orderBy: { createdAt: 'desc' },
         include: {
           reporter: {
-            select: { id: true, username: true, email: true, fullName: true, avatarUrl: true },
+            select: {
+              id: true,
+              username: true,
+              email: true,
+              fullName: true,
+              avatarUrl: true,
+            },
           },
           targetUser: {
-            select: { id: true, username: true, email: true, fullName: true, avatarUrl: true },
+            select: {
+              id: true,
+              username: true,
+              email: true,
+              fullName: true,
+              avatarUrl: true,
+            },
           },
         },
       }),
@@ -456,18 +477,19 @@ export class AdminService {
       .filter((r) => r.entityType === 'ACTIVITY' && r.entityId)
       .map((r) => r.entityId as string);
 
-    const activities = activityIds.length > 0
-      ? await this.prisma.activity.findMany({
-          where: { id: { in: activityIds } },
-          select: {
-            id: true,
-            title: true,
-            status: true,
-            hostId: true,
-            host: { select: { username: true } },
-          },
-        })
-      : [];
+    const activities =
+      activityIds.length > 0
+        ? await this.prisma.activity.findMany({
+            where: { id: { in: activityIds } },
+            select: {
+              id: true,
+              title: true,
+              status: true,
+              hostId: true,
+              host: { select: { username: true } },
+            },
+          })
+        : [];
 
     const mappedReports = reports.map((report) => {
       let activity = null;
@@ -493,10 +515,22 @@ export class AdminService {
       where: { id: reportId },
       include: {
         reporter: {
-          select: { id: true, username: true, email: true, fullName: true, avatarUrl: true },
+          select: {
+            id: true,
+            username: true,
+            email: true,
+            fullName: true,
+            avatarUrl: true,
+          },
         },
         targetUser: {
-          select: { id: true, username: true, email: true, fullName: true, avatarUrl: true },
+          select: {
+            id: true,
+            username: true,
+            email: true,
+            fullName: true,
+            avatarUrl: true,
+          },
         },
       },
     });
@@ -546,7 +580,11 @@ export class AdminService {
         });
 
         // 2. Act on content based on explicit action choice
-        if (contentAction !== 'NONE' && report.entityType === 'ACTIVITY' && report.entityId) {
+        if (
+          contentAction !== 'NONE' &&
+          report.entityType === 'ACTIVITY' &&
+          report.entityId
+        ) {
           if (contentAction === 'HIDE') {
             await tx.activity.update({
               where: { id: report.entityId },
@@ -576,7 +614,9 @@ export class AdminService {
 
       return { success: true };
     } catch (error) {
-      throw new BadRequestException(`Failed to resolve report: ${error.message}`);
+      throw new BadRequestException(
+        `Failed to resolve report: ${error.message}`,
+      );
     }
   }
 
@@ -609,19 +649,25 @@ export class AdminService {
       this.prisma.activity.count({ where }),
     ]);
 
-    const activityIds = activities.map(a => a.id);
-    const reportCounts = activityIds.length > 0
-      ? await this.prisma.report.groupBy({
-          by: ['entityId'],
-          where: { entityType: 'ACTIVITY', entityId: { in: activityIds } },
-          _count: { entityId: true },
-        })
-      : [];
+    const activityIds = activities.map((a) => a.id);
+    const reportCounts =
+      activityIds.length > 0
+        ? await this.prisma.report.groupBy({
+            by: ['entityId'],
+            where: { entityType: 'ACTIVITY', entityId: { in: activityIds } },
+            _count: { entityId: true },
+          })
+        : [];
 
-    const reportMap = new Map(reportCounts.map(r => [r.entityId, r._count.entityId]));
+    const reportMap = new Map(
+      reportCounts.map((r) => [r.entityId, r._count.entityId]),
+    );
 
     return {
-      activities: activities.map(a => ({ ...a, reportCount: reportMap.get(a.id) ?? 0 })),
+      activities: activities.map((a) => ({
+        ...a,
+        reportCount: reportMap.get(a.id) ?? 0,
+      })),
       total,
       page,
       lastPage: Math.ceil(total / limit) || 1,
@@ -629,17 +675,25 @@ export class AdminService {
   }
 
   async cancelActivity(adminId: string, activityId: string) {
-    const activity = await this.prisma.activity.findUnique({ where: { id: activityId } });
+    const activity = await this.prisma.activity.findUnique({
+      where: { id: activityId },
+    });
     if (!activity) throw new NotFoundException('Activity not found');
 
     await this.prisma.$transaction(async (tx) => {
-      await tx.activity.update({ where: { id: activityId }, data: { status: 'CANCELLED' } });
+      await tx.activity.update({
+        where: { id: activityId },
+        data: { status: 'CANCELLED' },
+      });
       await tx.adminLog.create({
         data: {
           adminId,
           action: 'CANCEL_ACTIVITY',
           targetId: activityId,
-          details: JSON.stringify({ activityId, timestamp: new Date().toISOString() }),
+          details: JSON.stringify({
+            activityId,
+            timestamp: new Date().toISOString(),
+          }),
         },
       });
     });
@@ -648,7 +702,9 @@ export class AdminService {
   }
 
   async deleteActivity(adminId: string, activityId: string) {
-    const activity = await this.prisma.activity.findUnique({ where: { id: activityId } });
+    const activity = await this.prisma.activity.findUnique({
+      where: { id: activityId },
+    });
     if (!activity) throw new NotFoundException('Activity not found');
 
     await this.prisma.$transaction(async (tx) => {
@@ -658,7 +714,11 @@ export class AdminService {
           adminId,
           action: 'DELETE_ACTIVITY',
           targetId: activityId,
-          details: JSON.stringify({ activityId, title: activity.title, timestamp: new Date().toISOString() }),
+          details: JSON.stringify({
+            activityId,
+            title: activity.title,
+            timestamp: new Date().toISOString(),
+          }),
         },
       });
     });
@@ -701,7 +761,9 @@ export class AdminService {
 
       return { success: true };
     } catch (error) {
-      throw new BadRequestException(`Failed to dismiss report: ${error.message}`);
+      throw new BadRequestException(
+        `Failed to dismiss report: ${error.message}`,
+      );
     }
   }
 }

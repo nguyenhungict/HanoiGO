@@ -1,0 +1,699 @@
+\documentclass[a4paper,12pt]{report}
+
+% ===================================================
+% 1. PACKAGES & CONFIGURATION
+% ===================================================
+\usepackage[utf8]{inputenc}
+\usepackage[T1]{fontenc}
+\usepackage[english,vietnamese]{babel} 
+\usepackage{geometry}      
+\usepackage{titlesec}       
+\usepackage{mathptmx}       
+\usepackage{amsmath}
+\usepackage{float}          
+\usepackage[hidelinks]{hyperref}
+\usepackage{array}         
+\usepackage{caption}        
+\usepackage{indentfirst}    
+\usepackage{graphicx}
+\usepackage[section]{placeins}
+\usepackage{listings}
+\usepackage{xcolor}
+\usepackage{fancyhdr}
+
+% Page Margins (A4 Standard)
+\geometry{
+    top=2.5cm,
+    bottom=2.5cm,
+    left=3cm,
+    right=2cm
+}
+
+% Configure page numbering in bottom right
+\pagestyle{fancy}
+\fancyhf{} % Clear all headers and footers
+\fancyfoot[R]{\thepage} % Page number in bottom right
+\renewcommand{\headrulewidth}{0pt} % Remove header line
+\renewcommand{\footrulewidth}{0pt} % Remove footer line
+
+% Redefine 'plain' style for Chapter pages to match
+\fancypagestyle{plain}{
+  \fancyhf{}
+  \fancyfoot[R]{\thepage}
+  \renewcommand{\headrulewidth}{0pt}
+  \renewcommand{\footrulewidth}{0pt}
+}
+
+% Roman Numerals for Chapters (I, II, III...) like the sample
+\renewcommand{\thechapter}{\Roman{chapter}}
+\renewcommand{\thesection}{\arabic{section}}
+\renewcommand{\thesubsection}{\thesection.\arabic{subsection}}
+
+% Formatting Chapter Titles (e.g., Chapter I - Introduction)
+\titleformat{\chapter}[display]
+  {\normalfont\huge\bfseries\centering}
+  {\chaptertitlename\ \thechapter}{10pt}{\Huge}
+\titlespacing*{\chapter}{0pt}{-20pt}{30pt}
+
+% ===================================================
+% 2. STUDENT & PROJECT INFORMATION (EDIT HERE)
+% ===================================================
+\newcommand{\thesisTitle}{HanoiGO} % <--- Project Name
+\newcommand{\thesisSubtitle}{Một ứng dụng lập lịch trình chuyến đi lấy bản đồ làm trung tâm cho Hà Nội}
+\newcommand{\studentName}{[Nguyễn Hùng]} % <--- Your Name
+\newcommand{\supervisorName}{[PGS. TS. Trần Giang Sơn]}  % <--- Supervisor Name
+\newcommand{\reportDate}{Hà Nội, tháng 5 năm 2026}         % <--- Date
+\setcounter{secnumdepth}{3}
+\begin{document}
+
+% ===================================================
+% 3. COVER PAGE
+% ===================================================
+\begin{titlepage}
+    \centering
+    
+    % --- LOGO ---
+    % Upload 'logo-usth.png' to Overleaf
+    \includegraphics[width=6cm]{logo-usth.png} 
+    
+    \vspace{1cm}
+    
+    % --- UNIVERSITY HEADER ---
+    {\large \textbf{TRƯỜNG ĐẠI HỌC KHOA HỌC VÀ CÔNG NGHỆ HÀ NỘI}}\\[0.3cm]
+    {\large \textbf{KHOA CÔNG NGHỆ THÔNG TIN VÀ TRUYỀN THÔNG}}\\[2.5cm]
+    
+    % --- PROJECT TITLE ---
+    {\Large \textbf{BÁO CÁO KHÓA LUẬN TỐT NGHIỆP CỬ NHÂN}}\\[0.5cm]
+    
+    % Đường kẻ trang trí
+    \rule{\linewidth}{0.5mm} \\[0.4cm]
+    {\Huge \bfseries HanoiGO}\\[0.4cm]
+    {\large \textbf{Một ứng dụng lập lịch trình chuyến đi lấy bản đồ làm trung tâm cho Hà Nội}}\\[0.4cm]
+    \rule{\linewidth}{0.5mm} \\[1.5cm]
+    
+    % --- MEMBERS LIST (CENTERED & SMALLER) ---
+    {\large \textbf{Tác giả:}}\\[0.5cm]
+    
+    % Điều chỉnh khoảng cách giữa Tên và ID cho thoáng
+    \setlength{\tabcolsep}{12pt} 
+    
+    % Bảng căn giữa tự động nhờ lệnh \centering ở đầu trang
+    {\normalsize % Cỡ chữ vừa phải (không quá to)
+    \begin{tabular}{l l} 
+        Nguyễn Hùng (ICT) & 22BA13154 \\
+    \end{tabular}
+    }
+
+    \vfill % Đẩy phần dưới xuống đáy trang
+    
+    % --- SUPERVISOR ---
+    {\large \textbf{Giảng viên hướng dẫn:} PGS. TS. Trần Giang Sơn}\\[1.5cm]
+    
+    % --- DATE ---
+    {\normalsize \textbf{Hà Nội, tháng 5 năm 2026}}
+    
+\end{titlepage}
+
+% ===================================================
+% 4. ACKNOWLEDGMENT
+% ===================================================
+\thispagestyle{empty}
+\begin{center}
+    \Large \textbf{LỜI CẢM ƠN}
+\end{center}
+
+\vspace{1cm}
+
+{
+\linespread{1.3}\selectfont
+\setlength{\parskip}{1em}
+\setlength{\parindent}{1.5em}
+
+Tôi xin bày tỏ lòng biết ơn sâu sắc tới giảng viên hướng dẫn của tôi, PGS. TS. Trần Giang Sơn, vì sự hỗ trợ tận tình của thầy trong suốt quá trình thực hiện dự án. Thầy đã đưa ra những nhận xét và gợi ý hữu ích giúp tôi hiểu rõ hơn các vấn đề gặp phải. Sự hướng dẫn của thầy đã khuyến khích tôi suy nghĩ thấu đáo hơn và cải thiện công việc của mình qua từng bước. Thầy luôn sẵn lòng giải đáp các thắc mắc và đưa ra những lời khuyên bổ ích mỗi khi tôi gặp khó khăn. Nhờ có sự hỗ trợ của thầy, tôi đã có thể nâng cao chất lượng tổng thể của dự án này.
+
+\noindent Hà Nội, tháng 5 năm 2026
+}
+
+\vspace{3cm}
+
+\noindent \textbf{Chữ ký của Giảng viên hướng dẫn}
+
+
+\newpage
+
+% ===================================================
+% 5. FRONT MATTER (TOC, LISTS)
+% ===================================================
+\pagenumbering{roman} % i, ii, iii...
+{
+\linespread{1.3}\selectfont
+\setlength{\parskip}{0.5em}
+
+\tableofcontents
+\addcontentsline{toc}{chapter}{MỤC LỤC}
+\newpage
+
+\listoffigures
+\addcontentsline{toc}{chapter}{DANH MỤC HÌNH VẼ}
+\newpage
+
+\listoftables
+\addcontentsline{toc}{chapter}{DANH MỤC BẢNG BIỂU}
+}
+\newpage
+% ===================================================
+% 6. MAIN CONTENT
+% ===================================================
+\pagenumbering{arabic} % 1, 2, 3...
+
+% --- CHAPTER I ---
+\chapter{GIỚI THIỆU}
+
+% Adjust spacing for Chapter I
+\setlength{\parindent}{0pt} % No paragraph indentation
+\setlength{\parskip}{1.2em} % Increase space between paragraphs
+\linespread{1.3}\selectfont % Increase line spacing within paragraphs
+\titlespacing*{\section}{0pt}{12pt}{4pt} % Reduce space after section headings
+
+\section{Bối cảnh}
+
+Ngày nay, ngày càng có nhiều người đi du lịch nước ngoài và nhiều người trong số họ sử dụng điện thoại di động hoặc các trang web để lên kế hoạch cho chuyến đi của mình. Theo Gretzel và các cộng sự \cite{gretzel2015smart}, việc sử dụng các công cụ kỹ thuật số như bản đồ trực tuyến và ứng dụng di động có thể giúp khách du lịch có trải nghiệm du lịch tốt hơn. Tuy nhiên, đối với những du khách nước ngoài lần đầu đến một thành phố lớn và đông đúc như Hà Nội \cite{vietnamtourism2024}, việc tự lên kế hoạch cho chuyến đi thường không dễ dàng, đặc biệt là khi họ đi du lịch một mình.
+
+Hiện tại đã có một số ứng dụng du lịch nổi tiếng như Google Maps, TripAdvisor hay Booking.com. Tuy nhiên, các ứng dụng này thường chỉ hỗ trợ tìm đường giữa hai địa điểm. Chúng không được thiết kế để lên kế hoạch cho một chuyến đi trọn vẹn trong nhiều ngày hoặc để tìm kiếm các thông tin quan trọng như giờ mở cửa của địa điểm, các lời khuyên về văn hóa địa phương hoặc mô tả chi tiết bằng tiếng Anh. Vì những thông tin này thường nằm rải rác trên nhiều trang web và bài viết blog khác nhau, du khách phải dành rất nhiều thời gian tự tìm kiếm \cite{buhalis2020smartness}.
+
+Hơn nữa, những người du lịch đơn độc thường gặp khó khăn trong việc tìm kiếm bạn đồng hành để đi cùng hoặc chia sẻ các chi phí như tiền taxi \cite{buhalis2019cocreation}. Hầu hết các ứng dụng mạng xã hội thông thường không tích hợp tính năng bản đồ, khiến việc theo dõi các hoạt động nhóm đang diễn ra xung quanh theo thời gian thực trở nên khó khăn. Những vấn đề này làm cho việc du lịch một mình tại Hà Nội trở nên bất tiện hơn mức cần thiết. Do đó, có một nhu cầu rõ ràng về một công cụ đơn giản và tập trung, tích hợp bản đồ, lập kế hoạch chuyến đi và các tính năng xã hội vào cùng một nơi.
+
+Chính vì lý do đó, tôi đã quyết định phát triển HanoiGO, một ứng dụng web được thiết kế dành riêng cho khách du lịch nước ngoài đến thăm Hà Nội. Ứng dụng giúp người dùng tự động lập lịch trình di chuyển hàng ngày một cách thuận tiện, kết nối với những khách du lịch khác ở gần và nhận các thông tin tư vấn hữu ích từ một trợ lý hỗ trợ bởi AI. Phần tiếp theo sẽ giải thích chi tiết hơn lý do tôi lựa chọn đề tài này.
+
+\section{Động lực đề tài}
+
+Quyết định thực hiện dự án này được thúc đẩy bởi cả nhu cầu thực tế về điều hướng du lịch và các mục tiêu phát triển kỹ thuật.
+
+Thứ nhất, tôi muốn giúp khách du lịch lập lịch trình cho các chuyến đi một cách dễ dàng hơn. Tôi nhận thấy rằng việc sắp xếp danh sách các địa điểm tham quan thành một lịch trình rõ ràng trong nhiều ngày là rất khó khăn, đặc biệt là vì một số địa điểm ở Hà Nội có giờ mở cửa cụ thể hoặc đóng cửa nghỉ trưa. Để giải quyết vấn đề này, tôi đã thiết kế một phương pháp lập lịch trình nhiều ngày. Phương pháp này trước tiên nhóm các điểm du lịch thành các cụm hàng ngày bằng thuật toán phân cụm K-Means, sau đó tìm thứ tự tham quan thuận tiện cho các địa điểm trong mỗi ngày bằng phương pháp Tham lam Láng giềng Gần nhất (Greedy Nearest Neighbor) có cân nhắc giới hạn thời gian. Phương pháp lập lịch trình này sử dụng thời gian di chuyển thực tế từ API Goong Maps để giảm thiểu thời gian chờ đợi và di chuyển của du khách.
+
+Thứ hai, tôi muốn xây dựng một tính năng dựa trên bản đồ để giúp những người du lịch đơn độc gặp gỡ những người khác. Trên hầu hết các mạng xã hội, các kế hoạch du lịch chỉ được chia sẻ dưới dạng văn bản hoặc hình ảnh và không có cách nào để theo dõi vị trí của mọi người trên bản đồ. HanoiGO cung cấp cho người dùng một công cụ để tạo và tham gia các hoạt động nhóm được hiển thị dưới dạng các điểm đánh dấu động trên bản đồ trực tiếp. Các điểm đánh dấu này thay đổi màu sắc và nhấp nháy dựa trên trạng thái thời gian của hoạt động. Khi tìm thấy một hoạt động nhóm thú vị, người dùng cũng có thể sao chép trực tiếp lịch trình chuyến đi được liên kết vào tài khoản cá nhân của mình chỉ với một cú nhấp chuột. Quá trình này được thực hiện thông qua một giao dịch sao chép sâu (deep copy transaction) trong cơ sở dữ liệu, giúp sao chép toàn bộ các ngày và các điểm dừng của chuyến đi một cách nhanh chóng hơn nhiều so với việc tạo lại lịch trình thủ công.
+
+Về mặt kỹ thuật, dự án này cũng là cơ hội để tôi học hỏi và thực hành các kỹ năng phát triển phần mềm hữu ích. Tôi dự kiến sử dụng Next.js và TypeScript để xây dựng giao diện người dùng tương thích đa thiết bị, NestJS để xây dựng máy chủ backend với cấu trúc mô-đun rõ ràng, PostgreSQL với PostGIS để lưu trữ và truy vấn dữ liệu vị trí không gian, và các kết nối WebSocket cùng Redis Pub/Sub để hỗ trợ tính năng trò chuyện nhóm thời gian thực.
+
+Với những động lực này, tôi đã thiết lập các mục tiêu rõ ràng để định hướng cho quá trình phát triển ứng dụng.
+
+\section{Mục tiêu đề tài}
+
+Mục tiêu chính của dự án này là xây dựng một ứng dụng web hoàn chỉnh giúp khách du lịch nước ngoài tại Hà Nội lên kế hoạch cho chuyến đi của họ và kết nối với những du khách khác một cách thuận tiện hơn. Để đạt được mục tiêu này, tôi đã đặt ra một danh sách các mục tiêu cả về chức năng và kỹ thuật.
+
+Về mặt tính năng, tôi hướng tới các mục tiêu sau. Thứ nhất, xây dựng một hệ thống tài khoản bảo mật với xác thực mã OTP qua email để đảm bảo chỉ những người dùng thực tế mới có thể truy cập nền tảng. Thứ hai, xây dựng bộ lập kế hoạch chuyến đi nhiều ngày để tự động nhóm và sắp xếp các địa điểm du lịch thành các lịch trình hàng ngày thuận tiện bằng các phương pháp phân cụm và sắp xếp thứ tự, có tính đến thời gian di chuyển thực tế, giờ mở cửa và thời gian nghỉ trưa. Thứ ba, tích hợp bản đồ trực tiếp với các điểm đánh dấu trạng thái động và phòng trò chuyện nhóm dựa trên WebSocket để du khách có thể dễ dàng tìm thấy và giao tiếp với những người khác ở gần. Thứ tư, tạo trang bảng tin chia sẻ lịch trình với tính năng sao chép nhanh, cho phép người dùng xem, thích, bình luận và sao chép ngay lập tức các kế hoạch chuyến đi hoàn chỉnh vào tài khoản của mình.
+
+Về mặt kỹ thuật, các mục tiêu bao gồm. Thứ nhất, xây dựng hệ thống xác thực an toàn sử dụng token JWT phi trạng thái lưu trữ trong HttpOnly cookie để chống lại các cuộc tấn công XSS, kết hợp với trường phiên bản token (token version) trên mỗi tài khoản để cho phép vô hiệu hóa token khi cần thiết. Thứ hai, sử dụng NestJS cho backend và Next.js cho frontend để tạo ra một cấu trúc ứng dụng rõ ràng và được tổ chức tốt. Thứ ba, sử dụng cơ sở dữ liệu PostgreSQL với phần mở rộng PostGIS để lưu trữ dữ liệu vị trí không gian và thực hiện các truy vấn lân cận một cách hiệu quả. Thứ tư, triển khai truyền tin thời gian thực bằng WebSocket kết hợp với Redis Pub/Sub để tính năng trò chuyện nhóm có thể mở rộng quy mô kết nối. Cuối cùng, thử nghiệm và tối ưu hóa thuật toán lập lịch trình để đảm bảo thuật toán tạo ra kết quả chính xác và hữu ích cho một ứng dụng web thực tế.
+
+Bằng việc đạt được các mục tiêu này, tôi hy vọng sẽ xây dựng được một công cụ hữu ích cho khách du lịch nước ngoài đến Hà Nội, đồng thời chứng minh khả năng áp dụng các kỹ năng phát triển web hiện đại vào một dự án thực tế.
+
+% Reset spacing for subsequent chapters
+\setlength{\parindent}{15pt}
+\setlength{\parskip}{0em}
+\linespread{1}\selectfont
+
+% --- CHAPTER II ---
+\chapter{PHÂN TÍCH HỆ THỐNG}
+
+% Apply same spacing as Chapter I
+\setlength{\parindent}{0pt}
+\setlength{\parskip}{0.6em}
+\linespread{1.3}\selectfont
+\titlespacing*{\section}{0pt}{12pt}{4pt}
+
+\section{Tổng quan}
+
+Chương này giải thích cách thức hoạt động nội bộ của hệ thống, trình bày các tính năng chính, các mô-đun cốt lõi và cách các thành phần khác nhau tương tác với nhau. Chương này mô tả cách các ý tưởng được giới thiệu ở Chương I được chuyển đổi thành một ứng dụng web thực tế hoạt động ổn định.
+
+HanoiGO được thiết kế dành cho hai đối tượng người dùng chính: Khách du lịch (Tourist) và Quản trị viên (Admin). Khách du lịch sử dụng nền tảng để khám phá các địa điểm tại Hà Nội, tự động tạo lịch trình chuyến đi hàng ngày, tham gia các hoạt động nhóm trên bản đồ trực tiếp và nhận các lời khuyên hữu ích từ trợ lý AI. Quản trị viên quản lý các tài khoản người dùng và duy trì hoạt động ổn định của nền tảng thông qua một bảng điều khiển quản trị chuyên dụng.
+
+Hệ thống được xây dựng trên một tập hợp công nghệ hiện đại. Backend được phát triển bằng NestJS, và frontend được xây dựng bằng Next.js. Dữ liệu vị trí được lưu trữ và truy vấn bằng PostgreSQL với phần mở rộng PostGIS. Tính năng trò chuyện nhóm thời gian thực được xử lý qua kết nối WebSocket với sự hỗ trợ của hệ thống truyền tin Redis Pub/Sub. Kiến trúc này giúp đảm bảo hệ thống có thể xử lý hiệu quả các loại dữ liệu khác nhau và mang lại trải nghiệm mượt mà cho người dùng.
+
+\section{Yêu cầu hệ thống}
+
+Nhìn chung, ứng dụng HanoiGO hỗ trợ khách du lịch nước ngoài lập kế hoạch và trải nghiệm chuyến đi tại Hà Nội cần phải thỏa mãn các yêu cầu chính sau:
+
+\begin{itemize}
+    \item Đối với Khách du lịch:
+    \begin{itemize}
+        \item Đăng ký và đăng nhập an toàn với xác minh danh tính qua email.
+        \item Duyệt và lọc các địa điểm du lịch ở Hà Nội trên bản đồ tương tác.
+        \item Tự động tạo lịch trình chuyến đi nhiều ngày dựa trên các địa điểm đã chọn và tùy chọn di chuyển.
+        \item Tạo và tham gia các hoạt động nhóm được hiển thị trên bản đồ.
+        \item Giao tiếp với các du khách khác bằng phòng trò chuyện nhóm thời gian thực.
+        \item Chia sẻ và sao chép các kế hoạch chuyến đi thông qua bảng tin xã hội.
+        \item Quản lý thông tin hồ sơ cá nhân và các lịch trình chuyến đi đã lưu.
+        \item Báo cáo các hoạt động vi phạm quy định của nền tảng.
+    \end{itemize}
+ 
+    \item Đối với Quản trị viên:
+    \begin{itemize}
+        \item Xem bảng điều khiển hiển thị số liệu thống kê nền tảng và báo cáo hệ thống.
+        \item Quản lý tài khoản người dùng, bao gồm tìm kiếm, khóa và xóa tài khoản.
+        \item Quản lý thông tin địa điểm du lịch và tọa độ của chúng.
+        \item Quản lý và kiểm duyệt các hoạt động nhóm trên bản đồ.
+        \item Xem xét và giải quyết các báo cáo vi phạm do người dùng gửi lên.
+    \end{itemize}
+\end{itemize}
+
+\section{Biểu đồ UML}
+
+Phần này trình bày các biểu đồ Use Case để trực quan hóa các tương tác giữa các tác nhân và hệ thống.
+
+\subsection{Biểu đồ Use Case}
+
+\subsubsection{Use Case cho Khách du lịch}
+
+Hình \ref{fig:usecase_tourist} trình bày cách khách du lịch tương tác với hệ thống HanoiGO. Họ có thể thực hiện các thao tác trên năm phân hệ chính: Xác thực, Quản lý hồ sơ, Khám phá địa điểm, Lập kế hoạch chuyến đi và Quản lý hoạt động. Các điểm truy cập chính được kết nối trực tiếp với tác nhân Khách du lịch, trong khi các thao tác chuyên biệt được liên kết thông qua các quan hệ include và extend chuẩn của UML. Cấu trúc này cho phép khách du lịch dễ dàng chuyển đổi từ việc khám phá địa điểm sang lập kế hoạch lịch trình, tổ chức các hoạt động trên bản đồ và giao tiếp trong phòng trò chuyện nhóm.
+
+\begin{figure}[H]
+    \centering
+    \includegraphics[width=1\linewidth]{user-usecase.drawio.pdf} 
+    \caption{Biểu đồ Use Case cho Khách du lịch}
+    \label{fig:usecase_tourist}
+\end{figure}
+
+\newpage
+\begin{table}[H]
+\centering
+\small
+\renewcommand{\arraystretch}{1.1}
+\begin{tabular}{|c|p{4.5cm}|p{9cm}|}
+\hline
+\textbf{STT} & \textbf{Use Case} & \textbf{Mô tả} \\ \hline
+1 & Đăng nhập & Truy cập nền tảng bằng thông tin đăng nhập. \\ \hline
+2 & Đăng ký & Tạo tài khoản mới, mở rộng từ quy trình Đăng nhập. \\ \hline
+3 & Quản lý hồ sơ & Truy cập quản lý thông tin hồ sơ cá nhân. \\ \hline
+4 & Xem hồ sơ & Xem chi tiết hồ sơ cá nhân, mở rộng từ Quản lý hồ sơ. \\ \hline
+5 & Cập nhật hồ sơ & Chỉnh sửa thông tin người dùng và ngôn ngữ, mở rộng từ Quản lý hồ sơ. \\ \hline
+6 & Thay đổi mật khẩu & Cập nhật mật khẩu tài khoản, mở rộng từ Xem hồ sơ. \\ \hline
+7 & Duyệt địa điểm & Khám phá các địa danh văn hóa và lịch sử. \\ \hline
+8 & Xem danh sách địa điểm & Xem danh sách các địa danh đã đăng ký, bao gồm trong Duyệt địa điểm. \\ \hline
+9 & Xem chi tiết địa điểm & Xem mô tả và tọa độ địa danh, mở rộng từ Duyệt địa điểm. \\ \hline
+10 & Thích địa điểm & Lưu địa danh vào giỏ lưu trữ cá nhân, mở rộng từ Xem danh sách địa điểm. \\ \hline
+11 & Lên kế hoạch chuyến đi & Truy cập tính năng lập lịch trình và tuyến đường di chuyển. \\ \hline
+12 & Tạo chuyến đi & Tính toán các tuyến đường hàng ngày tối ưu, mở rộng từ Lên kế hoạch chuyến đi. \\ \hline
+13 & Lưu chuyến đi & Lưu lịch trình đã tính toán vào hồ sơ, mở rộng từ Tạo chuyến đi. \\ \hline
+14 & Xem chuyến đi của tôi & Duyệt các lịch trình đã lưu, mở rộng từ Lên kế hoạch chuyến đi. \\ \hline
+15 & Xóa chuyến đi & Xóa vĩnh viễn một chuyến đi đã lưu, mở rộng từ Xem chuyến đi của tôi. \\ \hline
+16 & Chia sẻ chuyến đi đã lưu & Bắt đầu hoạt động nhóm từ chuyến đi đã lưu, mở rộng từ Xem chuyến đi của tôi. \\ \hline
+17 & Quản lý hoạt động & Truy cập các tùy chọn tổ chức và tham gia hoạt động nhóm. \\ \hline
+18 & Tổ chức hoạt động & Truy cập các tính năng làm trưởng nhóm, mở rộng từ Quản lý hoạt động. \\ \hline
+19 & Thao tác CRUD hoạt động & Tạo, cập nhật và xóa các hoạt động nhóm, bao gồm trong Tổ chức hoạt động. \\ \hline
+20 & Quản lý yêu cầu tham gia & Phê duyệt hoặc từ chối yêu cầu của người tham gia, mở rộng từ Tổ chức hoạt động. \\ \hline
+21 & Tham gia hoạt động & Gửi yêu cầu tham gia vào một hoạt động nhóm khác, mở rộng từ Quản lý hoạt động. \\ \hline
+22 & Duyệt hoạt động & Xem các hoạt động đang diễn ra trên bản đồ, bao gồm trong Quản lý hoạt động. \\ \hline
+23 & Báo cáo hoạt động & Báo cáo một hoạt động vi phạm quy định, mở rộng từ Duyệt hoạt động. \\ \hline
+24 & Trò chuyện nhóm & Gửi tin nhắn thời gian thực trong nhóm, mở rộng từ Tổ chức hoạt động và Tham gia hoạt động. \\ \hline
+\end{tabular}
+\caption{Mô tả các Use Case cho Khách du lịch}
+\label{tab:tourist_use_cases}
+\end{table}
+
+\subsubsection{Use Case cho Quản trị viên}
+
+Hình \ref{fig:usecase_admin} mô tả các chức năng quản trị được cung cấp bởi nền tảng HanoiGO. Tác nhân Quản trị viên (Admin) quản lý hệ thống thông qua năm phân hệ chính: Bảng điều khiển, Quản lý người dùng, Quản lý địa điểm, Quản lý hoạt động và Quản lý báo cáo. Các tính năng quản trị cốt lõi được liên kết trực tiếp với tác nhân Quản trị viên, trong khi các hành động thứ cấp được kết nối thông qua các mối quan hệ bao gồm (include) và mở rộng (extend) tiêu chuẩn. Thiết kế mô-đun này giúp quản trị viên dễ dàng theo dõi các hoạt động trên nền tảng, kiểm duyệt nội dung, cập nhật thông tin địa danh và duy trì một môi trường cộng đồng an toàn.
+
+\begin{figure}[H]
+    \centering
+    \includegraphics[width=1\linewidth]{admin-usecase.drawio.pdf} 
+    \caption{Biểu đồ Use Case cho Quản trị viên}
+    \label{fig:usecase_admin}
+\end{figure}
+
+\newpage
+\begin{table}[H]
+\centering
+\small
+\renewcommand{\arraystretch}{1.1}
+\begin{tabular}{|c|p{4.5cm}|p{9cm}|}
+\hline
+\textbf{STT} & \textbf{Use Case} & \textbf{Mô tả} \\ \hline
+1 & Xem bảng điều khiển & Truy cập bảng điều khiển quản trị để giám sát hệ thống. \\ \hline
+2 & Xem thống kê & Theo dõi hoạt động người dùng và các chỉ số hệ thống, bao gồm trong Xem bảng điều khiển. \\ \hline
+3 & Quản lý người dùng & Truy cập các tính năng quản trị tài khoản người dùng. \\ \hline
+4 & Xem danh sách người dùng & Duyệt tất cả các tài khoản đã đăng ký trong hệ thống, bao gồm trong Quản lý người dùng. \\ \hline
+5 & Khóa người dùng & Hạn chế quyền truy cập của các tài khoản vi phạm hướng dẫn, mở rộng từ Xem danh sách người dùng. \\ \hline
+6 & Mở khóa người dùng & Khôi phục quyền truy cập cho tài khoản người dùng đã bị khóa trước đó, mở rộng từ Xem danh sách người dùng. \\ \hline
+7 & Xóa người dùng & Xóa vĩnh viễn tài khoản người dùng khỏi cơ sở dữ liệu, mở rộng từ Xem danh sách người dùng. \\ \hline
+8 & Xem chi tiết người dùng & Kiểm tra thông tin hồ sơ chi tiết và nhật ký hoạt động của người dùng, mở rộng từ Quản lý người dùng. \\ \hline
+9 & Tạo người dùng & Thêm tài khoản người dùng hoặc quản trị viên mới một cách thủ công, mở rộng từ Quản lý người dùng. \\ \hline
+10 & Quản lý địa điểm & Truy cập các công cụ quản lý thông tin địa danh và vị trí địa lý. \\ \hline
+11 & Xem danh sách địa điểm & Duyệt tất cả các địa danh du lịch đã được đăng ký tại Hà Nội, bao gồm trong Quản lý địa điểm. \\ \hline
+12 & Cập nhật địa điểm & Chỉnh sửa mô tả, danh mục hoặc giờ mở cửa của một địa điểm, mở rộng từ Xem danh sách địa điểm. \\ \hline
+13 & Xóa địa điểm & Xóa vĩnh viễn một mục địa điểm khỏi cơ sở dữ liệu, mở rộng từ Xem danh sách địa điểm. \\ \hline
+14 & Tạo địa điểm & Thêm địa danh mới kèm tọa độ GPS và dữ liệu không gian, mở rộng từ Quản lý địa điểm. \\ \hline
+15 & Quản lý hoạt động & Truy cập các công cụ quản lý và kiểm duyệt hoạt động nhóm. \\ \hline
+16 & Xem danh sách hoạt động & Duyệt tất cả các hoạt động nhóm đang hoạt động trên bản đồ, bao gồm trong Quản lý hoạt động. \\ \hline
+17 & Quản lý báo cáo & Truy cập các công cụ kiểm duyệt hệ thống và bảo đảm an toàn cộng đồng. \\ \hline
+18 & Đánh giá báo cáo & Kiểm tra các khiếu nại và cờ báo cáo vi phạm do người dùng gửi lên, bao gồm trong Quản lý báo cáo. \\ \hline
+19 & Xử lý báo cáo & Giải quyết các vi phạm được báo cáo và thực hiện hành động kỷ luật, mở rộng từ Đánh giá báo cáo và Quản lý hoạt động. \\ \hline
+\end{tabular}
+\caption{Mô tả các Use Case cho Quản trị viên}
+\label{tab:admin_use_cases}
+\end{table}
+
+\subsection{Biểu đồ tuần tự}
+
+Phần này trình bày các biểu đồ tuần tự mô tả chi tiết các tương tác từng bước trong hệ thống HanoiGO. Các biểu đồ này minh họa cách các thành phần phối hợp với nhau để thực hiện các chức năng cốt lõi như xác thực người dùng, lập kế hoạch chuyến đi và quản lý hoạt động nhóm.
+
+\begin{figure}[H]
+    \centering
+    \includegraphics[width=0.95\linewidth]{login-seq.png}
+    \caption{Biểu đồ tuần tự cho luồng Đăng nhập}
+    \label{fig:seq_login}
+\end{figure}
+
+Hình \ref{fig:seq_login} trình bày các bước của quy trình đăng nhập. Người dùng nhập email và mật khẩu của họ, các thông tin này sau đó được gửi đến backend để xác thực. Backend truy vấn cơ sở dữ liệu để tìm tài khoản và so sánh mật khẩu. Nếu đăng nhập thất bại, một thông báo lỗi sẽ hiển thị cho người dùng; nếu thành công, backend sẽ tạo ra một token truy cập JWT và chuyển hướng người dùng đến trang khám phá.
+
+\begin{figure}[H]
+    \centering
+    \includegraphics[width=0.95\linewidth]{plantrip-seq.png}
+    \caption{Biểu đồ tuần tự cho luồng Lập kế hoạch chuyến đi}
+    \label{fig:seq_plan_trip}
+\end{figure}
+
+Hình \ref{fig:seq_plan_trip} mô tả cách hệ thống tạo và lưu trữ một lịch trình chuyến đi nhiều ngày. Người dùng chọn các địa điểm trên bản đồ và thiết lập các thông số của chuyến đi như số ngày, ngày đi, cùng thời gian bắt đầu và kết thúc hàng ngày. Backend truy xuất thông tin các địa điểm đã chọn, loại bỏ các địa điểm đóng cửa, nhóm chúng thành các cụm hàng ngày bằng thuật toán K-Means và gọi API Goong Maps để lấy thời gian di chuyển thực tế. Thuật toán Tham lam Láng giềng Gần nhất (GNN) sau đó sẽ xây dựng các tuyến đường hàng ngày và các điểm bị loại bỏ trước đó sẽ được cố gắng chèn lại ở những vị trí khả thi. Khi người dùng xác nhận kết quả, frontend sẽ lưu cấu trúc chuyến đi hoàn chỉnh vào cơ sở dữ liệu.
+
+\begin{figure}[H]
+    \centering
+    \includegraphics[width=0.95\linewidth]{activity-seq.png}
+    \caption{Biểu đồ tuần tự cho luồng Hoạt động nhóm}
+    \label{fig:seq_activity}
+\end{figure}
+
+Hình \ref{fig:seq_activity} trình bày ba luồng con liên quan của tính năng Hoạt động nhóm. Trong luồng Duyệt (Browse), frontend tải về các hoạt động lân cận bằng cách sử dụng truy vấn khoảng cách PostGIS và hiển thị chúng dưới dạng các điểm đánh dấu được mã hóa màu theo trạng thái trên bản đồ. Trong luồng Tổ chức (Host), người dùng điền vào mẫu thông tin hoạt động và backend lưu hoạt động đó cùng với một điểm tọa độ địa lý (geospatial point), đồng thời thêm người tạo làm thành viên đã được phê duyệt đầu tiên; trưởng nhóm cũng có thể phê duyệt hoặc từ chối các yêu cầu tham gia, việc này sẽ cập nhật trạng thái thành viên và thông báo cho người gửi yêu cầu. Trong luồng Tham gia (Join), người dùng gửi yêu cầu tham gia, yêu cầu này được lưu trữ dưới dạng bản ghi thành viên đang chờ xử lý (pending) và một thông báo sẽ được gửi tới trưởng nhóm.
+
+\begin{figure}[H]
+    \centering
+    \includegraphics[width=0.85\linewidth]{chat-seq.png}
+    \caption{Biểu đồ tuần tự cho luồng Trò chuyện nhóm}
+    \label{fig:seq_group_chat}
+\end{figure}
+
+Hình \ref{fig:seq_group_chat} trình bày luồng trò chuyện nhóm thời gian thực. Trong luồng Kết nối (Connect), frontend mở một kết nối đến namespace \texttt{/group-chat} bằng cách sử dụng token truy cập JWT. Sau khi xác thực thành công, cổng kết nối (gateway) sẽ đưa người dùng vào phòng chat, tải 30 tin nhắn gần nhất và gửi danh sách những người dùng trực tuyến. Trong luồng Gửi tin nhắn (Send Message), frontend hiển thị tin nhắn một cách lạc quan (optimistic UI) và gửi nó đến gateway, gateway sau đó sẽ lưu tin nhắn vào cơ sở dữ liệu và phát sóng tin nhắn đến tất cả các socket đang hoạt động trong phòng chat.
+
+\newpage
+% Reset spacing for Chapter III and subsequent sections
+\setlength{\parindent}{15pt}
+\setlength{\parskip}{0em}
+\linespread{1}\selectfont
+
+% --- CHAPTER III ---
+\chapter{PHƯƠNG PHÁP NGHIÊN CỨU}
+
+% Apply same spacing as Chapter II
+\setlength{\parindent}{0pt}
+\setlength{\parskip}{0.6em}
+\linespread{1.3}\selectfont
+\titlespacing*{\section}{0pt}{12pt}{4pt}
+
+Chương này mô tả kiến trúc cấp cao của HanoiGO, trình bày chi tiết về luồng điều hướng của frontend, cấu trúc dạng mô-đun của backend NestJS và sự tích hợp cơ sở dữ liệu PostgreSQL/PostGIS. Chương này cũng trình bày các công thức toán học và thuật toán heuristic được sử dụng cho phân cụm K-Means++ và Bài toán người giao hàng có cửa sổ thời gian (TSPTW).
+
+\section{Kiến trúc hệ thống}
+
+Phần này trình bày kiến trúc hệ thống để cung cấp một cái nhìn tổng quan về cách cấu trúc nền tảng HanoiGO.
+
+\begin{figure}[H]
+    \centering
+    \makebox[\textwidth][c]{\includegraphics[width=1.25\textwidth]{sys-arc.pdf}}
+    \caption{Biểu đồ kiến trúc hệ thống HanoiGO}
+    \label{fig:sys_arch}
+\end{figure}
+
+Hình \ref{fig:sys_arch} trình bày kiến trúc hệ thống của HanoiGO, được thiết kế theo mô hình client--server. Hệ thống bao gồm bốn thành phần chính: Lớp giao diện khách (Client Layer), Bộ lõi xử lý (Core Backend), Lớp dữ liệu (Data Layer) và Các dịch vụ bên ngoài (External Services).
+
+Lớp giao diện khách là giao diện web được sử dụng bởi khách du lịch. Giao diện được xây dựng bằng Next.js và TypeScript để đảm bảo hiệu năng hoạt động ổn định. Lớp này giao tiếp với backend thông qua HTTP cho các tác vụ thông thường và WebSocket cho các tính năng thời gian thực như trò chuyện nhóm và thông báo hệ thống.
+
+Bộ lõi xử lý chịu trách nhiệm xử lý các chức năng chính của hệ thống. Phân hệ này quản lý việc xác thực người dùng bằng JWT và Passport. Backend bao gồm nhiều mô-đun như quản lý người dùng, chức năng admin, lập kế hoạch chuyến đi, hoạt động nhóm và xử lý thông báo. Prisma ORM được sử dụng để tương tác với cơ sở dữ liệu, trong khi thư viện Socket.io hỗ trợ truyền tin thời gian thực.
+
+Lớp dữ liệu lưu trữ các thông tin của hệ thống bằng PostgreSQL. PostgreSQL cùng phần mở rộng PostGIS được sử dụng để xử lý dữ liệu có cấu trúc, thông tin địa lý và các truy vấn không gian. Redis cũng được cấu hình trong môi trường để hỗ trợ mở rộng quy mô phòng chat trong tương lai. Thiết kế này giúp hệ thống xử lý hiệu quả các loại dữ liệu khác nhau.
+
+Thành phần Các dịch vụ bên ngoài bao gồm các dịch vụ của bên thứ ba hỗ trợ cho nền tảng. API Goong Maps được sử dụng để tính toán thời gian di chuyển và ma trận khoảng cách. Dịch vụ SMTP qua Gmail được sử dụng để gửi email xác minh mã OTP, trong khi Supabase Storage xử lý việc lưu trữ các tệp đa phương tiện được tải lên.
+
+\section{Công cụ và Kỹ thuật phát triển}
+
+Phần này mô tả các công cụ phát triển chính và các phương pháp tiếp cận được sử dụng để xây dựng nền tảng.
+
+\subsection{Công cụ phát triển}
+
+Visual Studio Code được chọn làm trình biên soạn mã nguồn chính nhờ sự hỗ trợ mạnh mẽ dành cho TypeScript. Hệ thống Git kết hợp với GitHub được sử dụng để quản lý phiên bản mã nguồn, trong đó các yêu cầu kéo (pull request) được xem xét kỹ trước khi hợp nhất. Docker chạy các dịch vụ PostgreSQL và Redis trong các container để giữ cho cấu hình môi trường đồng nhất giữa các máy phát triển. Đối với cơ sở dữ liệu, Prisma định nghĩa lược đồ (schema) và quản lý các đợt cập nhật (migration), tự động tạo ra các câu lệnh SQL tương ứng mỗi khi lược đồ cơ sở dữ liệu thay đổi.
+
+\subsection{Kỹ thuật Frontend}
+
+Frontend được xây dựng bằng Next.js, sử dụng cơ chế App Router để quản lý các tuyến đường và trạng thái tải trang. Hệ thống phân tách rõ ràng các Thành phần máy chủ (Server Components), được kết xuất trên máy chủ để giúp các trang tải nhanh hơn, với các Thành phần máy khách (Client Components) xử lý các tương tác của người dùng. Socket.io Client kết nối với backend qua WebSockets để hỗ trợ trò chuyện nhóm thời gian thực và thông báo, trong khi các React Hooks (bao gồm các hook tùy biến cho xác thực và quản lý socket) xử lý trạng thái thành phần. Giao diện sử dụng Tailwind CSS giúp trang tương thích tốt với nhiều kích cỡ màn hình khác nhau, từ máy tính để bàn đến điện thoại thông minh.
+
+\subsection{Kỹ thuật Backend}
+
+Backend được phát triển với NestJS, tổ chức mã nguồn thành các mô-đun riêng biệt như xác thực, trò chuyện nhóm và lập kế hoạch chuyến đi. Mỗi mô-đun chứa các bộ kiểm soát (controller) để tiếp nhận yêu cầu đầu vào và các dịch vụ (service) để xử lý logic nghiệp vụ. Các tính năng thời gian thực sử dụng các cổng kết nối WebSocket (WebSocket gateways) của NestJS, thực hiện xác thực token JWT ngay khi kết nối được thiết lập và đưa người dùng vào các phòng chat dựa trên ID hoạt động, đảm bảo tin nhắn chỉ truyền tới đúng các thành viên. Việc tải lên tệp tin sử dụng phần mềm trung gian Multer, giới hạn tệp tải lên ở định dạng hình ảnh với dung lượng tối đa 10MB và lưu trữ chúng trên Supabase Storage kèm một phương án dự phòng lưu trữ cục bộ.
+
+\section{Phát triển Backend}
+\subsection{Xác thực người dùng}
+
+Hệ thống sử dụng JSON Web Token (JWT) để quản lý danh tính người dùng và kiểm soát quyền truy cập. Sau khi đăng nhập thành công, một token chứa ID người dùng, tên đăng nhập và vai trò (USER hoặc ADMIN) sẽ được tạo ra. Để bảo mật, các token này được ký số và có hiệu lực trong vòng 7 ngày. Token được lưu trữ chủ yếu trong cookie trình duyệt (thông qua cookie HttpOnly) và có một phương án dự phòng gửi trong tiêu đề authorization để duy trì sự ổn định của kết nối WebSocket. Trong khi các tuyến đường công khai như đăng ký tài khoản có thể truy cập tự do, các tính năng riêng tư như Trò chuyện nhóm và Lập kế hoạch chuyến đi được giới hạn bằng cơ chế kiểm soát quyền truy cập dựa trên vai trò (RBAC).
+
+Để đảm bảo tính toàn vẹn của dữ liệu, mật khẩu được mã hóa bằng thuật toán băm bcrypt, giúp mật khẩu không thể bị giải mã ngay cả khi cơ sở dữ liệu bị lộ. Thêm vào đó, một chính sách xác minh an toàn được áp dụng: tài khoản người dùng yêu cầu phải nhập mã OTP gồm 6 chữ số gửi qua Gmail trước khi quá trình đăng ký hoàn tất nhằm ngăn chặn các tài khoản rác.
+
+Các quy tắc về mật khẩu được trình bày trong bảng dưới đây:
+
+\begin{table}[H]
+\centering
+\begin{tabular}{|p{4cm}|p{9cm}|}
+\hline
+\textbf{Quy tắc} & \textbf{Mô tả} \\
+\hline
+Độ dài tối thiểu & Ít nhất 8 ký tự \\
+\hline
+Chữ hoa & Phải bao gồm chữ cái viết hoa A--Z \\
+\hline
+Chữ thường & Phải bao gồm chữ cái viết thường a--z \\
+\hline
+Chữ số & Phải bao gồm chữ số từ 0--9 \\
+\hline
+Ký tự đặc biệt & Phải bao gồm các biểu tượng như !@\#\$\%\^{}\&* \\
+\hline
+\end{tabular}
+\caption{Quy định về mật khẩu}
+\label{tab:password_rules}
+\end{table}
+
+Các yêu cầu này đảm bảo rằng mật khẩu có độ phức tạp đủ lớn để chống lại các hình thức tấn công thông thường. Nếu mật khẩu không đáp ứng đầy đủ các quy tắc này, hệ thống sẽ hiển thị thông báo lỗi và yêu cầu người dùng thiết lập một mật khẩu mạnh hơn.
+
+\subsection{Bộ lập kế hoạch chuyến đi (Trip Planner)}
+
+Bộ lập kế hoạch chuyến đi là tính năng cốt lõi của HanoiGO. Tính năng này xây dựng các lịch trình du lịch nhiều ngày thuận tiện từ danh sách địa điểm đã chọn, số ngày đi mong muốn cùng thời gian bắt đầu và kết thúc hàng ngày của người dùng. Bộ lập kế hoạch xử lý cả dữ liệu không gian (vị trí địa lý của các điểm tham quan) và các ràng buộc về mặt thời gian (giờ mở cửa, thời gian nghỉ trưa và giới hạn thời gian hàng ngày của du khách).
+
+Để giải quyết bài toán này một cách hiệu quả trên ứng dụng web, hệ thống triển khai một quy trình xử lý heuristic nhiều giai đoạn. Trình tự của các giai đoạn lập kế hoạch này được minh họa trong Hình~\ref{fig:trip_pipeline}. Quy trình bao gồm năm bước tuần tự:
+
+\begin{figure}[H]
+    \centering
+    \includegraphics[width=0.6\linewidth]{trip-pipeline.png}
+    \caption{Quy trình lập kế hoạch chuyến đi nhiều giai đoạn của HanoiGO}
+    \label{fig:trip_pipeline}
+\end{figure}
+
+\textbf{Bước 1: Tiền lọc (Pre-Filtering).}
+Hệ thống trước tiên kiểm tra các địa điểm đã chọn đối với ngày đi của người dùng. Bất kỳ địa điểm nào đóng cửa vào tất cả các ngày diễn ra chuyến đi sẽ bị lọc bỏ. Bước tiền lọc này đảm bảo rằng các bước phân cụm và sắp xếp tuyến đường tiếp theo không lãng phí tài nguyên tính toán vào các địa điểm không thể tiếp cận.
+
+\textbf{Bước 2: Phân cụm địa lý có giới hạn sức chứa (Geographic Clustering with Capacity Limits).}
+Các địa điểm khả thi còn lại được nhóm thành $K$ cụm (với $K$ là số ngày đi) bằng phương pháp phân cụm K-Means++. Mục tiêu là giảm thiểu tổng độ phân tán địa lý trong mỗi ngày, được tính bằng tổng bình phương khoảng cách:
+\[
+J = \sum_{c=1}^{K} \sum_{p \in C_c} d_{\text{Haversine}}(p, \mu_c)^2
+\]
+trong đó $C_c$ là tập hợp các địa điểm được phân bổ cho ngày $c$, và $\dots$ $\mu_c$ là tọa độ trọng tâm của cụm ngày đó.
+
+Vì phân cụm chỉ yêu cầu tính toán khoảng cách tương đối, hệ thống sử dụng khoảng cách đường thẳng tính toán ngoại tuyến qua công thức Haversine để duy trì hiệu năng xử lý nhanh chóng:
+\[
+d_{\text{Haversine}}(i, j) = 2 R \arcsin \left( \sqrt{\sin^2\left(\frac{\Delta \phi}{2}\right) + \cos(\phi_i) \cos(\phi_j) \sin^2\left(\frac{\Delta \lambda}{2}\right)} \right)
+\]
+trong đó $R$ là bán kính Trái Đất (6371 km).
+
+Sau khi thực hiện phân cụm, hệ thống áp dụng hai bước điều chỉnh:
+\begin{itemize}
+    \item \textbf{Tái cân bằng sức chứa (Capacity Rebalancing):} Mỗi cụm lịch trình hàng ngày được giới hạn tối đa 5 địa điểm để đảm bảo tính thực tế cho lịch trình. Nếu một cụm vượt quá giới hạn này, địa điểm nằm xa trọng tâm nhất sẽ được di chuyển sang cụm địa lý gần nhất còn sức chứa trống.
+    \item \textbf{Chuyển đổi ngày đóng cửa (Closed-Day Swapping):} Nếu một địa điểm trong cụm đóng cửa vào ngày cụ thể đó trong tuần, hệ thống sẽ tìm cách chuyển địa điểm này sang cụm ngày khác khi địa điểm mở cửa và cụm đó vẫn còn sức chứa.
+\end{itemize}
+
+\textbf{Bước 3: Tải trước ma trận khoảng cách và phương án dự phòng.}
+Để sắp xếp thứ tự tuyến đường hàng ngày, hệ thống cần thời gian di chuyển thực tế trên đường bộ thay vì khoảng cách đường thẳng. Nguồn dữ liệu chính là API Ma trận Khoảng cách Goong Maps. Để giảm số lượng lệnh gọi API, với các chuyến đi có tối đa $N \le 24$ địa điểm, hệ thống tải trước toàn bộ thời gian di chuyển trong một truy vấn duy nhất: từ điểm xuất phát của người dùng đến từng địa điểm và giữa mọi cặp địa điểm với nhau. Mỗi mục dữ liệu đại diện cho thời gian di chuyển bằng xe máy tính bằng giây:
+\[
+t(i, j) = \text{GoongMatrix}(i, j)
+\]
+Khi truy vấn thời gian di chuyển, hệ thống sẽ thực hiện tối đa ba lần thử lại với cơ chế trễ lũy thừa (exponential backoff) nếu API Goong bị giới hạn tốc độ. Nếu truy vấn vẫn thất bại, hệ thống sẽ tự động chuyển sang phương án dự phòng: ước lượng thời gian di chuyển từ khoảng cách Haversine và tốc độ trung bình của xe máy $v_{\text{avg}}$ (30 km/h):
+\[
+t_{\text{travel}}^{\text{fallback}}(i, j) = \frac{d_{\text{Haversine}}(i, j)}{v_{\text{avg}}} \times 3600
+\]
+
+\textbf{Bước 4: Sắp xếp tuyến đường và kiểm tra cửa sổ thời gian.}
+Với mỗi ngày, hệ thống sắp xếp thứ tự các địa điểm bằng thuật toán heuristic Tham lam Láng giềng Gần nhất (Greedy Nearest Neighbor - GNN) để giải quyết Bài toán người giao hàng có cửa sổ thời gian (TSPTW).
+
+Nếu người dùng cung cấp vị trí xuất phát, thuật toán bắt đầu tại địa điểm gần vị trí xuất phát đó nhất; nếu không, thuật toán bắt đầu tại địa điểm mở cửa đầu tiên có sẵn. Thuật toán sau đó lặp lại việc chọn điểm dừng tiếp theo giúp giảm thiểu một hàm chi phí chuyển tiếp. Hàm chi phí này nhân đôi trọng số thời gian di chuyển so với thời gian chờ đợi để giữ cho lộ trình di chuyển được tối ưu và gọn gàng:
+\[
+\text{Cost}(i, j) = t_{\text{travel}}(i, j) \times 2 + t_{\text{wait}}(j)
+\]
+trong đó $t_{\text{travel}}(i, j)$ là thời gian di chuyển bằng xe máy tính bằng giây, và $t_{\text{wait}}(j)$ là thời gian chờ đợi tính bằng giây của du khách nếu họ đến trước khi địa điểm $j$ mở cửa.
+
+Trong quá trình sắp xếp tuyến đường, hệ thống theo dõi thời gian đến, thời gian chờ và thời gian rời đi tại mỗi điểm dừng. Thời gian đến $T_{\text{arrive}}(j)$ tại một điểm dừng bao gồm thời gian di chuyển thực tế và một khoảng thời gian dự phòng 10 phút để gửi xe và vào cổng. Nếu thời gian đến trùng với thời gian nghỉ trưa (mặc định là 11:00--13:00), thời gian đến sẽ được chuyển dịch sang sau giờ nghỉ trưa. Thời gian chờ đợi được tính như sau:
+\[
+t_{\text{wait}}(j) = \max(0, T_{\text{open}}(j) - T_{\text{arrive}}(j))
+\]
+và thời gian rời khỏi địa điểm $j$ được tính bằng:
+\[
+T_{\text{depart}}(j) = \max(T_{\text{arrive}}(j), T_{\text{open}}(j)) + t_{\text{visit}}(j)
+\]
+Một điểm dừng chỉ được đưa vào lịch trình nếu thời gian kết thúc chuyến tham quan sớm hơn cả giờ đóng cửa của địa điểm đó và thời gian kết thúc ngày của người dùng; nếu không, địa điểm này tạm thời bị loại bỏ khỏi tuyến đường tham lam ban đầu và sẽ được xử lý sau ở các giai đoạn lan truyền và giải quyết xung đột. Bộ lập kế hoạch cũng báo cáo thời gian rảnh còn lại ở cuối mỗi ngày (tính bằng hiệu số giữa thời gian kết thúc ngày và thời gian rời đi của điểm dừng cuối cùng) để người dùng biết họ có thể thêm điểm tham quan khác hay không.
+
+\textbf{Bước 5: Lan truyền tọa độ GPS và giải quyết xung đột.}
+Sau khi xây dựng chuỗi tuyến đường ban đầu, hệ thống thực hiện một bước xác thực cuối cùng:
+\begin{itemize}
+    \item \textbf{Lan truyền tọa độ GPS (GPS Coordinate Cascade):} Thời gian di chuyển thực tế từ vị trí xuất phát của người dùng đến điểm dừng đầu tiên được đưa vào tính toán. Việc này làm dịch chuyển mốc thời gian đến và rời đi của tất cả các điểm dừng tiếp theo. Nếu một điểm dừng vi phạm giờ đóng cửa hoặc thời gian kết thúc ngày, điểm dừng đó sẽ bị loại bỏ khỏi lịch trình. Thời gian di chuyển giữa điểm dừng trước đó và điểm dừng kế tiếp sau đó được tính toán lại, và sự thay đổi thời gian này sẽ lan truyền xuống các điểm dừng còn lại.
+    \item \textbf{Chèn khoảng trống (Gap Insertion):} Bất kỳ địa điểm nào bị loại bỏ trong các giai đoạn phân cụm, sắp xếp thứ tự hoặc lan truyền trước đó sẽ được chuyển đến giai đoạn giải quyết xung đột. Hệ thống cố gắng chèn các địa điểm bị loại này vào các "khoảng trống" (giữa các điểm dừng đã lên lịch) của bất kỳ ngày nào mà địa điểm đó mở cửa, miễn là nó vừa vặn trong cửa sổ thời gian của địa điểm và không làm ảnh hưởng đến tính khả thi của các điểm dừng phía sau.
+\end{itemize}
+Các giá trị tham số được sử dụng trong các bước này được tóm tắt trong Bảng~\ref{tab:trip_parameters}.
+
+\begin{table}[h!]
+\centering
+\caption{Thông số cấu hình của Bộ lập kế hoạch chuyến đi}
+\label{tab:trip_parameters}
+\renewcommand{\arraystretch}{1.3}
+\begin{tabular}{|p{3cm}|p{2.5cm}|p{5cm}|p{4cm}|}
+\hline
+\textbf{Tham số} & \textbf{Mặc định} & \textbf{Biểu diễn giá trị} & \textbf{Vai trò cốt lõi} \\ \hline
+Tốc độ trung bình & 30 km/h & Tốc độ trung bình của xe máy & Tốc độ dự phòng tính thời gian \\ \hline
+Bán kính Trái Đất & 6371 km & Hằng số cho hình học cầu & Dùng trong tính toán khoảng cách \\ \hline
+Dự phòng gửi xe & 10 phút & Thời gian cộng thêm mỗi điểm dừng & Thời gian gửi xe và vào cổng \\ \hline
+Giờ nghỉ trưa & 11:00-13:00 & Khung thời gian tính bằng phút từ nửa đêm & Khoảng thời gian nghỉ trưa mặc định \\ \hline
+\end{tabular}
+\end{table}
+
+\subsection{Hoạt động nhóm (Activity)}
+
+Mô-đun Hoạt động nhóm là một tính năng xã hội quan trọng của HanoiGO. Tính năng này cho phép các du khách đi một mình gặp gỡ những người khác ở gần, tổ chức các hoạt động nhóm dựa trên bản đồ và chia sẻ kế hoạch chuyến đi. Để triển khai hiệu quả các chức năng này, hệ thống tích hợp các truy vấn không gian PostGIS và cơ chế sao chép cơ sở dữ liệu dạng giao dịch.
+
+\textbf{Tổ chức hoạt động và duyệt bản đồ.}
+Để tổ chức một hoạt động mới, người dùng xác định thông tin chi tiết (như tiêu đề, danh mục và thời gian dự kiến) và thiết lập vị trí. Tọa độ vị trí có thể được nhập trực tiếp hoặc lấy tự động từ điểm dừng đầu tiên của một chuyến đi được liên kết. Backend lưu trữ vị trí này dưới dạng một điểm hình học PostGIS (PostGIS point geometry) thông qua câu lệnh:
+\[
+\text{Location} = \text{ST\_SetSRID}(\text{ST\_MakePoint}(\text{longitude}, \text{latitude}), 4326)
+\]
+Để duyệt tìm các hoạt động, hệ thống sử dụng một bản đồ tương tác Leaflet.js ở frontend hiển thị tất cả các hoạt động đang mở tại Hà Nội dưới dạng các điểm đánh dấu được mã hóa màu. Các điểm đánh dấu này thay đổi màu sắc linh hoạt dựa trên trạng thái của chúng (sắp diễn ra, đang diễn ra hoặc đã kết thúc) để cung cấp một giao diện thuận tiện cho người dùng. Khi có thông tin vị trí của người dùng, backend có thể lọc thêm các hoạt động theo khoảng cách địa lý bằng cách sử dụng hàm \texttt{ST\_DWithin}:
+\[
+\text{Nearby}(a) \iff \text{ST\_DWithin}(a.\text{location}, \text{ST\_SetSRID}(\text{ST\_MakePoint}(\text{lng}_{\text{user}}, \text{lat}_{\text{user}}), 4326), R_{\text{radius}})
+\]
+trong đó $a.\text{location}$ là tọa độ địa lý của hoạt động $a$, và $R_{\text{radius}}$ là bán kính tìm kiếm (mặc định là 5000 mét).
+
+\textbf{Quản lý thành viên và yêu cầu tham gia.}
+Du khách có thể duyệt các hoạt động lân cận trên bản đồ và gửi yêu cầu tham gia. Khi một yêu cầu được gửi đi, trạng thái của du khách đó sẽ được thiết lập là đang chờ duyệt (pending). Để tránh việc lạm dụng hệ thống, ứng dụng giới hạn mỗi tài khoản người dùng chỉ được gửi tối đa 5 yêu cầu tham gia trong một ngày.
+
+Trưởng nhóm hoạt động có thể xem xét tất cả các yêu cầu đang chờ xử lý để phê duyệt hoặc từ chối chúng. Khi trưởng nhóm cập nhật trạng thái yêu cầu, hệ thống sẽ tạo một bản ghi thông báo trong ứng dụng để thông báo cho du khách. Trưởng nhóm cũng được tự động thêm vào làm thành viên đã được phê duyệt đầu tiên ngay khi hoạt động được tạo. Người dùng cũng có thể báo cáo một hoạt động nếu có vi phạm quy định cộng đồng; mỗi báo cáo được lưu trữ kèm thông tin người báo cáo, lý do và bằng chứng hình ảnh (nếu có) để quản trị viên xem xét.
+
+\textbf{Sao chép lịch trình chuyến đi.}
+Để giúp việc chia sẻ kế hoạch du lịch trở nên thuận tiện, du khách có thể sao chép toàn bộ lịch trình chuyến đi nhiều ngày được liên kết với một hoạt động vào hồ sơ cá nhân của mình chỉ với một cú nhấp chuột. Backend sao chép toàn bộ cấu trúc chuyến đi (bao gồm tất cả các ngày và điểm dừng) bằng một cú pháp ghi lồng nhau của Prisma (Prisma nested write) để tạo chuyến đi mới một cách đồng thời, sau đó cập nhật tăng số lượt lưu của hoạt động trong một bước riêng biệt.
+
+\subsection{Trò chuyện nhóm (Group Chat)}
+
+Mô-đun Trò chuyện nhóm cung cấp tính năng giao tiếp thời gian thực cho các thành viên đã được phê duyệt của hoạt động. Điều này giúp những người tham gia có thể điều phối kế hoạch và tương tác trực tiếp ngay bên trong ứng dụng. Hệ thống triển khai một cổng kết nối WebSocket (WebSocket gateway) để xử lý các sự kiện kết nối, phân phối tin nhắn và quản lý trạng thái máy khách.
+
+\textbf{Cổng kết nối thời gian thực và quản lý trạng thái trực tuyến.}
+Các thành viên được phê duyệt giao tiếp thời gian thực qua NestJS WebSocket gateway dưới namespace \texttt{group-chat}. Danh tính người dùng được xác thực khi kết nối bằng cách giải mã token truy cập JWT gửi trong tiêu đề bắt tay (handshake headers), và các máy khách đã được xác thực sẽ được đưa vào một phòng chat tương ứng với ID hoạt động:
+\[
+\text{RoomID} = \text{activity\_}\{\text{activityId}\}
+\]
+Máy chủ quản lý các trạng thái phòng chat một cách động bằng các cấu trúc bản đồ trong bộ nhớ (\texttt{onlineMap} và \texttt{typingMap}) để theo dõi sự hiện diện trực tuyến và trạng thái đang soạn tin nhắn (với thời gian tự tắt là 3 giây). Trong khi Redis đã được cấu hình trong môi trường để phục vụ việc mở rộng quy mô trong tương lai, phạm vi triển khai hiện tại hoạt động trực tiếp trên bộ nhớ của một máy chủ duy nhất.
+
+\textbf{Lưu trữ tin nhắn và gửi tin nhắn ngoại tuyến.}
+Nội dung tin nhắn và các biểu cảm phản hồi (emoji reactions) được lưu trữ trong PostgreSQL để bảo toàn lịch sử trò chuyện, đồng thời được phát sóng (broadcast) tới tất cả các kết nối socket đang hoạt động trong phòng chat theo thời gian thực.
+
+Khi một tin nhắn được phát sóng, hệ thống tự động kiểm tra xem những thành viên nào của phòng chat đang thực sự trực tuyến. Đối với bất kỳ thành viên nào đã được phê duyệt nhưng đang ngoại tuyến hoặc không ở màn hình chat, backend sẽ tự động tạo một bản ghi thông báo trong ứng dụng. Điều này giúp đảm bảo người dùng không bỏ lỡ các thông tin cập nhật quan trọng khi họ không mở phòng trò chuyện. Lịch sử tin nhắn và biểu cảm phản hồi được lưu trữ trong PostgreSQL để đảm bảo tính đồng nhất của dữ liệu.
+
+\newpage
+% Reset spacing for Chapter IV and subsequent sections
+\setlength{\parindent}{15pt}
+\setlength{\parskip}{0em}
+\linespread{1}\selectfont
+
+% --- CHAPTER IV ---
+\chapter{KẾT QUẢ VÀ THẢO LUẬN}
+
+% Apply same spacing as Chapter III
+\setlength{\parindent}{0pt}
+\setlength{\parskip}{0.6em}
+\linespread{1.3}\selectfont
+\titlespacing*{\section}{0pt}{12pt}{4pt}
+
+\section{Kết quả hệ thống}
+Chương này trình bày các kết quả đầu ra cụ thể của nền tảng HanoiGO đã được phát triển, bao gồm ảnh chụp màn hình giao diện web, tài liệu đặc tả các cổng API, đánh giá hiệu năng của bộ lập kế hoạch chuyến đi và phân tích khảo sát người dùng được thực hiện nhằm kiểm chứng mức độ hữu ích của nền tảng.
+
+\section{Đánh giá hiệu năng}
+% Nội dung sẽ được cập nhật sau.
+
+\section{Thảo luận và Hạn chế}
+% Nội dung sẽ được cập nhật sau.
+
+\newpage
+% Reset spacing for Chapter V and subsequent sections
+\setlength{\parindent}{15pt}
+\setlength{\parskip}{0em}
+\linespread{1}\selectfont
+
+% --- CHAPTER V ---
+\chapter{KẾT LUẬN VÀ HƯỚNG PHÁT TRIỂN}
+
+% Apply same spacing as Chapter IV
+\setlength{\parindent}{0pt}
+\setlength{\parskip}{0.6em}
+\linespread{1.3}\selectfont
+\titlespacing*{\section}{0pt}{12pt}{4pt}
+
+\section{Kết luận}
+Chương này tóm tắt những đóng góp chính về mặt học thuật và thực tiễn của khóa luận tốt nghiệp này trong việc phát triển ứng dụng HanoiGO.
+
+\section{Hướng phát triển tương lai}
+Các hướng phát triển trong tương lai sẽ được thảo luận, tập trung vào một số lĩnh vực cải tiến và mở rộng.
+
+Thứ nhất, một trợ lý đối thoại hỗ trợ bởi AI sẽ được tích hợp như một bước phát triển kế tiếp quan trọng. Trợ lý dự kiến sử dụng mô hình Gemini 2.5 Flash để hỗ trợ nhiều hình thức tương tác thông qua một giao diện trò chuyện duy nhất: trả lời các câu hỏi chung về Hà Nội, gợi ý các địa điểm lân cận dựa trên tọa độ GPS hiện tại của người dùng và tạo lịch trình chuyến đi hoàn chỉnh thông qua cuộc hội thoại hướng dẫn. Khi người dùng muốn lập kế hoạch chuyến đi, trợ lý sẽ thu thập các thông số cần thiết như số ngày đi, ngày khởi hành và danh mục địa điểm yêu cầu qua nhiều lượt trò chuyện trước khi gọi bộ lập lịch trình tự động.
+
+Thứ hai, việc tìm đường tích hợp đa phương tiện giao thông công cộng sẽ được nghiên cứu để bổ sung cho các tính năng tính toán thời gian di chuyển bằng xe máy hiện tại từ API Goong Maps.
+
+Thứ ba, tập dữ liệu địa lý sẽ được mở rộng ra ngoài phạm vi Hà Nội để bao phủ các tỉnh thành lớn khác tại Việt Nam, mở rộng khả năng hỗ trợ của nền tảng cho các chuyến đi dài ngày hơn.
+
+\newpage
+% Reset spacing
+\setlength{\parindent}{15pt}
+\setlength{\parskip}{0em}
+\linespread{1}\selectfont
+
+% ===================================================
+% 7. REFERENCES
+% ===================================================
+\begin{thebibliography}{99}
+\addcontentsline{toc}{chapter}{Tài liệu tham khảo}
+\setlength{\itemsep}{0.8em} % Increase vertical spacing between references
+
+\bibitem{gretzel2015smart} U. Gretzel, M. Sigala, T.-H. Xiang, and C. Koo, "Smart tourism: foundations and developments," \textit{Electronic Markets}, vol. 25, no. 3, pp. 179--188, 2015.
+
+\bibitem{vietnamtourism2024} Cục Du lịch Quốc gia Việt Nam, "Báo cáo thường niên Thống kê Du lịch Việt Nam," Bộ Văn hóa, Thể thao và Du lịch, Hà Nội, Việt Nam, 2024.
+
+\bibitem{buhalis2020smartness} D. Buhalis, "Technology in tourism-from information communication technologies to smartness and ambient intelligence," \textit{Tourism Management}, vol. 80, p. 104113, 2020.
+
+\bibitem{buhalis2019cocreation} D. Buhalis and M. Sinarta, "Real-time co-creation and nowness service: lessons from tourism and hospitality," \textit{Journal of Travel and Tourism Marketing}, vol. 36, no. 5, pp. 563--582, 2019.
+
+\bibitem{ricci2011recommender} F. Ricci, L. Rokach, and B. Shapira, \textit{Introduction to Recommender Systems Handbook}. Boston, MA: Springer, 2011.
+
+\end{thebibliography}
+
+\newpage
+\vspace*{-20pt}
+\begin{center}
+\huge\bfseries Phụ lục
+\end{center}
+\vspace{10pt}
+\addcontentsline{toc}{chapter}{Phụ lục}
+
+\textbf{Tổng quan hệ thống HanoiGO}
+\begin{figure}[H]
+    \centering
+    \caption{Tổng quan khái niệm về kiến trúc lấy bản đồ làm trung tâm của HanoiGO}
+    \label{fig:hanoigo_overview_app}
+\end{figure}
+
+\end{document}

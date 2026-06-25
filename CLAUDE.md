@@ -68,7 +68,7 @@ All API calls go through **Next.js Server Actions** in `client/lib/actions/`. Th
 Zustand stores in `client/store/`, auto-persisted to localStorage.
 
 ### Real-time
-Socket.io + Redis for group chat (`GroupChatModule`).
+Socket.io for group chat (`GroupChatModule`). Uses in-memory maps (`onlineMap`, `typingMap`) on a single server — Redis is installed in docker-compose but **not integrated** (planned for future scaling).
 
 ## Key Backend Modules
 
@@ -79,8 +79,8 @@ Socket.io + Redis for group chat (`GroupChatModule`).
 | `activities` | Group activities linked to trips/places |
 | `places` | Heritage landmarks with PostGIS geospatial queries |
 | `users` | Profiles, follow/unfollow relationships |
-| `group-chat` | WebSocket messaging |
-| `ai-chat` | Google Gemini AI assistant |
+| `group-chat` | WebSocket messaging (Socket.io, in-memory, no Redis) |
+| `ai-chat` | Google Gemini AI assistant — **stub only, not developed; moved to Future Work** |
 | `admin` | User moderation, reports, bans |
 | `media` | Multer file uploads |
 | `prisma` | Global DB module exported to all other modules |
@@ -110,7 +110,8 @@ Socket.io + Redis for group chat (`GroupChatModule`).
 ## Environment Variables
 
 **Backend** (`.env` in `actions/`):
-`DATABASE_URL`, `JWT_SECRET`, `MAIL_USER`, `MAIL_PASS`, `GOONG_API_KEY`, `GEMINI_API_KEY`
+`DATABASE_URL`, `JWT_SECRET`, `MAIL_USER`, `MAIL_PASS`, `GOONG_API_KEY`
+(`GEMINI_API_KEY` exists in codebase but unused — ai-chat module is future work)
 
 **Frontend** (`.env.local` in `client/`):
 `NEXT_PUBLIC_ACTIONS_URL`, `NEXT_PUBLIC_GOONG_API_KEY`, `NEXT_PUBLIC_MAPBOX_TOKEN`

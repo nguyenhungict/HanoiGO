@@ -3,16 +3,19 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { io, Socket } from 'socket.io-client';
 import { useAuthStore } from '@/store/useAuthStore';
-import { getMyActivitiesAction, resolveImageUrl } from '@/lib/actions';
+import { getMyActivitiesAction, resolveImageUrl, uploadChatAttachmentAction } from '@/lib/actions';
 import { useChatNotificationStore } from '@/store/useChatNotificationStore';
 
 interface Reaction { id: string; emoji: string; userId: string; user: { username: string } }
 interface Message {
   id: string; activityId: string; userId: string; content: string;
-  type: 'TEXT' | 'SYSTEM'; createdAt: string;
+  type: 'TEXT' | 'SYSTEM' | 'IMAGE' | 'FILE'; createdAt: string;
   user?: { username: string; avatarUrl: string | null };
   reactions: Reaction[];
   isOptimistic?: boolean;
+  mediaUrl?: string;
+  fileName?: string;
+  fileSize?: number;
 }
 
 const QUICK_EMOJIS = ['👍', '❤️', '😂', '😮', '😢', '🔥'];
@@ -36,7 +39,7 @@ export const ActivityChat: React.FC<{ activityId: string; activityTitle: string;
   activityId: initialId, activityTitle: initialTitle, onClose,
 }) => {
   const { user, token } = useAuthStore();
-  const setActiveChatId = useChatNotificationStore((s) => s.setActiveChatId);
+  const { setActiveChatId, unreadCounts } = useChatNotificationStore();
   const [activeId, setActiveId] = useState(initialId);
   const [activeTitle, setActiveTitle] = useState(initialTitle);
   const [messages, setMessages] = useState<Message[]>([]);
@@ -50,18 +53,36 @@ export const ActivityChat: React.FC<{ activityId: string; activityTitle: string;
   const [loadingMore, setLoadingMore] = useState(false);
   const [hoveredId, setHoveredId] = useState<string | null>(null);
   const [showEmojiFor, setShowEmojiFor] = useState<string | null>(null);
+  const [uploading, setUploading] = useState(false);
 
   const socketRef = useRef<Socket | null>(null);
   const bottomRef = useRef<HTMLDivElement>(null);
   const scrollRef = useRef<HTMLDivElement>(null);
   const typingTimeout = useRef<NodeJS.Timeout | null>(null);
+  const fileInputRef = useRef<HTMLInputElement>(null);
+  // Ref to avoid stale closure in socket listeners
+  const activeIdRef = useRef(activeId);
+
+  // Sync ref whenever activeId state changes
+  useEffect(() => {
+    activeIdRef.current = activeId;
+  }, [activeId]);
 
   // ── fetch sidebar list ──────────────────────────────────────────────────────
   useEffect(() => {
     getMyActivitiesAction().then(r => { if (r.success) setMyActivities(r.data); });
   }, []);
 
-  // ── socket lifecycle ────────────────────────────────────────────────────────
+  // ── Announce active chat to global store on mount & on change ───────────────
+  useEffect(() => {
+    setActiveChatId(activeId);
+    return () => {
+      // Clear active chat when this component unmounts
+      setActiveChatId(null);
+    };
+  }, [activeId, setActiveChatId]);
+
+  // ── socket init (only once per token) ──────────────────────────────────────
   useEffect(() => {
     if (!token) return;
     const socket = io(`${process.env.NEXT_PUBLIC_ACTIONS_URL}/group-chat`, {
@@ -70,35 +91,38 @@ export const ActivityChat: React.FC<{ activityId: string; activityTitle: string;
 
     socket.on('connect', () => {
       setConnected(true);
-      socket.emit('join_activity', { activityId: activeId });
+      // Join the current active room on (re)connect
+      socket.emit('join_activity', { activityId: activeIdRef.current });
+      socket.emit('mark_read', { activityId: activeIdRef.current });
     });
     socket.on('disconnect', () => setConnected(false));
 
-    socket.on('message_history', (history: Message[]) => {
+    socket.on('message_history', (data: { messages: Message[]; unreadCount: number }) => {
+      const history = data.messages || [];
       setMessages(history);
       setHasMore(history.length >= 30);
       setTimeout(() => bottomRef.current?.scrollIntoView(), 50);
     });
 
     socket.on('new_message', (msg: Message) => {
-      if (msg.activityId === activeId) {
+      // Use ref to get current activeId without stale closure
+      if (msg.activityId === activeIdRef.current) {
         setMessages(prev => {
           const currentUser = useAuthStore.getState().user;
           const isMyMessage = currentUser && (
-            msg.userId === currentUser.id || 
+            msg.userId === currentUser.id ||
             msg.user?.username === currentUser.username
           );
-          
+
           if (isMyMessage) {
-            // Find the first temporary optimistic message in the feed and replace it
+            // Replace the first optimistic placeholder with the confirmed message
             const optimisticIndex = prev.findIndex(m => m.isOptimistic);
             if (optimisticIndex !== -1) {
               const updated = [...prev];
-              updated[optimisticIndex] = msg; // Swap optimistic message with the server-confirmed message
+              updated[optimisticIndex] = msg;
               return updated;
             }
           }
-          // Otherwise, append normally (for other users' messages or if no optimistic message is found)
           return [...prev, msg];
         });
         setTimeout(() => bottomRef.current?.scrollIntoView({ behavior: 'smooth' }), 50);
@@ -118,7 +142,7 @@ export const ActivityChat: React.FC<{ activityId: string; activityTitle: string;
 
     socket.on('typing_users', ({ activityId, users }: { activityId: string; users: string[] }) => {
       const currentUser = useAuthStore.getState().user;
-      if (activityId === activeId) setTypingUsers(users.filter(id => id !== currentUser?.id));
+      if (activityId === activeIdRef.current) setTypingUsers(users.filter(id => id !== currentUser?.id));
     });
 
     socket.on('online_users', (ids: string[]) => setOnlineUsers(ids));
@@ -128,15 +152,64 @@ export const ActivityChat: React.FC<{ activityId: string; activityTitle: string;
     });
 
     socketRef.current = socket;
-    return () => { socket.disconnect(); };
-  }, [activeId, token]);
+    return () => { socket.disconnect(); socketRef.current = null; };
+  // Only re-init socket when token changes
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [token]);
 
-  // ── switch activity room ─────────────────────────────────────────────────────
+  // ── switch activity room (re-join without reconnecting socket) ────────────
+  useEffect(() => {
+    const socket = socketRef.current;
+    if (!socket || !socket.connected) return;
+
+    // Reset UI state for new room
+    setMessages([]);
+    setHasMore(true);
+    setTypingUsers([]);
+    setOnlineUsers([]);
+
+    socket.emit('join_activity', { activityId: activeId });
+    socket.emit('mark_read', { activityId: activeId });
+  // Run whenever activeId changes (but NOT on first mount — socket may not be ready yet)
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [activeId]);
+
+  // ── switch activity handler ─────────────────────────────────────────────────
   const switchActivity = (id: string, title: string) => {
     if (id === activeId) return;
-    setMessages([]); setHasMore(true); setTypingUsers([]); setOnlineUsers([]);
-    setActiveId(id); setActiveTitle(title);
-    setActiveChatId(id);
+    setActiveId(id);
+    setActiveTitle(title);
+    // setActiveChatId will be called by the useEffect above
+  };
+
+  const handleFileSelect = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file || !socketRef.current || !connected) return;
+
+    setUploading(true);
+    const formData = new FormData();
+    formData.append('file', file);
+
+    const res = await uploadChatAttachmentAction(formData);
+    setUploading(false);
+
+    if (e.target) e.target.value = '';
+
+    if (res.error) {
+      alert(res.error);
+      return;
+    }
+
+    if (res.success && res.data) {
+      const { url, fileName, fileSize, mediaType } = res.data;
+      socketRef.current.emit('send_message', {
+        activityId: activeId,
+        mediaUrl: url,
+        fileName,
+        fileSize,
+        type: mediaType,
+      });
+    }
   };
 
   // ── send message ─────────────────────────────────────────────────────────────
@@ -166,9 +239,13 @@ export const ActivityChat: React.FC<{ activityId: string; activityTitle: string;
     setMessages(prev => [...prev, optimisticMsg]);
     setTimeout(() => bottomRef.current?.scrollIntoView({ behavior: 'smooth' }), 50);
 
-    // 3. Emit real message to the remote NestJS + Supabase backend
-    socketRef.current.emit('send_message', { activityId: activeId, content: messageContent });
-    
+    // 3. Emit real message to backend
+    socketRef.current.emit('send_message', {
+      activityId: activeId,
+      content: messageContent,
+      type: 'TEXT',
+    });
+
     setInput('');
     if (typingTimeout.current) clearTimeout(typingTimeout.current);
     socketRef.current.emit('stop_typing', { activityId: activeId });
@@ -204,11 +281,6 @@ export const ActivityChat: React.FC<{ activityId: string; activityTitle: string;
     setShowEmojiFor(null);
   };
 
-  // ── typing names ─────────────────────────────────────────────────────────────
-  const typingNames = typingUsers
-    .map(id => myActivities.flatMap(a => []).find(() => false) || id.slice(0, 6))
-    .join(', ');
-
   return (
     <div className="fixed inset-0 z-[100] bg-white flex h-screen overflow-hidden text-on-surface">
 
@@ -224,19 +296,33 @@ export const ActivityChat: React.FC<{ activityId: string; activityTitle: string;
           {myActivities.map(a => {
             const isActive = a.id === activeId;
             const isOnline = onlineUsers.includes(a.hostId);
+            const unread = unreadCounts[a.id] || 0;
+            const hasUnread = unread > 0;
             return (
               <button key={a.id} onClick={() => switchActivity(a.id, a.title)}
-                className={`w-full flex items-center gap-3 p-3 rounded-xl transition-all text-left ${isActive ? 'bg-primary/5 text-primary shadow-sm' : 'hover:bg-secondary/40 text-on-surface-variant'}`}>
-                <div className="relative flex-shrink-0">
-                  <div className={`w-11 h-11 rounded-xl flex items-center justify-center font-bold text-base shadow-sm ${isActive ? 'bg-primary text-white' : 'bg-white border border-outline/10 text-on-surface-variant'}`}>
-                    {a.title.charAt(0)}
+                className={`relative w-full flex items-center justify-between p-3 rounded-xl transition-all text-left ${isActive ? 'bg-primary/5 text-primary shadow-sm' : hasUnread ? 'bg-primary/5 hover:bg-primary/10 text-on-surface' : 'hover:bg-secondary/40 text-on-surface-variant'}`}>
+                <div className="flex items-center gap-3 min-w-0 flex-1">
+                  <div className="relative flex-shrink-0">
+                    <div className={`w-11 h-11 rounded-xl flex items-center justify-center font-bold text-base shadow-sm ${isActive ? 'bg-primary text-white' : hasUnread ? 'bg-primary/10 text-primary border border-primary/20' : 'bg-white border border-outline/10 text-on-surface-variant'}`}>
+                      {a.title.charAt(0)}
+                    </div>
+                    {isOnline && <div className="absolute -bottom-0.5 -right-0.5 w-3.5 h-3.5 bg-green-500 rounded-full border-2 border-white" />}
                   </div>
-                  {isOnline && <div className="absolute -bottom-0.5 -right-0.5 w-3.5 h-3.5 bg-green-500 rounded-full border-2 border-white" />}
+                  <div className="hidden lg:flex flex-col min-w-0">
+                    <span className={`text-sm truncate ${isActive ? 'font-bold text-primary' : hasUnread ? 'font-extrabold text-on-surface' : 'font-medium text-on-surface-variant/80'}`}>{a.title}</span>
+                    <span className={`text-[10px] truncate ${hasUnread ? 'font-bold text-primary/80' : 'text-outline/60 font-semibold uppercase tracking-wider'}`}>
+                      {hasUnread ? `${unread} new messages` : `${a.memberCount} members`}
+                    </span>
+                  </div>
                 </div>
-                <div className="hidden lg:flex flex-col min-w-0">
-                  <span className={`font-bold text-sm truncate ${isActive ? 'text-primary' : 'text-on-surface'}`}>{a.title}</span>
-                  <span className="text-[10px] text-outline/60 font-semibold uppercase tracking-wider truncate">{a.memberCount} members</span>
-                </div>
+                {hasUnread && !isActive && (
+                  <div className="hidden lg:flex w-5 h-5 rounded-full bg-primary text-white text-[10px] font-bold items-center justify-center animate-pulse flex-shrink-0 ml-2">
+                    {unread}
+                  </div>
+                )}
+                {hasUnread && !isActive && (
+                  <div className="lg:hidden absolute top-2 right-2 w-2.5 h-2.5 bg-primary rounded-full animate-pulse" />
+                )}
               </button>
             );
           })}
@@ -350,7 +436,32 @@ export const ActivityChat: React.FC<{ activityId: string; activityTitle: string;
                             <div className={`px-4 py-2.5 rounded-xl text-sm leading-relaxed select-text shadow-sm transition-all duration-300
                               ${isMe ? 'bg-primary text-white rounded-tr-sm' : 'bg-white text-on-surface rounded-tl-sm border border-outline/10'}
                               ${m.isOptimistic ? 'opacity-60 saturate-50' : 'opacity-100'}`}>
-                              {m.content}
+                              {m.type === 'IMAGE' ? (
+                                <img
+                                  src={resolveImageUrl(m.mediaUrl) ?? undefined}
+                                  alt={m.fileName || 'Image'}
+                                  className="max-w-[240px] md:max-w-xs rounded-lg cursor-zoom-in hover:brightness-95 transition-all"
+                                  onClick={() => m.mediaUrl && window.open(resolveImageUrl(m.mediaUrl) ?? undefined, '_blank')}
+                                />
+                              ) : m.type === 'FILE' ? (
+                                <a
+                                  href={resolveImageUrl(m.mediaUrl) ?? undefined}
+                                  target="_blank"
+                                  rel="noopener noreferrer"
+                                  download={m.fileName}
+                                  className="flex items-center gap-2 hover:underline text-xs md:text-sm font-semibold truncate"
+                                >
+                                  <span className="material-symbols-outlined text-base flex-shrink-0">description</span>
+                                  <span className="truncate max-w-[150px] md:max-w-[200px]">{m.fileName}</span>
+                                  {m.fileSize && (
+                                    <span className="text-[10px] opacity-60 flex-shrink-0 ml-1">
+                                      ({(m.fileSize / 1024).toFixed(0)} KB)
+                                    </span>
+                                  )}
+                                </a>
+                              ) : (
+                                m.content
+                              )}
                             </div>
 
                             {/* Hover action bar */}
@@ -421,15 +532,35 @@ export const ActivityChat: React.FC<{ activityId: string; activityTitle: string;
         {/* Input */}
         <div className="p-4 border-t border-outline/5 bg-white flex-shrink-0">
           <div className="flex items-center gap-3 max-w-4xl mx-auto">
+            <input
+              type="file"
+              accept="image/*,.pdf,.doc,.docx,.zip,.txt"
+              onChange={handleFileSelect}
+              className="hidden"
+              ref={fileInputRef}
+            />
+            <button
+              onClick={() => fileInputRef.current?.click()}
+              disabled={uploading || !connected}
+              className="w-10 h-10 flex items-center justify-center text-on-surface-variant/60 hover:text-primary hover:bg-primary/5 rounded-xl transition-all disabled:opacity-30 flex-shrink-0"
+              title="Attach photo or document"
+            >
+              {uploading ? (
+                <div className="w-5 h-5 border-2 border-primary/20 border-t-primary rounded-full animate-spin" />
+              ) : (
+                <span className="material-symbols-outlined text-xl">attach_file</span>
+              )}
+            </button>
             <div className="flex-1 relative">
               <input
                 type="text" value={input}
                 onChange={e => handleInputChange(e.target.value)}
                 onKeyDown={e => e.key === 'Enter' && !e.shiftKey && handleSend()}
-                placeholder="Type a message..."
+                placeholder={uploading ? "Uploading attachment..." : "Type a message..."}
+                disabled={uploading}
                 className="w-full pl-5 pr-12 py-3 bg-secondary/30 border border-transparent rounded-xl focus:ring-4 focus:ring-primary/5 focus:bg-white focus:border-primary/20 transition-all text-sm outline-none font-semibold text-on-surface placeholder:text-outline/30"
               />
-              <button onClick={handleSend} disabled={!input.trim() || !connected}
+              <button onClick={handleSend} disabled={!input.trim() || !connected || uploading}
                 className="absolute right-2 top-1.5 w-9 h-9 flex items-center justify-center text-primary disabled:opacity-30 hover:bg-primary/10 rounded-full transition-all active:scale-90">
                 <span className="material-symbols-outlined text-xl">send</span>
               </button>

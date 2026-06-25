@@ -14,7 +14,7 @@ import { useConfirm } from '@/hooks/use-confirm';
 import { Place, PLACE_CATEGORIES as CATEGORIES } from '@/types';
 
 const DISTRICTS = [
-  'Hoàn Kiếm', 'Ba Đình', 'Tây Hồ', 'Đống Đa', 'Hai Bà Trưng', 'Cầu Giấy', 'Thanh Xuân', 'Long Biên', 'Nam Từ Liêm', 'Bắc Từ Liêm'
+  'Hoan Kiem', 'Ba Dinh', 'Tay Ho', 'Dong Da', 'Hai Ba Trung', 'Cau Giay', 'Thanh Xuan', 'Long Bien', 'Nam Tu Liem', 'Bac Tu Liem'
 ];
 
 // Extract HH:mm from a @db.Time(6) value (stored as UTC epoch 1970-01-01THH:mm:ssZ)

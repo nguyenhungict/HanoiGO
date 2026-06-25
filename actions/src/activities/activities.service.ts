@@ -43,7 +43,13 @@ export class ActivitiesService {
               take: 1,
               include: {
                 place: {
-                  select: { id: true, name: true, lat: true, lng: true, address: true },
+                  select: {
+                    id: true,
+                    name: true,
+                    lat: true,
+                    lng: true,
+                    address: true,
+                  },
                 },
               },
             },
@@ -80,7 +86,7 @@ export class ActivitiesService {
       let lng = dto.lng;
       let address = dto.address ?? null;
       let placeId = dto.placeId ?? null;
-      let tripId = dto.tripId ?? null;
+      const tripId = dto.tripId ?? null;
 
       // Auto-fill location from the linked Trip when lat/lng are not provided
       if (tripId && (lat === undefined || lng === undefined)) {
@@ -136,6 +142,15 @@ export class ActivitiesService {
           activityId: activity.id,
           userId,
           status: MemberStatus.APPROVED,
+        },
+      });
+
+      // Initialize read status for host
+      await this.prisma.messageReadStatus.create({
+        data: {
+          activityId: activity.id,
+          userId,
+          lastReadAt: new Date(),
         },
       });
 
@@ -306,7 +321,8 @@ export class ActivitiesService {
       WHERE a.id = ${id}::uuid
     `;
 
-    if (activities.length === 0) throw new NotFoundException('Activity not found');
+    if (activities.length === 0)
+      throw new NotFoundException('Activity not found');
 
     const activity = activities[0];
 
@@ -390,9 +406,12 @@ export class ActivitiesService {
       );
     }
 
-    if (activities.length === 0) throw new NotFoundException('Activity not found');
+    if (activities.length === 0)
+      throw new NotFoundException('Activity not found');
     if (activities[0].status !== 'OPEN') {
-      throw new BadRequestException('This activity is no longer open for joining.');
+      throw new BadRequestException(
+        'This activity is no longer open for joining.',
+      );
     }
 
     const activity = activities[0];
@@ -411,7 +430,9 @@ export class ActivitiesService {
         'ACTIVITY',
         activityId,
       )
-      .catch((err) => this.logger.error('Failed to send join notification:', err));
+      .catch((err) =>
+        this.logger.error('Failed to send join notification:', err),
+      );
 
     return member;
   }
@@ -441,7 +462,8 @@ export class ActivitiesService {
       SELECT host_id as "hostId", title FROM activities WHERE id = ${activityId}::uuid
     `;
 
-    if (activities.length === 0) throw new NotFoundException('Activity not found');
+    if (activities.length === 0)
+      throw new NotFoundException('Activity not found');
     const activity = activities[0];
     if (activity.hostId !== hostId)
       throw new ForbiddenException('Only the host can approve members');
@@ -449,6 +471,13 @@ export class ActivitiesService {
     const updatedMember = await this.prisma.activityMember.update({
       where: { activityId_userId: { activityId, userId } },
       data: { status: MemberStatus.APPROVED },
+    });
+
+    // Initialize read status for approved member
+    await this.prisma.messageReadStatus.upsert({
+      where: { userId_activityId: { userId, activityId } },
+      update: { lastReadAt: new Date() },
+      create: { userId, activityId, lastReadAt: new Date() },
     });
 
     // Notify the member
@@ -469,7 +498,8 @@ export class ActivitiesService {
       SELECT host_id as "hostId", title FROM activities WHERE id = ${activityId}::uuid
     `;
 
-    if (activities.length === 0) throw new NotFoundException('Activity not found');
+    if (activities.length === 0)
+      throw new NotFoundException('Activity not found');
     const activity = activities[0];
     if (activity.hostId !== hostId)
       throw new ForbiddenException('Only the host can reject members');
@@ -498,7 +528,8 @@ export class ActivitiesService {
       SELECT host_id as "hostId" FROM activities WHERE id = ${activityId}::uuid
     `;
 
-    if (activityResult.length === 0) throw new NotFoundException('Activity not found');
+    if (activityResult.length === 0)
+      throw new NotFoundException('Activity not found');
     if (activityResult[0].hostId !== userId) {
       throw new ForbiddenException('Only the host can delete this activity');
     }
@@ -508,16 +539,20 @@ export class ActivitiesService {
 
   // ── Update Activity ───────────────────────────────────────────────────────────
   async update(userId: string, activityId: string, dto: UpdateActivityDto) {
-    const activity = await this.prisma.activity.findUnique({ where: { id: activityId } });
+    const activity = await this.prisma.activity.findUnique({
+      where: { id: activityId },
+    });
     if (!activity) throw new NotFoundException('Activity not found');
-    if (activity.hostId !== userId) throw new ForbiddenException('Only the host can edit this activity');
+    if (activity.hostId !== userId)
+      throw new ForbiddenException('Only the host can edit this activity');
 
     const data: any = {};
     if (dto.title !== undefined) data.title = dto.title;
     if (dto.description !== undefined) data.description = dto.description;
     if (dto.address !== undefined) data.address = dto.address;
     if (dto.placeId !== undefined) data.placeId = dto.placeId || null;
-    if (dto.scheduledAt !== undefined) data.scheduledAt = new Date(dto.scheduledAt);
+    if (dto.scheduledAt !== undefined)
+      data.scheduledAt = new Date(dto.scheduledAt);
     if (dto.maxMembers !== undefined) data.maxMembers = dto.maxMembers;
     if (dto.category !== undefined) data.category = dto.category;
     if (dto.imageUrl !== undefined) data.imageUrl = dto.imageUrl || null;
@@ -599,7 +634,12 @@ export class ActivitiesService {
       where: { activityId },
       include: {
         user: {
-          select: { id: true, username: true, avatarUrl: true, nationality: true },
+          select: {
+            id: true,
+            username: true,
+            avatarUrl: true,
+            nationality: true,
+          },
         },
       },
       orderBy: { joinedAt: 'asc' },
@@ -695,7 +735,11 @@ export class ActivitiesService {
     return cloned;
   }
 
-  async reportActivity(reporterId: string, activityId: string, dto: ReportActivityDto) {
+  async reportActivity(
+    reporterId: string,
+    activityId: string,
+    dto: ReportActivityDto,
+  ) {
     const activity = await this.prisma.activity.findUnique({
       where: { id: activityId },
     });

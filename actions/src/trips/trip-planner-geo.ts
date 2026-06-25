@@ -210,7 +210,10 @@ export function kMeansClustering(
         // (within 3× the target cluster's current spread, or target cluster is empty).
         const targetSpread = clusterSpreadKm(clusters[bestTargetIdx]);
         const maxAllowedDist = Math.max(targetSpread * 3, 5); // at least 5km tolerance
-        if (minDistToTarget > maxAllowedDist && clusters[bestTargetIdx].length > 0) {
+        if (
+          minDistToTarget > maxAllowedDist &&
+          clusters[bestTargetIdx].length > 0
+        ) {
           // This place is too far from every other cluster — it's a geographic outlier.
           // Leave it in the current over-full cluster rather than making another day worse.
           break;

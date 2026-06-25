@@ -16,12 +16,12 @@ const MAX_HISTORY_TURNS = 8;
  */
 interface TripPlanParams {
   numDays: number | null;
-  travelDate: string | null;       // "YYYY-MM-DD"
-  startTime: number | null;        // 24h integer, e.g. 8
-  endTime: number | null;          // 24h integer, e.g. 21
-  lunchBreakStart: number | null;  // 24h integer, e.g. 12  ← NEW
-  lunchBreakEnd: number | null;    // 24h integer, e.g. 13  ← NEW
-  visitDuration: number | null;    // minutes per place, 15–120  ← NEW
+  travelDate: string | null; // "YYYY-MM-DD"
+  startTime: number | null; // 24h integer, e.g. 8
+  endTime: number | null; // 24h integer, e.g. 21
+  lunchBreakStart: number | null; // 24h integer, e.g. 12  ← NEW
+  lunchBreakEnd: number | null; // 24h integer, e.g. 13  ← NEW
+  visitDuration: number | null; // minutes per place, 15–120  ← NEW
   districts: string[];
   categories: string[];
 }
@@ -36,14 +36,13 @@ interface GeminiUnifiedResponse {
   extractedParams: TripPlanParams;
 }
 
-
-
 // Helper: does the params object satisfy all required fields?
 function hasAllRequired(p: Partial<TripPlanParams>): boolean {
   return (
     !!p.numDays &&
     !!p.travelDate &&
-    Array.isArray(p.categories) && p.categories.length > 0
+    Array.isArray(p.categories) &&
+    p.categories.length > 0
   );
 }
 
@@ -53,15 +52,17 @@ function mergeParams(
   next: Partial<TripPlanParams>,
 ): TripPlanParams {
   return {
-    numDays:         next.numDays         ?? prev.numDays         ?? null,
-    travelDate:      next.travelDate      ?? prev.travelDate      ?? null,
-    startTime:       next.startTime       ?? prev.startTime       ?? null,
-    endTime:         next.endTime         ?? prev.endTime         ?? null,
+    numDays: next.numDays ?? prev.numDays ?? null,
+    travelDate: next.travelDate ?? prev.travelDate ?? null,
+    startTime: next.startTime ?? prev.startTime ?? null,
+    endTime: next.endTime ?? prev.endTime ?? null,
     lunchBreakStart: next.lunchBreakStart ?? prev.lunchBreakStart ?? null,
-    lunchBreakEnd:   next.lunchBreakEnd   ?? prev.lunchBreakEnd   ?? null,
-    visitDuration:   next.visitDuration   ?? prev.visitDuration   ?? null,
-    districts:       next.districts?.length ? next.districts : (prev.districts ?? []),
-    categories:      next.categories?.length ? next.categories : (prev.categories ?? []),
+    lunchBreakEnd: next.lunchBreakEnd ?? prev.lunchBreakEnd ?? null,
+    visitDuration: next.visitDuration ?? prev.visitDuration ?? null,
+    districts: next.districts?.length ? next.districts : (prev.districts ?? []),
+    categories: next.categories?.length
+      ? next.categories
+      : (prev.categories ?? []),
   };
 }
 
@@ -87,7 +88,10 @@ export class AiChatService {
 
   private async callGemini(prompt: string): Promise<GeminiUnifiedResponse> {
     const raw = await this.getModel().generateContent(prompt);
-    const text = raw.response.text().replace(/```json|```/g, '').trim();
+    const text = raw.response
+      .text()
+      .replace(/```json|```/g, '')
+      .trim();
     return JSON.parse(text) as GeminiUnifiedResponse;
   }
 
@@ -98,7 +102,7 @@ export class AiChatService {
     const recent = history.slice(-MAX_HISTORY_TURNS);
     return (
       `\nRecent conversation (last ${recent.length} messages):\n` +
-      recent.map(m => `${m.role}: ${m.content}`).join('\n') +
+      recent.map((m) => `${m.role}: ${m.content}`).join('\n') +
       '\n'
     );
   }
@@ -151,14 +155,20 @@ export class AiChatService {
     // Summarise what we already know so the LLM doesn't ask again
     const known = context.accumulated;
     const knownLines: string[] = [];
-    if (known.numDays)         knownLines.push(`- Số ngày: ${known.numDays}`);
-    if (known.travelDate)      knownLines.push(`- Ngày đi: ${known.travelDate}`);
-    if (known.startTime)       knownLines.push(`- Giờ bắt đầu: ${known.startTime}h`);
-    if (known.endTime)         knownLines.push(`- Giờ kết thúc: ${known.endTime}h`);
-    if (known.lunchBreakStart) knownLines.push(`- Nghỉ trưa: ${known.lunchBreakStart}h–${known.lunchBreakEnd ?? known.lunchBreakStart + 1}h`);
-    if (known.visitDuration)   knownLines.push(`- Thời gian mỗi điểm: ${known.visitDuration} phút`);
-    if (known.categories?.length) knownLines.push(`- Loại hình: ${known.categories.join(', ')}`);
-    if (known.districts?.length)  knownLines.push(`- Quận/huyện: ${known.districts.join(', ')}`);
+    if (known.numDays) knownLines.push(`- Số ngày: ${known.numDays}`);
+    if (known.travelDate) knownLines.push(`- Ngày đi: ${known.travelDate}`);
+    if (known.startTime) knownLines.push(`- Giờ bắt đầu: ${known.startTime}h`);
+    if (known.endTime) knownLines.push(`- Giờ kết thúc: ${known.endTime}h`);
+    if (known.lunchBreakStart)
+      knownLines.push(
+        `- Nghỉ trưa: ${known.lunchBreakStart}h–${known.lunchBreakEnd ?? known.lunchBreakStart + 1}h`,
+      );
+    if (known.visitDuration)
+      knownLines.push(`- Thời gian mỗi điểm: ${known.visitDuration} phút`);
+    if (known.categories?.length)
+      knownLines.push(`- Loại hình: ${known.categories.join(', ')}`);
+    if (known.districts?.length)
+      knownLines.push(`- Quận/huyện: ${known.districts.join(', ')}`);
 
     const alreadyKnownSection = knownLines.length
       ? `\nThông tin đã thu thập được từ hội thoại trước:\n${knownLines.join('\n')}\n`
@@ -243,14 +253,19 @@ JSON ONLY — no markdown fences, no extra text outside the JSON object.
   ): Promise<{ list: string; pins: PlacePin[] }> {
     const allPlaces = await this.prisma.place.findMany({
       select: {
-        id: true, name: true, category: true,
-        address: true, district: true, lat: true, lng: true,
+        id: true,
+        name: true,
+        category: true,
+        address: true,
+        district: true,
+        lat: true,
+        lng: true,
       },
     });
 
     const sorted = allPlaces
-      .filter(p => p.lat != null && p.lng != null)
-      .map(p => ({ ...p, distanceKm: haversine(lat, lng, p.lat!, p.lng!) }))
+      .filter((p) => p.lat != null && p.lng != null)
+      .map((p) => ({ ...p, distanceKm: haversine(lat, lng, p.lat, p.lng) }))
       .sort((a, b) => a.distanceKm - b.distanceKm)
       .slice(0, 12);
 
@@ -261,11 +276,11 @@ JSON ONLY — no markdown fences, no extra text outside the JSON object.
       )
       .join('\n');
 
-    const pins: PlacePin[] = sorted.slice(0, 8).map(p => ({
+    const pins: PlacePin[] = sorted.slice(0, 8).map((p) => ({
       id: p.id,
       name: p.name,
-      lat: p.lat!,
-      lng: p.lng!,
+      lat: p.lat,
+      lng: p.lng,
       category: p.category,
       address: p.address || p.district || '',
       distanceKm: p.distanceKm,
@@ -281,10 +296,10 @@ JSON ONLY — no markdown fences, no extra text outside the JSON object.
     lat?: number,
     lng?: number,
   ): Promise<AiChatResponse> {
-    const numDays        = params.numDays        ?? 1;
-    const startMin       = (params.startTime       ?? 8)  * 60;
-    const endMin         = (params.endTime         ?? 21) * 60;
-    const visitDuration  =  params.visitDuration   ?? 60;
+    const numDays = params.numDays ?? 1;
+    const startMin = (params.startTime ?? 8) * 60;
+    const endMin = (params.endTime ?? 21) * 60;
+    const visitDuration = params.visitDuration ?? 60;
 
     // Build lunch break windows to pass to planner (if provided)
     const lunchBreakWindows =
@@ -292,14 +307,44 @@ JSON ONLY — no markdown fences, no extra text outside the JSON object.
         ? [
             {
               start: params.lunchBreakStart * 60,
-              end:   (params.lunchBreakEnd ?? params.lunchBreakStart + 1) * 60,
+              end: (params.lunchBreakEnd ?? params.lunchBreakStart + 1) * 60,
             },
           ]
         : undefined;
 
     const whereClause: Record<string, unknown> = {};
-    if (params.categories?.length) whereClause['category']  = { in: params.categories };
-    if (params.districts?.length)  whereClause['district']  = { in: params.districts };
+    if (params.categories?.length)
+      whereClause['category'] = { in: params.categories };
+    if (params.districts?.length) {
+      const DISTRICT_MAP: Record<string, string> = {
+        'hoàn kiếm': 'Hoan Kiem',
+        'hoan kiem': 'Hoan Kiem',
+        'ba đình': 'Ba Dinh',
+        'ba dinh': 'Ba Dinh',
+        'tây hồ': 'Tay Ho',
+        'tay ho': 'Tay Ho',
+        'đống đa': 'Dong Da',
+        'dong da': 'Dong Da',
+        'hai bà trưng': 'Hai Ba Trung',
+        'hai ba trung': 'Hai Ba Trung',
+        'cầu giấy': 'Cau Giay',
+        'cau giay': 'Cau Giay',
+        'thanh xuân': 'Thanh Xuan',
+        'thanh xuan': 'Thanh Xuan',
+        'long biên': 'Long Bien',
+        'long bien': 'Long Bien',
+        'nam từ liêm': 'Nam Tu Liem',
+        'nam tu liem': 'Nam Tu Liem',
+        'bắc từ liêm': 'Bac Tu Liem',
+        'bac tu liem': 'Bac Tu Liem',
+        'gia lâm': 'Gia Lam',
+        'gia lam': 'Gia Lam',
+      };
+      const mappedDistricts = params.districts.map(
+        (d) => DISTRICT_MAP[d.toLowerCase()] || d,
+      );
+      whereClause['district'] = { in: mappedDistricts };
+    }
 
     const matchedPlaces = await this.prisma.place.findMany({
       where: whereClause,
@@ -317,14 +362,14 @@ JSON ONLY — no markdown fences, no extra text outside the JSON object.
     }
 
     const dto: GenerateItineraryDto = {
-      placeIds:         matchedPlaces.map(p => p.id),
+      placeIds: matchedPlaces.map((p) => p.id),
       numDays,
-      startTime:        startMin,
-      endTime:          endMin,
-      travelDate:       params.travelDate ?? new Date().toISOString().split('T')[0],
+      startTime: startMin,
+      endTime: endMin,
+      travelDate: params.travelDate ?? new Date().toISOString().split('T')[0],
       visitDurationMin: visitDuration,
-      startLat:         lat,
-      startLng:         lng,
+      startLat: lat,
+      startLng: lng,
       // Pass lunch break if your GenerateItineraryDto supports it:
       // lunchBreaks: lunchBreakWindows,
     };
@@ -333,9 +378,9 @@ JSON ONLY — no markdown fences, no extra text outside the JSON object.
 
     const daySummaries = itinerary.days
       .map(
-        d =>
+        (d) =>
           `📅 **Ngày ${d.dayNumber}** (${d.dayLabel}): ` +
-          (d.stops.map(s => s.name).join(' → ') || 'Chưa có điểm dừng'),
+          (d.stops.map((s) => s.name).join(' → ') || 'Chưa có điểm dừng'),
       )
       .join('\n');
 
@@ -364,14 +409,16 @@ JSON ONLY — no markdown fences, no extra text outside the JSON object.
     lat?: number,
     lng?: number,
     history?: { role: string; content: string }[],
-    accumulated: Partial<TripPlanParams> = {},  // ← NEW: pass accumulated state from client
+    accumulated: Partial<TripPlanParams> = {}, // ← NEW: pass accumulated state from client
   ): Promise<AiChatResponse & { accumulatedParams?: TripPlanParams }> {
     try {
-      const today       = new Date().toISOString().split('T')[0];
+      const today = new Date().toISOString().split('T')[0];
       const historyText = this.trimHistory(history);
 
       // Pre-fetch nearby only when likely needed
-      const likelyNearby = /gần|nearby|xung quanh|quanh đây|near me/i.test(message);
+      const likelyNearby = /gần|nearby|xung quanh|quanh đây|near me/i.test(
+        message,
+      );
       let nearbyList: string | undefined;
       let nearbyPins: PlacePin[] = [];
 
@@ -382,12 +429,12 @@ JSON ONLY — no markdown fences, no extra text outside the JSON object.
       }
 
       // ── Single Gemini API Call ─────────────────────────────────────────────
-      const prompt  = this.buildMegaPrompt(message, historyText, {
+      const prompt = this.buildMegaPrompt(message, historyText, {
         nearbyList,
         today,
         accumulated,
       });
-      const gemini  = await this.callGemini(prompt);
+      const gemini = await this.callGemini(prompt);
       // ──────────────────────────────────────────────────────────────────────
 
       this.logger.log(`Intent: "${gemini.intent}" | message: "${message}"`);
@@ -399,7 +446,7 @@ JSON ONLY — no markdown fences, no extra text outside the JSON object.
         // ── Nearby ──────────────────────────────────────────────────────────
         case 'nearby': {
           if (!nearbyList && lat && lng) {
-            const ctx  = await this.resolveNearbyContext(lat, lng);
+            const ctx = await this.resolveNearbyContext(lat, lng);
             nearbyPins = ctx.pins;
           }
           if (!lat || !lng) {
@@ -410,17 +457,23 @@ JSON ONLY — no markdown fences, no extra text outside the JSON object.
               intent: 'nearby',
             };
           }
-          return { response: gemini.response, intent: 'nearby', places: nearbyPins };
+          return {
+            response: gemini.response,
+            intent: 'nearby',
+            places: nearbyPins,
+          };
         }
 
         // ── Trip Plan ────────────────────────────────────────────────────────
         case 'trip_plan': {
           // Double-check: LLM may label intent=trip_plan prematurely
           if (!hasAllRequired(merged)) {
-            this.logger.warn('LLM said trip_plan but params incomplete — downgrading to collecting');
+            this.logger.warn(
+              'LLM said trip_plan but params incomplete — downgrading to collecting',
+            );
             return {
               response: gemini.response,
-              intent:   'trip_plan_collecting',
+              intent: 'trip_plan_collecting',
               accumulatedParams: merged,
             };
           }
@@ -433,8 +486,8 @@ JSON ONLY — no markdown fences, no extra text outside the JSON object.
         case 'trip_plan_collecting':
           return {
             response: gemini.response,
-            intent:   'trip_plan_collecting',
-            accumulatedParams: merged,  // client stores this and sends it back next turn
+            intent: 'trip_plan_collecting',
+            accumulatedParams: merged, // client stores this and sends it back next turn
           };
 
         // ── General ──────────────────────────────────────────────────────────

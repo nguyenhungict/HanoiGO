@@ -182,7 +182,8 @@ export class AdminController {
   @Patch('reports/:id/resolve')
   resolveReport(
     @Param('id') reportId: string,
-    @Body() body: { adminNotes?: string; contentAction?: 'NONE' | 'HIDE' | 'DELETE' },
+    @Body()
+    body: { adminNotes?: string; contentAction?: 'NONE' | 'HIDE' | 'DELETE' },
     @Request() req: any,
   ) {
     return this.adminService.resolveReport(

@@ -21,8 +21,8 @@ export interface AiChatResponse {
 export interface TripPlanParams {
   numDays?: number;
   travelDate?: string;
-  startTime?: number;   // minutes from midnight (e.g. 480 = 08:00)
-  endTime?: number;     // minutes from midnight
+  startTime?: number; // minutes from midnight (e.g. 480 = 08:00)
+  endTime?: number; // minutes from midnight
   categories?: string[];
   districts?: string[];
 }

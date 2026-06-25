@@ -86,7 +86,7 @@ export async function fetchLandmarks(): Promise<Landmark[]> {
         description: p.descriptionEn || "",
         lat: p.lat,
         lng: p.lng,
-        district: p.district || 'Hoàn Kiếm'
+        district: p.district || 'Hoan Kiem'
       };
     });
 
@@ -200,7 +200,7 @@ export function getPlaceStory(landmark: Landmark): PlaceStory {
       },
       {
         label: 'District',
-        value: landmark.district || 'Hoàn Kiếm',
+        value: landmark.district || 'Hoan Kiem',
       },
     ],
   };

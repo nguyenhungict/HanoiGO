@@ -1,0 +1,39 @@
+@startuml
+skinparam dpi 300
+skinparam monochrome true
+skinparam shadowing false
+skinparam defaultFontName Arial
+skinparam sequenceMessageAlign left
+skinparam SequenceBoxBorderColor black
+
+actor User
+participant "Frontend\n(Next.js)" as FE
+participant "WebSocket\nGateway" as WS
+database "Database" as DB
+
+group Connect & Join Room
+    User -> FE : Open group chat
+    FE -> WS : connect /group-chat\n(auth: JWT token)
+    WS -> WS : Verify JWT token
+    FE -> WS : emit join_activity\n{ activityId }
+    WS -> DB : Check APPROVED membership
+    DB --> WS : Member record
+    WS -> DB : Fetch message history
+    DB --> WS : Last 30 messages
+    WS --> FE : emit message_history
+    WS --> FE : emit online_users
+    FE --> User : Chat UI ready
+end
+
+group Send Message
+    User -> FE : Type & send message
+    FE -> FE : Show message optimistically
+    FE -> WS : emit send_message\n{ activityId, content }
+    WS -> DB : INSERT message record
+    DB --> WS : Saved message
+    WS -> WS : Notify offline members (async)
+    WS --> FE : emit new_message\n(broadcast to room)
+    FE --> User : Replace with confirmed message
+end
+
+@enduml

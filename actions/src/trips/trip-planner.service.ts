@@ -31,11 +31,7 @@ import type {
   Place,
   ScheduledStop,
 } from './trip-planner.types';
-import {
-  dbTimeToMin,
-  minToTime,
-  sleep,
-} from './trip-planner.utils';
+import { dbTimeToMin, minToTime, sleep } from './trip-planner.utils';
 
 @Injectable()
 export class TripPlannerService {
@@ -50,7 +46,8 @@ export class TripPlannerService {
   private dominantDistrict(places: Place[]): string | null {
     if (places.length === 0) return null;
     const counts = new Map<string, number>();
-    for (const p of places) counts.set(p.district, (counts.get(p.district) ?? 0) + 1);
+    for (const p of places)
+      counts.set(p.district, (counts.get(p.district) ?? 0) + 1);
     return [...counts.entries()].sort((a, b) => b[1] - a[1])[0][0];
   }
 
@@ -87,9 +84,13 @@ export class TripPlannerService {
           if (val != null) cache.set(places[i].id, val);
         }
         if (cache.size === places.length) return cache;
-        this.logger.warn('prefetchStartToPlaces: some elements missing, filling with Haversine.');
+        this.logger.warn(
+          'prefetchStartToPlaces: some elements missing, filling with Haversine.',
+        );
       } catch {
-        this.logger.warn('prefetchStartToPlaces: API failed, falling back to Haversine.');
+        this.logger.warn(
+          'prefetchStartToPlaces: API failed, falling back to Haversine.',
+        );
       }
     }
 
@@ -152,7 +153,12 @@ export class TripPlannerService {
             places[j].id,
             v != null
               ? v
-              : (haversine(dto.startLat!, dto.startLng!, places[j].lat, places[j].lng) /
+              : (haversine(
+                  dto.startLat!,
+                  dto.startLng!,
+                  places[j].lat,
+                  places[j].lng,
+                ) /
                   AVG_SPEED_KMH) *
                   3600,
           );
@@ -166,7 +172,10 @@ export class TripPlannerService {
         const inner = new Map<string, number>();
         for (let j = 0; j < places.length; j++) {
           const v = row[j]?.duration?.value;
-          inner.set(places[j].id, v != null ? v : estimateTravelSec(places[i], places[j]));
+          inner.set(
+            places[j].id,
+            v != null ? v : estimateTravelSec(places[i], places[j]),
+          );
         }
         placeMatrix.set(places[i].id, inner);
       }
@@ -385,7 +394,11 @@ export class TripPlannerService {
       };
     }
 
-    const travelToFirstSec = await this.getTravelToFirstStop(dto, place, startCache);
+    const travelToFirstSec = await this.getTravelToFirstStop(
+      dto,
+      place,
+      startCache,
+    );
     const arriveMin =
       dto.startTime + travelToFirstSec / 60 + PARKING_BUFFER_MIN;
     const window = calculateVisitWindow(
@@ -650,7 +663,11 @@ export class TripPlannerService {
         arriveMin =
           prevStop.departMin + travelFromPrevSec / 60 + PARKING_BUFFER_MIN;
       } else {
-        travelFromPrevSec = await this.getTravelToFirstStop(dto, place, startCache);
+        travelFromPrevSec = await this.getTravelToFirstStop(
+          dto,
+          place,
+          startCache,
+        );
         arriveMin = startTimeMin + travelFromPrevSec / 60 + PARKING_BUFFER_MIN;
       }
 

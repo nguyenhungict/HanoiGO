@@ -21,7 +21,7 @@ where $\Delta_{\text{parking}}$ represents a fixed parking buffer (e.g., 10 minu
 \begin{equation}
 A'_j = L_e + t(\text{curr}, j) + \Delta_{\text{parking}}
 \end{equation}
-The visit starts at $V_j = \max(A'_j, O_j)$ and ends at $D_j = V_j + d_j$. The wait time is defined as $W_j = V_j - A'_j$. The transition is feasible if and only if the departure time satisfies the closing constraint:
+The visit starts at $V_j = \max(A'_j, O_j)$ and ends at $D_j = V_j + d_j$. The wait time (in seconds) is defined as $t_{\text{wait}}(j) = (V_j - A'_j) \times 60$. The transition is feasible if and only if the departure time satisfies the closing constraint:
 \begin{equation}
 D_j \le \min(C_j, T_{\text{end}})
 \end{equation}
@@ -29,7 +29,7 @@ where $T_{\text{end}}$ is the user's preferred end of the day.
 
 For all feasible candidates, the algorithm calculates a transition cost prioritizing shorter travel times over wait times:
 \begin{equation}
-\text{Cost}(p_{\text{curr}} \to p_j) = t(\text{curr}, j) \times 2 + W_j \times 60
+\text{Cost}(p_{\text{curr}} \to p_j) = t(\text{curr}, j) \times 2 + t_{\text{wait}}(j)
 \end{equation}
 The algorithm greedily selects the candidate $p_j$ that minimizes $\text{Cost}(p_{\text{curr}} \to p_j)$.
 

@@ -314,13 +314,13 @@ function inferCategory(tags: string | null): string {
 // ── Infer district from coordinates ──────────────────────────────────────────
 function inferDistrict(lat: number, lng: number): string {
   // Rough boundaries for major Hanoi districts
-  if (lat >= 21.045 && lng >= 105.81 && lng <= 105.86) return 'Tây Hồ';
-  if (lat >= 21.03 && lat < 21.045 && lng >= 105.82 && lng <= 105.845) return 'Ba Đình';
-  if (lat >= 21.02 && lat < 21.04 && lng >= 105.845 && lng <= 105.86) return 'Hoàn Kiếm';
-  if (lat >= 21.01 && lat < 21.03 && lng >= 105.82 && lng <= 105.845) return 'Đống Đa';
-  if (lat >= 21.01 && lat < 21.03 && lng >= 105.845 && lng <= 105.87) return 'Hai Bà Trưng';
-  if (lat >= 21.02 && lat < 21.05 && lng >= 105.78 && lng <= 105.82) return 'Cầu Giấy';
-  return 'Hoàn Kiếm'; // default
+  if (lat >= 21.045 && lng >= 105.81 && lng <= 105.86) return 'Tay Ho';
+  if (lat >= 21.03 && lat < 21.045 && lng >= 105.82 && lng <= 105.845) return 'Ba Dinh';
+  if (lat >= 21.02 && lat < 21.04 && lng >= 105.845 && lng <= 105.86) return 'Hoan Kiem';
+  if (lat >= 21.01 && lat < 21.03 && lng >= 105.82 && lng <= 105.845) return 'Dong Da';
+  if (lat >= 21.01 && lat < 21.03 && lng >= 105.845 && lng <= 105.87) return 'Hai Ba Trung';
+  if (lat >= 21.02 && lat < 21.05 && lng >= 105.78 && lng <= 105.82) return 'Cau Giay';
+  return 'Hoan Kiem'; // default
 }
 
 // ── Infer visit duration ─────────────────────────────────────────────────────

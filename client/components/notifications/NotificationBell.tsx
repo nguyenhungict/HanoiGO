@@ -120,17 +120,17 @@ export function NotificationBell() {
       {/* Bell Toggle Button */}
       <button
         onClick={toggleOpen}
-        className={`w-11 h-11 rounded-2xl border flex items-center justify-center transition-all duration-500 relative select-none ${
+        className={`w-10 h-10 rounded-xl border flex items-center justify-center transition-all duration-500 relative select-none ${
           isOpen
-            ? 'bg-primary text-white border-primary shadow-xl shadow-primary/20 scale-105'
+            ? 'bg-primary text-white border-primary shadow-xl shadow-primary/20 scale-[1.03]'
             : 'bg-surface-container-high border-outline/10 text-outline hover:text-primary hover:border-primary/30 active:scale-95'
         }`}
       >
-        <span className={`material-symbols-outlined text-2xl ${isOpen ? 'fill-1' : ''}`}>
+        <span className={`material-symbols-outlined text-xl ${isOpen ? 'fill-1' : ''}`}>
           notifications
         </span>
         {unreadCount > 0 && (
-          <span className="absolute -top-1.5 -right-1.5 w-5 h-5 bg-primary text-white text-[9px] font-black rounded-full flex items-center justify-center shadow-md shadow-primary/30 animate-bounce">
+          <span className="absolute -top-1 -right-1 w-4 h-4 bg-primary text-white text-[8px] font-black rounded-full flex items-center justify-center shadow-md shadow-primary/30 animate-bounce">
             {unreadCount}
           </span>
         )}

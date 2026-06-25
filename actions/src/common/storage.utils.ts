@@ -1,7 +1,9 @@
 import * as fs from 'fs';
 import * as path from 'path';
 
-export async function deleteFileFromStorage(url: string | null | undefined): Promise<boolean> {
+export async function deleteFileFromStorage(
+  url: string | null | undefined,
+): Promise<boolean> {
   if (!url) return false;
 
   let supabaseUrl = process.env.SUPABASE_URL;
@@ -25,12 +27,14 @@ export async function deleteFileFromStorage(url: string | null | undefined): Pro
         const response = await fetch(deleteUrl, {
           method: 'DELETE',
           headers: {
-            'Authorization': `Bearer ${supabaseKey}`,
+            Authorization: `Bearer ${supabaseKey}`,
           },
         });
         if (!response.ok) {
           const errText = await response.text();
-          console.error(`Supabase Storage delete failed for url ${url}: ${errText}`);
+          console.error(
+            `Supabase Storage delete failed for url ${url}: ${errText}`,
+          );
           return false;
         }
         console.log(`Successfully deleted ${filename} from Supabase Storage`);

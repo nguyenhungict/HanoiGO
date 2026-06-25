@@ -43,18 +43,14 @@ export const useChatNotificationStore = create<ChatNotificationState>((set, get)
     }));
   },
 
-  markAsRead: (activityId, timestamp) => {
-    // 1. Reset count in state
+  markAsRead: (activityId) => {
+    // Reset count in state
     set((state) => ({
       unreadCounts: {
         ...state.unreadCounts,
         [activityId]: 0,
       },
     }));
-
-    // 2. Save last read timestamp to LocalStorage
-    const readTime = timestamp || new Date().toISOString();
-    localStorage.setItem(`hanoigo_last_read_activity_${activityId}`, readTime);
   },
 
   getTotalUnreadCount: () => {

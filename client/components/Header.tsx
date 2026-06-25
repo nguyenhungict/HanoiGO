@@ -44,25 +44,25 @@ export default function Header({ username }: HeaderProps) {
               <Link 
                 key={item.name}
                 href={item.href}
-                className={`relative flex items-center gap-2.5 px-6 py-2.5 rounded-[1.25rem] transition-all duration-500 text-[10px] font-black uppercase tracking-[0.2em] ${
+                className={`relative flex items-center gap-2 px-4 py-2 rounded-xl transition-all duration-500 text-[9.5px] font-black uppercase tracking-[0.2em] ${
                   isActive 
-                    ? 'bg-primary text-white shadow-xl shadow-primary/20 scale-105' 
+                    ? 'bg-primary text-white shadow-md shadow-primary/10 scale-[1.03]' 
                     : 'text-outline hover:text-primary hover:bg-primary/5'
                 }`}
               >
-                <span className="material-symbols-outlined text-[18px] {isActive ? 'fill-1' : ''}">{item.icon}</span>
+                <span className="material-symbols-outlined text-[16px] {isActive ? 'fill-1' : ''}">{item.icon}</span>
                 {item.name}
                 
                 {/* Badge for saved places count */}
                 {showBadge && (
-                  <span className="absolute -top-1.5 -right-1.5 w-5 h-5 bg-primary text-white text-[9px] font-black rounded-full flex items-center justify-center shadow-md shadow-primary/30 animate-in zoom-in duration-300">
+                  <span className="absolute -top-1 -right-1 w-4 h-4 bg-primary text-white text-[8px] font-black rounded-full flex items-center justify-center shadow-sm shadow-primary/30 animate-in zoom-in duration-300">
                     {placeCount}
                   </span>
                 )}
 
                 {/* Badge for unread activities group chat messages */}
                 {showChatBadge && (
-                  <span className="absolute -top-1.5 -right-1.5 w-5 h-5 bg-primary text-white text-[9px] font-black rounded-full flex items-center justify-center shadow-md shadow-primary/30 animate-in zoom-in duration-300">
+                  <span className="absolute -top-1 -right-1 w-4 h-4 bg-primary text-white text-[8px] font-black rounded-full flex items-center justify-center shadow-sm shadow-primary/30 animate-in zoom-in duration-300">
                     {totalUnreadCount}
                   </span>
                 )}
@@ -81,13 +81,13 @@ export default function Header({ username }: HeaderProps) {
             <p className="text-xs font-black text-on-surface tracking-tighter leading-none">{username}</p>
           </div>
           <Link href="/profile" className="group">
-            <div className="w-11 h-11 rounded-2xl bg-surface-container-high border border-outline/10 flex items-center justify-center overflow-hidden hover:rotate-[15deg] transition-all duration-500 shadow-inner group-hover:border-primary/30">
-               <span className="material-symbols-outlined text-outline group-hover:text-primary transition-colors text-2xl">person</span>
+            <div className="w-10 h-10 rounded-xl bg-surface-container-high border border-outline/10 flex items-center justify-center overflow-hidden hover:rotate-[15deg] transition-all duration-500 shadow-inner group-hover:border-primary/30">
+               <span className="material-symbols-outlined text-outline group-hover:text-primary transition-colors text-xl">person</span>
             </div>
           </Link>
           <form action={logoutAction}>
-            <button type="submit" className="w-10 h-10 rounded-2xl flex items-center justify-center text-outline/30 hover:text-primary hover:bg-primary/5 transition-all ml-1 active:scale-90">
-              <span className="material-symbols-outlined text-xl">logout</span>
+            <button type="submit" className="w-9 h-9 rounded-xl flex items-center justify-center text-outline/30 hover:text-primary hover:bg-primary/5 transition-all ml-1 active:scale-90">
+              <span className="material-symbols-outlined text-lg">logout</span>
             </button>
           </form>
         </div>

@@ -6,6 +6,7 @@ generator client {
 datasource db {
   provider   = "postgresql"
   url        = env("DATABASE_URL")
+  directUrl  = env("DIRECT_URL")
   extensions = [postgis]
 }
 
@@ -35,6 +36,7 @@ model User {
   reportsCreated   Report[]          @relation("Reporter")
   reportsAgainst   Report[]          @relation("TargetUser")
   trips            Trip[]
+  messageReadStatuses MessageReadStatus[]
 
   @@map("users")
 }
@@ -184,6 +186,7 @@ model Activity {
   likes           ActivityLike[]
   activityMembers ActivityMember[]
   messages        Message[]
+  messageReadStatuses MessageReadStatus[]
 
   @@index([status, scheduledAt])
   @@index([hostId])
@@ -217,6 +220,9 @@ model Message {
   reactions  MessageReaction[]
   activity   Activity          @relation(fields: [activityId], references: [id], onDelete: Cascade)
   user       User?             @relation(fields: [userId], references: [id])
+  mediaUrl   String?           @map("media_url")
+  fileName   String?           @map("file_name")
+  fileSize   Int?              @map("file_size")   // bytes
 
   @@index([activityId, createdAt])
   @@index([userId])
@@ -326,4 +332,17 @@ enum NotificationType {
 enum MessageType {
   TEXT
   SYSTEM
+  IMAGE
+  FILE
+}
+
+model MessageReadStatus {
+  userId     String   @map("user_id") @db.Uuid
+  activityId String   @map("activity_id") @db.Uuid
+  lastReadAt DateTime @default(now()) @map("last_read_at") @db.Timestamptz(6)
+  user       User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  activity   Activity @relation(fields: [activityId], references: [id], onDelete: Cascade)
+
+  @@id([userId, activityId])
+  @@map("message_read_status")
 }

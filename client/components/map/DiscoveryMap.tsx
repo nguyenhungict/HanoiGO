@@ -822,7 +822,7 @@ export default function DiscoveryMap({
                               </div>
                               <div className="flex flex-col">
                                 <span className="text-[8px] font-black text-outline uppercase tracking-wider">Khu vực</span>
-                                <span className="text-[11px] font-black text-on-surface tracking-tight truncate max-w-[90px]">{landmark.district || 'Hoàn Kiếm'}</span>
+                                <span className="text-[11px] font-black text-on-surface tracking-tight truncate max-w-[90px]">{landmark.district || 'Hoan Kiem'}</span>
                               </div>
                             </div>
                             <div className="flex items-center gap-2">

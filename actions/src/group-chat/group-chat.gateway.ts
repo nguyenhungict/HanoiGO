@@ -91,6 +91,20 @@ export class GroupChatGateway
 
   // ─────────────────────────────── Join Room ──────────────────────────────────
 
+  private async _markRead(userId: string, activityId: string) {
+    try {
+      await this.prisma.messageReadStatus.upsert({
+        where: { userId_activityId: { userId, activityId } },
+        update: { lastReadAt: new Date() },
+        create: { userId, activityId, lastReadAt: new Date() },
+      });
+    } catch (e) {
+      this.logger.error(
+        `Failed to mark read for user ${userId} in activity ${activityId}: ${e.message}`,
+      );
+    }
+  }
+
   @SubscribeMessage('join_activity')
   async handleJoinActivity(
     @ConnectedSocket() client: Socket,
@@ -120,11 +134,35 @@ export class GroupChatGateway
     onlineMap.get(activityId)!.add(userId);
     this._broadcastOnline(activityId);
 
-    // Message history (newest 30)
-    const messages = await this._fetchMessages(activityId);
-    client.emit('message_history', messages);
+    // Message history (newest 30) and unread count
+    const [messages, readStatus] = await Promise.all([
+      this._fetchMessages(activityId),
+      this.prisma.messageReadStatus.findUnique({
+        where: { userId_activityId: { userId, activityId } },
+      }),
+    ]);
+
+    const unreadCount = await this.prisma.message.count({
+      where: {
+        activityId,
+        userId: { not: userId },
+        createdAt: { gt: readStatus?.lastReadAt ?? new Date(0) },
+      },
+    });
+
+    client.emit('message_history', { messages, unreadCount });
 
     this.logger.log(`${username} joined room ${room}`);
+  }
+
+  @SubscribeMessage('mark_read')
+  async handleMarkRead(
+    @ConnectedSocket() client: Socket,
+    @MessageBody() data: { activityId: string },
+  ) {
+    const socketData = client.data as SocketData;
+    const { userId } = socketData;
+    await this._markRead(userId, data.activityId);
   }
 
   // ──────────────────────────────── Send Message ──────────────────────────────
@@ -132,19 +170,37 @@ export class GroupChatGateway
   @SubscribeMessage('send_message')
   async handleSendMessage(
     @ConnectedSocket() client: Socket,
-    @MessageBody() data: { activityId: string; content: string },
+    @MessageBody()
+    data: {
+      activityId: string;
+      content?: string;
+      mediaUrl?: string;
+      fileName?: string;
+      fileSize?: number;
+      type: 'TEXT' | 'IMAGE' | 'FILE';
+    },
   ) {
     const socketData = client.data as SocketData;
     const { userId } = socketData;
-    const { activityId, content } = data;
+    const { activityId, content, mediaUrl, fileName, fileSize } = data;
+    const type = data.type || 'TEXT';
 
-    if (!content?.trim()) return;
+    if (type === 'TEXT' && !content?.trim()) return;
+    if (type !== 'TEXT' && !mediaUrl) return;
 
     // Stop typing when message sent
     this._clearTyping(activityId, userId);
 
     const message = await this.prisma.message.create({
-      data: { activityId, userId, content: content.trim(), type: 'TEXT' },
+      data: {
+        activityId,
+        userId,
+        content: (type === 'TEXT' && content) ? content.trim() : '',
+        type,
+        mediaUrl,
+        fileName,
+        fileSize,
+      },
       include: {
         user: { select: { username: true, avatarUrl: true } },
         reactions: {
@@ -154,6 +210,9 @@ export class GroupChatGateway
     });
 
     this.server.to(`activity_${activityId}`).emit('new_message', message);
+
+    // Update read status for the sender
+    await this._markRead(userId, activityId);
 
     try {
       // Find all approved members of the activity (except the sender)
@@ -175,6 +234,16 @@ export class GroupChatGateway
       const senderName = message.user?.username || 'Someone';
       const activityTitle = activity?.title || 'Group';
 
+      let notificationBody = '';
+      if (type === 'IMAGE') {
+        notificationBody = `${senderName} sent an image`;
+      } else if (type === 'FILE') {
+        notificationBody = `${senderName} sent a file: ${fileName || 'Attachment'}`;
+      } else {
+        const textContent = content?.trim() || '';
+        notificationBody = `${senderName}: ${textContent.substring(0, 60)}${textContent.length > 60 ? '...' : ''}`;
+      }
+
       // Create persistent DB notifications for members who are NOT actively in the chat room
       for (const member of members) {
         if (!activeUsers.has(member.userId)) {
@@ -182,7 +251,7 @@ export class GroupChatGateway
             member.userId,
             NotificationType.NEW_MESSAGE,
             `New message in ${activityTitle}`,
-            `${senderName}: ${content.trim().substring(0, 60)}${content.trim().length > 60 ? '...' : ''}`,
+            notificationBody,
             'ACTIVITY',
             activityId,
           );

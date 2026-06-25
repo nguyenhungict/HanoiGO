@@ -32,9 +32,9 @@ async function main() {
 
   // 2. Create some Places
   const places = [
-    { name: 'Hồ Hoàn Kiếm', category: 'Sightseeing', district: 'Hoàn Kiếm', lat: 21.0285, lng: 105.8522, location: 'SRID=4326;POINT(105.8522 21.0285)' },
-    { name: 'Văn Miếu Quốc Tử Giám', category: 'Culture', district: 'Đống Đa', lat: 21.0293, lng: 105.8355, location: 'SRID=4326;POINT(105.8355 21.0293)' },
-    { name: 'Lăng Chủ tịch Hồ Chí Minh', category: 'Culture', district: 'Ba Đình', lat: 21.0368, lng: 105.8346, location: 'SRID=4326;POINT(105.8346 21.0368)' },
+    { name: 'Hồ Hoàn Kiếm', category: 'Sightseeing', district: 'Hoan Kiem', lat: 21.0285, lng: 105.8522, location: 'SRID=4326;POINT(105.8522 21.0285)' },
+    { name: 'Văn Miếu Quốc Tử Giám', category: 'Culture', district: 'Dong Da', lat: 21.0293, lng: 105.8355, location: 'SRID=4326;POINT(105.8355 21.0293)' },
+    { name: 'Lăng Chủ tịch Hồ Chí Minh', category: 'Culture', district: 'Ba Dinh', lat: 21.0368, lng: 105.8346, location: 'SRID=4326;POINT(105.8346 21.0368)' },
   ];
 
   // We need to use raw query for location because of PostGIS

@@ -99,10 +99,14 @@ export class AuthService {
     } catch (error) {
       // Nếu gửi email thất bại → xóa user vừa tạo để người dùng có thể thử lại
       if (createdUserId) {
-        await this.prisma.user.delete({ where: { id: createdUserId } }).catch(() => {});
+        await this.prisma.user
+          .delete({ where: { id: createdUserId } })
+          .catch(() => {});
       }
       console.error('Registration error:', error);
-      throw new InternalServerErrorException('Lỗi hệ thống khi đăng ký. Vui lòng thử lại.');
+      throw new InternalServerErrorException(
+        'Lỗi hệ thống khi đăng ký. Vui lòng thử lại.',
+      );
     }
   }
 

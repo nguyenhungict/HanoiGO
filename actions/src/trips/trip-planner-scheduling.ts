@@ -1,4 +1,8 @@
-import { DAY_NAMES, MAX_PLACES_PER_DAY, PARKING_BUFFER_MIN } from './trip-planner.constants';
+import {
+  DAY_NAMES,
+  MAX_PLACES_PER_DAY,
+  PARKING_BUFFER_MIN,
+} from './trip-planner.constants';
 import { haversine } from './trip-planner-geo';
 import type {
   DayItinerary,

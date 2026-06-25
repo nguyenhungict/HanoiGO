@@ -1,0 +1,47 @@
+@startuml
+skinparam dpi 300
+skinparam shadowing false
+skinparam defaultFontName Arial
+skinparam ActivityBackgroundColor #EEEEEE
+skinparam ActivityBorderColor black
+skinparam ActivityBorderThickness 1
+skinparam ActivityDiamondBackgroundColor #EEEEEE
+skinparam ActivityDiamondBorderColor black
+skinparam ActivityBarColor black
+skinparam ArrowColor black
+
+start
+
+:User A composes a message\n(Client A);
+
+if (Has attachment (Image/File)?) then (YES)
+  :Upload file & retrieve media URL,\nfile name, & file size;
+else (NO)
+endif
+
+:Emit 'send_message' to GroupChatGateway\n(content & attachment metadata);
+
+:Save message to PostgreSQL\n(Message table);
+
+:Broadcast 'new_message' to Room\n(activity_{id});
+
+:Update sender's read status\n(MessageReadStatus table);
+
+fork
+  :Members in room receive 'new_message';
+  if (Viewing this chat?\n(activeChatId matches)) then (YES)
+    :Render message & emit 'mark_read'\n(update read status in DB);
+  else (NO)
+    :Increment unread count\n(Chat sidebar);
+  endif
+fork again
+  :Loop other approved members;
+  if (Member active in room?) then (NO)
+    :Create Notification (NEW_MESSAGE) in DB\n& emit 'new_notification';
+    :Increment notification count\n(Notification bell);
+  else (YES)
+  endif
+end fork
+
+stop
+@enduml
