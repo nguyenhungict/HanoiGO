@@ -1,0 +1,45 @@
+@startuml
+skinparam dpi 300
+skinparam monochrome true
+skinparam shadowing false
+skinparam defaultFontName Arial
+skinparam sequenceMessageAlign left
+skinparam SequenceBoxBorderColor black
+
+actor User
+participant "Frontend\n(Next.js)" as FE
+participant "Backend\n(API)" as BE
+participant "Goong Maps\nAPI" as GO
+database "Database" as DB
+
+User -> FE : Select places & configure trip\n(days, times, date, start location)
+FE -> BE : POST /trips/generate-itinerary
+
+BE -> DB : Fetch places by IDs
+DB --> BE : Place data
+
+BE -> BE : Pre-filter by opening hours
+BE -> BE : Cluster places by geography (K-Means)
+
+BE -> GO : GET /DistanceMatrix (bike mode)
+alt API fails
+    BE -> BE : Haversine distance fallback
+else API succeeds
+    GO --> BE : Travel time matrix
+end
+
+BE -> BE : Sequence each day (exact search; GNN fallback if N > 8)
+BE -> BE : Cascade times & resolve conflicts
+BE -> BE : Re-order each day after reinsertion (brute force)
+
+BE --> FE : 200 OK + itinerary (days + stops)
+FE --> User : Display trip on map & timeline
+
+User -> FE : Confirm & save trip
+FE -> BE : POST /trips/save
+BE -> DB : Create Trip, TripDays, TripStops
+DB --> BE : Saved trip ID
+BE --> FE : 201 Created
+FE --> User : Trip saved to profile
+
+@enduml

@@ -51,12 +51,5 @@ export class TripsController {
     return this.tripCrudService.deleteTrip(req.user.id, id);
   }
 
-  @UseGuards(AuthGuard('jwt'))
-  @Post('clone/:id')
-  async cloneTrip(
-    @Request() req: { user: { id: string } },
-    @Param('id') id: string,
-  ) {
-    return this.tripCrudService.cloneTrip(req.user.id, id);
-  }
+
 }

@@ -2,6 +2,7 @@ import { BadRequestException, Injectable, Logger } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
 import {
   AVG_SPEED_KMH,
+  BRUTE_FORCE_MAX_PLACES,
   DAY_COLORS,
   DAY_NAMES,
   DEFAULT_LUNCH_END,
@@ -9,6 +10,7 @@ import {
   PARKING_BUFFER_MIN,
 } from './trip-planner.constants';
 import {
+  bruteForceWithTimeWindow,
   calculateVisitWindow,
   createStop,
   greedyNearestNeighborWithTimeWindow,
@@ -197,6 +199,19 @@ export class TripPlannerService {
         return v != null ? v : estimateTravelSec(from, to);
       }),
     );
+  }
+
+  // Inter-stop travel time used during reinsertion. Prefers the precomputed
+  // Goong place↔place matrix (built once in generateItinerary); only falls back
+  // to the Haversine estimate when Goong is unavailable (no key, rate-limited,
+  // or N exceeds the batch matrix size so placeMatrix is null).
+  private travelSecBetween(
+    from: Place,
+    to: Place,
+    placeMatrix: Map<string, Map<string, number>> | null,
+  ): number {
+    const v = placeMatrix?.get(from.id)?.get(to.id);
+    return v != null ? v : estimateTravelSec(from, to);
   }
 
   private async getRealTravelSec(from: Place, to: Place): Promise<number> {
@@ -527,20 +542,43 @@ export class TripPlannerService {
       const matrix = placeMatrix
         ? this.buildMatrixFromLookup(cluster, placeMatrix)
         : await this.getDurationMatrix(cluster);
-      const gnnResult = greedyNearestNeighborWithTimeWindow(
-        cluster,
-        matrix,
-        dayOfWeek,
-        dto.startTime,
-        dto.endTime,
-        lunchStart,
-        lunchEnd,
-        dto.startLat,
-        dto.startLng,
-      );
-      allDropped.push(...gnnResult.droppedInGNN);
 
-      let route = gnnResult.route;
+      // Pick the day's membership AND visit order with an exact (brute-force) search
+      // for small days (<= BRUTE_FORCE_MAX_PLACES). The greedy nearest-neighbour
+      // heuristic only looks one step ahead, so it can strand a place with a tight
+      // time window (e.g. an early-closing mausoleum) by spending the morning at the
+      // nearest stop instead. The exact search never misses a place that some other
+      // order could have fit. Larger days fall back to greedy to avoid factorial cost.
+      const seq =
+        cluster.length <= BRUTE_FORCE_MAX_PLACES
+          ? bruteForceWithTimeWindow(
+              cluster,
+              matrix,
+              dayOfWeek,
+              dto.startTime,
+              dto.endTime,
+              lunchStart,
+              lunchEnd,
+              dto.startLat,
+              dto.startLng,
+              startCache,
+            )
+          : greedyNearestNeighborWithTimeWindow(
+              cluster,
+              matrix,
+              dayOfWeek,
+              dto.startTime,
+              dto.endTime,
+              lunchStart,
+              lunchEnd,
+              dto.startLat,
+              dto.startLng,
+            );
+      allDropped.push(
+        ...('dropped' in seq ? seq.dropped : seq.droppedInGNN),
+      );
+
+      let route = seq.route;
       if (route.length > 0) {
         const cascaded = await this.cascadeRouteTimes(
           dto,
@@ -574,6 +612,20 @@ export class TripPlannerService {
       dto,
       dto.endTime,
       dto.startTime,
+      lunchStart,
+      lunchEnd,
+      startCache,
+      placeMatrix,
+    );
+
+    // Final sequencing pass: once each day's membership is settled (clustering +
+    // reinsertion), re-order its stops as a single sub-problem so the visit order
+    // is optimal for the FINAL set — not the leftover of greedy + first-fit
+    // reinsertion. Membership is never changed here (see optimizeDayOrders).
+    await this.optimizeDayOrders(
+      resolved,
+      placeMatrix,
+      dto,
       lunchStart,
       lunchEnd,
       startCache,
@@ -651,6 +703,7 @@ export class TripPlannerService {
     lunchStart: number,
     lunchEnd: number,
     startCache?: Map<string, number>,
+    placeMatrix: Map<string, Map<string, number>> | null = null,
   ): Promise<boolean> {
     for (let i = 0; i <= day.stops.length; i++) {
       const prevStop = i > 0 ? day.stops[i - 1] : null;
@@ -659,7 +712,11 @@ export class TripPlannerService {
       let travelFromPrevSec: number;
       let arriveMin: number;
       if (prevStop) {
-        travelFromPrevSec = estimateTravelSec(prevStop.place, place);
+        travelFromPrevSec = this.travelSecBetween(
+          prevStop.place,
+          place,
+          placeMatrix,
+        );
         arriveMin =
           prevStop.departMin + travelFromPrevSec / 60 + PARKING_BUFFER_MIN;
       } else {
@@ -683,7 +740,8 @@ export class TripPlannerService {
       if (!window) continue;
 
       if (nextStop) {
-        const travelToNextMin = estimateTravelSec(place, nextStop.place) / 60;
+        const travelToNextMin =
+          this.travelSecBetween(place, nextStop.place, placeMatrix) / 60;
         if (
           window.departMin + travelToNextMin + PARKING_BUFFER_MIN >
           nextStop.arriveMin
@@ -698,7 +756,7 @@ export class TripPlannerService {
       );
       if (i + 1 < day.stops.length) {
         day.stops[i + 1].travelFromPrevSec = Math.round(
-          estimateTravelSec(place, day.stops[i + 1].place),
+          this.travelSecBetween(place, day.stops[i + 1].place, placeMatrix),
         );
       }
       recomputeDayTotals(day);
@@ -719,6 +777,7 @@ export class TripPlannerService {
     lunchStart: number,
     lunchEnd: number,
     startCache?: Map<string, number>,
+    placeMatrix: Map<string, Map<string, number>> | null = null,
   ) {
     const scheduledIds = new Set<string>(
       itineraries.flatMap((day) => day.stops.map((stop) => stop.place.id)),
@@ -738,7 +797,7 @@ export class TripPlannerService {
           .join(', ');
         unscheduled.push({
           place,
-          reason: `Đóng cửa trong suốt chuyến đi (${dayNames})`,
+          reason: `Closed during the entire trip days (${dayNames})`,
         });
         continue;
       }
@@ -754,6 +813,7 @@ export class TripPlannerService {
           lunchStart,
           lunchEnd,
           startCache,
+          placeMatrix,
         );
         if (reassigned) {
           scheduledIds.add(place.id);
@@ -767,6 +827,73 @@ export class TripPlannerService {
     }
 
     return { resolved: itineraries, unscheduled };
+  }
+
+  // Re-sequence each day's settled stop set into its optimal visit order.
+  // Exact (brute force) for small N, greedy fallback for large N. A feasible order
+  // is guaranteed to exist (the current order is one), so re-ordering can only keep
+  // or improve the result; the length guard reverts in the rare case real-GPS
+  // re-timing would shed a stop, so this pass never drops a place that was scheduled.
+  private async optimizeDayOrders(
+    itineraries: DayItinerary[],
+    placeMatrix: Map<string, Map<string, number>> | null,
+    dto: GenerateItineraryDto,
+    lunchStart: number,
+    lunchEnd: number,
+    startCache?: Map<string, number>,
+  ): Promise<void> {
+    for (const day of itineraries) {
+      if (day.stops.length < 2) continue;
+
+      const places = day.stops.map((s) => s.place);
+      const matrix = placeMatrix
+        ? this.buildMatrixFromLookup(places, placeMatrix)
+        : await this.getDurationMatrix(places);
+
+      const seq =
+        places.length <= BRUTE_FORCE_MAX_PLACES
+          ? bruteForceWithTimeWindow(
+              places,
+              matrix,
+              day.dayOfWeek,
+              dto.startTime,
+              dto.endTime,
+              lunchStart,
+              lunchEnd,
+              dto.startLat,
+              dto.startLng,
+              startCache,
+            )
+          : greedyNearestNeighborWithTimeWindow(
+              places,
+              matrix,
+              day.dayOfWeek,
+              dto.startTime,
+              dto.endTime,
+              lunchStart,
+              lunchEnd,
+              dto.startLat,
+              dto.startLng,
+            );
+
+      if (seq.route.length === 0) continue;
+
+      const cascaded = await this.cascadeRouteTimes(
+        dto,
+        seq.route,
+        dto.endTime,
+        lunchStart,
+        lunchEnd,
+        'Exceeds time limit after GPS adjustment',
+        startCache,
+      );
+
+      // Only adopt the re-ordered day if it still holds every stop.
+      if (cascaded.route.length === day.stops.length) {
+        day.stops = cascaded.route;
+        recomputeDayTotals(day);
+      }
+    }
   }
 
   private async getTravelToFirstStop(

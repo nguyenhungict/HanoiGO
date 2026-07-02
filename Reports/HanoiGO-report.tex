@@ -129,44 +129,18 @@
 
 \vspace{1.5cm}
 
-I, Kieu Quoc Viet (supervisor's name), certify that the thesis/ internship report of Mr. Nguyen Duy Hung (student's name) is qualified to be presented in the Internship Jury 2025-2026.
+I, Mr. Tran Thanh Tung, certify that the thesis/ internship report of Nguyen Duy Hung is qualified to be presented in the Internship Jury 2025-2026.
 
 \vspace{4.5cm}
 
 \hfill 
 \begin{tabular}{c}
-     Hanoi, June 2026 \\
+     Hanoi, Jury 2026 \\
      \textbf{Supervisor's signature}
 \end{tabular}
 
 % ===================================================
-% 5. ACKNOWLEDGMENT
-% ===================================================
-\newpage
-\thispagestyle{plain}
-\begin{center}
-    \Large \textbf{ACKNOWLEDGMENT}
-\end{center}
 
-\vspace{1cm}
-
-{
-\linespread{1.3}\selectfont
-\setlength{\parskip}{1em}
-\setlength{\parindent}{1.5em}
-
-I would like to thank my supervisors, Kieu Quoc Viet and Tran Thanh Tung, for their support during the project. They provided useful comments and suggestions that helped me understand the problems more clearly. Their guidance encouraged me to think more carefully and improve my work step by step. They were always willing to answer my questions and give helpful advice when I faced difficulties. Thanks to their support, I was able to enhance the overall quality of the project.
-
-\noindent Hanoi, June 2026
-}
-
-\vspace{3cm}
-
-\noindent \textbf{Supervisor’s signature}
-
-\newpage
-
-% ===================================================
 % 5. FRONT MATTER (TOC, LISTS)
 % ===================================================
 \pagenumbering{roman} % i, ii, iii...
@@ -202,23 +176,23 @@ I would like to thank my supervisors, Kieu Quoc Viet and Tran Thanh Tung, for th
 
 \section{Context}
 
-Nowadays, more and more people travel abroad, and many of them use mobile phones or websites to plan their trips. According to Gretzel et al. \cite{gretzel2015smart}, using digital tools such as online maps and mobile apps can help tourists have a better travel experience. However, for foreign visitors who come to a big and crowded city like Hanoi \cite{vietnamtourism2024}, planning a trip on their own is often not easy, especially if they travel alone.
+An increasing number of people travel abroad each year, and many of them use mobile phones or websites to plan their trips. According to Gretzel et al. \cite{gretzel2015smart}, using digital tools such as online maps and mobile apps can help tourists have a better travel experience. However, for foreign visitors who come to a large, densely visited city like Hanoi \cite{vietnamtourism2024}, planning a trip on their own is often not easy, especially if they travel alone.
 
-There are already some well-known travel apps like Google Maps, TripAdvisor, or Booking.com. But these apps usually only help with finding directions between two places. They are not built for planning a full trip across many days or for finding key information like place opening hours, local cultural tips, or descriptions in English. Because this kind of information is often scattered across many websites and blog posts, tourists have to spend a lot of time searching for it by themselves \cite{buhalis2020smartness}.
+There are already some well-known travel apps like Google Maps, TripAdvisor, or Booking.com. However, these apps usually only help with finding directions between two places. They are not built for planning a full trip across many days or for finding key information like place opening hours, local cultural tips, or descriptions in English. Because this kind of information is often scattered across many websites and blog posts, tourists often spend considerable time searching for it independently \cite{buhalis2020smartness}.
 
-On top of that, solo travelers often have trouble finding other people to travel with, or splitting costs like taxi fares \cite{buhalis2019cocreation}. Most general social apps do not have a map feature, so it is hard to see if any group activity is happening nearby in real time. These issues make solo travel in Hanoi harder than it needs to be. There is a clear need for a simple and focused tool that puts maps, trip planning, and social features all in one place.
+In addition, solo travelers often face difficulty finding other people to travel with, or sharing costs like taxi fares \cite{buhalis2019cocreation}. Most general social apps do not have a map feature, so it is hard to see if any group activity is happening nearby in real time. These issues make solo travel in Hanoi more difficult than necessary. There is a clear need for a focused tool that integrates maps, trip planning, and social features in a single platform.
 
-Because of this, I decided to build HanoiGO, a web application designed for foreign tourists visiting Hanoi. It helps users plan their daily trips automatically and connect with other travelers nearby on a shared map. The next section will explain in more detail why I decided to work on this project.
+Because of this, I decided to build HanoiGO, a web application designed for foreign tourists visiting Hanoi. It helps users plan their daily trips automatically and connect with other travelers nearby on a shared map.
 
 \section{Motivation}
 
 The decision to undertake this project is driven by both practical travel navigation needs and technical aspirations.
 
-First, I want to help tourists plan their trips more easily. I noticed that it is hard to arrange a list of tourist spots into a clear schedule across multiple days, especially because some places in Hanoi have specific opening hours or close for lunch. To solve this, I designed a multi-day scheduling method. It first groups tourist spots into daily clusters using K-Means clustering, and then finds a convenient order to visit places on each day using a Greedy Nearest Neighbor method that respects time limits. This scheduling method uses real-time travel times from the Goong Maps API to minimize waiting and travel time.
+First, I want to help tourists plan their trips more easily. I noticed that it is hard to arrange a list of tourist spots into a clear schedule across multiple days, especially because some places in Hanoi have specific opening hours or close for lunch. To solve this, I designed a multi-day scheduling method. It first groups tourist spots into daily clusters using K-Means clustering, and then finds a convenient order to visit places on each day that respects opening hours and the daily time limit. This scheduling method uses real-time travel times from the Goong Maps API to minimize waiting and travel time.
 
 Second, I want to build a map-based feature that helps solo travelers meet other people. On most social networks, travel plans are shared only as text or photos, and there is no way to see where people are on a map. HanoiGO gives users a way to create and join group activities that are shown as dynamic markers on a live map. These markers change color and flash based on the activity's time status. When a user finds an interesting group activity, they can also copy the linked travel plan directly into their own account with a single click. This is done through a deep copy transaction in the database, which replicates all trip days and stops, and is much faster than re-creating the plan manually.
 
-From a technical side, this project is also a chance for me to learn and practice useful development skills. I plan to use Next.js and TypeScript to build a responsive user interface, NestJS to build the backend server with a modular structure, PostgreSQL with PostGIS to store and query spatial location data, and WebSocket connections for real-time group chat.
+From a technical side, this project is also a chance for me to learn and practice useful development skills. I used Next.js and TypeScript to build a responsive user interface, NestJS to build the backend server with a modular structure, PostgreSQL with PostGIS to store and query spatial location data, and WebSocket connections for real-time group chat.
 
 With these motivations in mind, I established clear objectives to guide the development process.
 
@@ -252,7 +226,7 @@ This chapter explains how the system works internally, showing the main features
  
 HanoiGO is designed for two types of users: Tourists and Administrators. Tourists use the platform to explore places in Hanoi, generate daily trip schedules automatically, and join group activities on a live map. Administrators manage user accounts and keep the platform running smoothly through a dedicated management panel.
  
-The system is built using a modern technology stack. The backend is developed with NestJS, and the frontend is built with Next.js. Location data is stored and queried using PostgreSQL with the PostGIS extension. Real-time group chat is handled through WebSocket connections using Socket.io. This architecture helps the system manage different types of data efficiently and respond quickly to user actions.
+The backend is developed with NestJS, and the frontend is built with Next.js. Location data is stored and queried using PostgreSQL with the PostGIS extension. Real-time group chat is handled through WebSocket connections using Socket.io. This architecture helps the system manage different types of data efficiently and respond quickly to user actions.
 
 \section{System Requirements}
 
@@ -317,7 +291,7 @@ Figure~\ref{fig:usecase_tourist} shows how tourists interact with the HanoiGO sy
 9 & View Place Detail & See description and coordinates, extending Browse Places. \\ \hline
 10 & Like Places & Bookmark landmarks to basket, extending View Place List. \\ \hline
 11 & Plan Trip & Access itinerary planning and scheduling. \\ \hline
-12 & Generate Trip & Calculate optimized daily routes, extending Plan Trip. \\ \hline
+12 & Generate Trip & Generate scheduled daily routes with time-window ordering, extending Plan Trip. \\ \hline
 13 & Save Trip & Save computed schedule to profile, extending Generate Trip. \\ \hline
 14 & View My Trips & Browse saved itineraries, extending Plan Trip. \\ \hline
 15 & Delete Trip & Permanently remove a saved trip, extending View My Trips. \\ \hline
@@ -382,8 +356,6 @@ Figure~\ref{fig:usecase_admin} outlines the administrative functions provided by
 
 This subsection shows sequence diagrams that explain step-by-step interactions in the HanoiGO system. They illustrate how components work together for key functions like user authentication, trip planning, and group activity management. 
 
-Figure~\ref{fig:seq_login} shows the steps of the login process. The user enters their email and password, which are sent to the backend for verification. The backend checks the database to find the account and compares the password. If the login fails, an error message is displayed to the user; if it is successful, the backend generates a JWT access token and redirects the user to the discovery page.
-
 \begin{figure}[H]
     \centering
     \includegraphics[width=0.95\linewidth]{login-seq.png}
@@ -391,7 +363,7 @@ Figure~\ref{fig:seq_login} shows the steps of the login process. The user enters
     \label{fig:seq_login}
 \end{figure}
 
-Figure~\ref{fig:seq_plan_trip} shows how the system generates and saves a multi-day trip plan. The user selects places on the map and sets trip parameters such as the number of days, travel date, and start and end times. The backend fetches the selected places, removes closed ones, groups them into daily clusters using K-Means, and calls the Goong Maps API to get travel times. A Greedy Nearest Neighbor algorithm then builds the daily routes, and any dropped places are re-inserted where possible. When the user confirms the result, the frontend saves the full trip structure to the database.
+Figure~\ref{fig:seq_login} shows the steps of the login process. The user enters their email and password, which are sent to the backend for verification. The backend checks the database to find the account and verifies the password hash. If the login fails, an error message is displayed to the user; if it is successful, the backend generates a \texttt{JWT} access token and a refresh token; the frontend stores the token and redirects the user to the discovery page.
 
 \begin{figure}[H]
     \centering
@@ -400,7 +372,7 @@ Figure~\ref{fig:seq_plan_trip} shows how the system generates and saves a multi-
     \label{fig:seq_plan_trip}
 \end{figure}
 
-Figure~\ref{fig:seq_activity} shows three related sub-flows for the Activity feature. In the Browse flow, the frontend fetches nearby activities using a PostGIS proximity query and displays them as status-coded markers on the map. In the Host flow, the user fills in the activity form and the backend saves the activity with a geospatial point and adds the creator as an approved member; the host can also approve or reject join requests, which updates the member status and notifies the requester. In the Join flow, a user sends a join request that is stored as a pending member record and a notification is sent to the host.
+Figure~\ref{fig:seq_plan_trip} shows how the system generates and saves a multi-day trip plan. The user selects places on the map and sets trip parameters such as the number of days, travel date, and start and end times. The backend fetches the selected places, removes closed ones, groups them into daily clusters using \texttt{K-Means}, and calls the \texttt{Goong Maps API} to get travel times. An exact (brute-force) time-window search builds each day's route for small days, with a Greedy Nearest Neighbor heuristic kept as a fallback for larger ones; dropped places are re-inserted where possible using the cached travel-time matrix, and each day is then re-confirmed using the same exact search for small days. When the user confirms the result, the frontend saves the full trip structure to the database.
 
 \begin{figure}[H]
     \centering
@@ -409,7 +381,7 @@ Figure~\ref{fig:seq_activity} shows three related sub-flows for the Activity fea
     \label{fig:seq_activity}
 \end{figure}
 
-Figure~\ref{fig:seq_group_chat} shows the real-time group chat flow. In the Connect flow, the frontend opens a connection to the \texttt{/group-chat} namespace using a JWT token. After verification, the gateway joins the user to the room, loads the last 30 messages, and sends the online users list. In the Send Message flow, the frontend displays the message optimistically and emits it to the gateway, which saves it to the database and broadcasts it to all sockets in the room.
+Figure~\ref{fig:seq_activity} shows three related sub-flows for the Activity feature. In the Browse flow, the frontend fetches activities: if the user grants location access, a \texttt{PostGIS} \texttt{ST\_DWithin} proximity query returns only those within a set radius; otherwise all open activities are returned. The results are displayed as status-coded markers on the map. In the Host flow, the user fills in the activity form and the backend saves the activity with a geospatial point and adds the creator as an approved member; the host can also approve or reject join requests, which updates the member status and notifies the requester. In the Join flow, a user sends a join request that is stored as a pending member record and a notification is sent to the host.
 
 \begin{figure}[H]
     \centering
@@ -418,6 +390,8 @@ Figure~\ref{fig:seq_group_chat} shows the real-time group chat flow. In the Conn
     \label{fig:seq_group_chat}
 \end{figure}
 
+Figure~\ref{fig:seq_group_chat} shows the real-time group chat flow. In the Connect flow, the frontend opens a connection to the \texttt{/group-chat} namespace using a \texttt{JWT} token. After verification, the gateway joins the user to the room, loads the last 30 messages, and sends the online users list. In the Send Message flow, the frontend displays the message optimistically and emits it to the gateway, which saves it to the database and broadcasts it to all sockets in the room.
+
 \newpage
 % Reset spacing for Chapter III and subsequent sections
 \setlength{\parindent}{15pt}
@@ -425,7 +399,7 @@ Figure~\ref{fig:seq_group_chat} shows the real-time group chat flow. In the Conn
 \linespread{1}\selectfont
 
 % --- CHAPTER III ---
-\chapter{METHODOLOGY}
+\chapter{METHODOLOGY}\label{ch:methodology}
 
 % Apply same spacing as Chapter II
 \setlength{\parindent}{0pt}
@@ -433,7 +407,7 @@ Figure~\ref{fig:seq_group_chat} shows the real-time group chat flow. In the Conn
 \linespread{1.3}\selectfont
 \titlespacing*{\section}{0pt}{12pt}{4pt}
 
-This chapter describes the high-level architecture of HanoiGO, detailing the frontend navigation, modular NestJS backend structure, and the integration of PostgreSQL/PostGIS databases. It also formulates the mathematical logic and heuristics used for K-Means++ clustering and the Travelling Salesman Problem with Time Windows (TSPTW).
+This chapter describes the high-level architecture of HanoiGO, detailing the frontend navigation, modular NestJS backend structure, and the integration of PostgreSQL/PostGIS databases. It also formulates the mathematical logic used for K-Means++ clustering and for solving the Travelling Salesman Problem with Time Windows (TSPTW), which combines a greedy heuristic with an exact search over the small number of places in each day.
 
 \section{System Architecture}
 
@@ -446,12 +420,11 @@ This section presents the system architecture to give an overview of how the Han
     \label{fig:sys_arch}
 \end{figure}
 
-The Client Layer is the web interface used by travelers. It is built with Next.js and TypeScript to ensure stable performance. This layer communicates with the backend using HTTP for normal actions and WebSocket for real-time features such as group chat and notifications.
+The Client Layer is the web interface used by travelers. It is built with Next.js and TypeScript to provide type safety and a consistent development structure. This layer communicates with the backend using HTTP for normal actions and WebSocket for real-time features such as group chat and notifications.
 
 The Core Backend is responsible for handling the main functions of the system. It manages user authentication using JWT and Passport. The backend includes several modules, such as user management, admin functions, trip planning, activities, and notification handling. Prisma ORM is used to interact with the database, while Socket.io supports real-time communication.
 
-The Data Layer stores system data using PostgreSQL. PostgreSQL with the PostGIS extension is used for structured data, geographical information, and spatial queries. Redis is also configured in the environment to support future chat scaling. This design helps the system work efficiently with different types of data.
-
+The Data Layer stores system data using PostgreSQL. PostgreSQL with the PostGIS extension is used for structured data, geographical information, and spatial queries. Redis is also configured in the environment to support future chat scaling. 
 The External Services component includes third-party services that support the platform. The Goong Maps API is used to calculate travel times and distance matrices. SMTP via Gmail is used for sending verification emails, while Supabase Storage handles uploaded media files.
 
 \section{Tools and Techniques}
@@ -473,9 +446,9 @@ The backend is built with NestJS, which organizes code into modules such as auth
 \section{Backend Development}
 \subsection{Authentication}
 
-The system utilizes JSON Web Tokens (JWT) to manage user identity and access control. Upon a successful login, a token containing the user's ID, username, and role (USER or ADMIN) is generated. For security purposes, these tokens are digitally signed and valid for 7 days. They are primarily stored in browser cookies (via HttpOnly cookies), with a backup in the authorization headers for WebSocket stability. While public routes like registration are accessible to all, private features such as Group Chat and Trip Planning are restricted through role-based access control (RBAC).
+The system used JSON Web Tokens (JWT) to manage user identity and access control. Upon a successful login, an access token and a refresh token containing the user's ID, username, and role (USER or ADMIN) are generated. For security purposes, these tokens are digitally signed and valid for 7 days. They are primarily stored in browser cookies (via HttpOnly cookies), with a backup in the authorization headers for WebSocket stability. While public routes like registration are accessible to all, private features such as Group Chat and Trip Planning are protected by JWT authentication, and administrator endpoints are further restricted through role-based access control (RBAC).
 
-To ensure data integrity, passwords are encrypted using the bcrypt hashing algorithm, making them irreversible even if the database is compromised. Additionally, a security verification policy is implemented: user accounts require entering a six-digit OTP code sent via Gmail before registration is complete to prevent spam accounts.
+To ensure data integrity, passwords are hashed using bcrypt before storage, making them irreversible even if the database is compromised. Additionally, a security verification policy is implemented: user accounts require entering a six-digit OTP code sent via Gmail before registration is complete to prevent spam accounts.
 
 The password complexity requirements are summarized in Table~\ref{tab:password_rules}:
 
@@ -500,32 +473,31 @@ Special character & Must include symbols like !@\#\$\%\^{}\&* \\
 \label{tab:password_rules}
 \end{table}
 
-These requirements ensure that passwords are complex enough to resist common attacks. If a password doesn't meet all the rules, the system shows an error message and asks the user to create a stronger password.
 
 \subsection{Trip Planner}
 
 The trip planner is the core feature of HanoiGO. It builds convenient multi-day itineraries from a set of selected places, the number of travel days, and the daily start and end times. The planner handles both spatial data (where the places are) and temporal constraints (opening hours, lunch breaks, and the daily time limit). 
 
-To solve this problem efficiently for a web application, the system implements a multi-stage heuristic pipeline. The sequence of these planning stages is illustrated in Figure~\ref{fig:trip_pipeline}. The process consists of five sequential steps:
+To solve this problem efficiently for a web application, the system uses a multi-stage pipeline: fast heuristics first assign places to days, and an exact search then orders the places within each day. The sequence of these planning stages is illustrated in Figure~\ref{fig:trip_pipeline}. The process consists of six sequential steps:
 
 \begin{figure}[H]
     \centering
-    \includegraphics[width=0.6\linewidth]{trip-pipeline.png}
+    \includegraphics[width=0.65\linewidth]{trip-pipeline.png}
     \caption{The multi-stage trip planning pipeline of HanoiGO}
     \label{fig:trip_pipeline}
-\end{figure}
+\end{figure} 
 
 \textbf{Step 1: Pre-Filtering} 
 \\ The system first checks the selected places against the user's travel dates. Any place that is closed on all days of the trip is filtered out. This pre-filtering step ensures that subsequent clustering and sequencing steps do not waste resources on unreachable places.
 
 \textbf{Step 2: Geographic Clustering with Capacity Limits} 
-\\ The remaining places are grouped into $K$ clusters (where $K$ is the number of travel days) using the K-Means++ clustering method. The objective is to minimize the total geographic spread within each day, which is calculated using the sum of squared distances:
+\\ The remaining places are grouped into $K$ clusters (where $K$ is the number of travel days) using the K-Means++ clustering method \cite{arthur2007kmeans}. The objective is to minimize the total geographic spread within each day, which is calculated using the sum of squared distances:
 \[
 J = \sum_{c=1}^{K} \sum_{p \in C_c} d_{\text{Haversine}}(p, \mu_c)^2
 \]
 where $C_c$ is the set of places assigned to day $c$, and $\mu_c$ is the centroid of that day's cluster. 
 
-Since clustering only requires relative proximity, it uses the straight-line distance calculated offline via the Haversine formula to maintain fast performance:
+Since clustering only requires relative proximity, it uses the straight-line distance calculated offline via the Haversine formula \cite{sinnott1984haversine} to maintain fast performance:
 \[
 d_{\text{Haversine}}(i, j) = 2 R \arcsin \left( \sqrt{\sin^2\left(\frac{\Delta \phi}{2}\right) + \cos(\phi_i) \cos(\phi_j) \sin^2\left(\frac{\Delta \lambda}{2}\right)} \right)
 \]
@@ -538,7 +510,7 @@ After clustering, the system applies two adjustments:
 \end{itemize}
 
 \textbf{Step 3: Distance Matrix Prefetching and Fallbacks}
-\\ To sequence the daily routes, the system needs real-world road travel durations instead of straight-line distances. The primary source is the Goong Maps Distance Matrix API. To reduce the number of API calls, for trips with up to $N \le 24$ places the system prefetches all durations in a single query: from the user's starting point to every place, and between every pair of places. Each entry is the motorbike travel duration in seconds:
+\\ To sequence the daily routes, the system needs real-world road travel durations instead of straight-line distances. The primary source is the Goong Maps Distance Matrix API. To reduce the number of API calls, for trips with $N \le 24$ places the system prefetches all durations in a single query: from the user's starting point to every place, and between every pair of places. Each entry is the motorbike travel duration in seconds:
 \[
 t(i, j) = \text{GoongMatrix}(i, j)
 \]
@@ -548,15 +520,15 @@ t_{\text{travel}}^{\text{fallback}}(i, j) = \frac{d_{\text{Haversine}}(i, j)}{v_
 \]
 
 \textbf{Step 4: Route Sequencing and Time Window Checking}
-\\ For each day, the system sequences the places using a Greedy Nearest Neighbor (GNN) heuristic to solve the Travelling Salesman Problem with Time Windows (TSPTW). 
+\\ For each day, the system orders the places to solve the Travelling Salesman Problem with Time Windows (TSPTW) \cite{solomon1987tsptw}. Because Step 2 caps each day at a small number of places, the planner can afford an exact search: for a day with up to eight places it evaluates every possible visit order (at most $8! = 40{,}320$, computed in under a millisecond) and keeps the order that schedules the most places, breaking ties with the transition cost defined below. The real travel time from the traveler's starting location to the first stop is included in this search, so the chosen order stays feasible once the GPS times are applied in Step~5.
 
-If a starting location is provided, the algorithm starts at the place closest to the traveler's starting location; otherwise, it begins at the first available open location. It then repeatedly selects the next stop that minimizes a transition cost. The transition cost penalizes travel time over waiting time to keep the route compact:
+For the rare day with more than eight places, a Greedy Nearest Neighbor (GNN) heuristic is used as a fallback. It starts at the place closest to the traveler's starting location and then repeatedly selects the next stop that minimizes a transition cost. In both methods, the transition cost penalizes travel time over waiting time to keep the route compact:
 \[
 \text{Cost}(i, j) = t_{\text{travel}}(i, j) \times 2 + t_{\text{wait}}(j)
 \]
 where $t_{\text{travel}}(i, j)$ is the motorbike travel time in seconds, and $t_{\text{wait}}(j)$ is the time in seconds the traveler waits if they arrive before place $j$ opens. 
 
-During sequencing, the system tracks the arrival time, wait time, and departure time at each stop. The arrival time $T_{\text{arrive}}(j)$ at a stop includes travel time and a 10-minute parking and entry buffer. If the arrival time overlaps with the lunch break (defaulting to 11:00--13:00), the arrival is shifted to after lunch. The wait time is defined as:
+During sequencing, the system tracks the arrival time, wait time, and departure time at each stop. The arrival time $T_{\text{arrive}}(j)$ at a stop includes travel time and a 10-minute parking and entry buffer. If a visit would overlap the lunch break (defaulting to 11:00--13:00), it is shifted to start after lunch. The wait time is defined as:
 \[
 t_{\text{wait}}(j) = \max(0, T_{\text{open}}(j) - T_{\text{arrive}}(j))
 \]
@@ -564,14 +536,18 @@ and the departure time at place $j$ is calculated as:
 \[
 T_{\text{depart}}(j) = \max(T_{\text{arrive}}(j), T_{\text{open}}(j)) + t_{\text{visit}}(j)
 \]
-A stop is scheduled only if its visit finishes before both its own closing time and the daily end time; otherwise, the stop is dropped from the initial greedy route and handled later in the cascade and conflict resolution stages. The planner also reports the remaining free time at the end of each day (calculated as the difference between the daily end time and the last departure time) so users can see if more stops can be added.
+A stop is scheduled only if its visit finishes before both its own closing time and the daily end time; otherwise, it is dropped and handled in Step~5. The planner also reports the remaining free time at the end of each day (calculated as the difference between the daily end time and the last departure time) so users can see if more stops can be added.
 
 \textbf{Step 5: GPS Cascade and Conflict Resolution}
-\\ Once the initial sequence is created, the system performs a final validation:
+\\ Once the initial sequence is created, the system performs two validation steps:
 \begin{itemize}
     \item \textbf{GPS Coordinate Cascade:} The actual travel time from the user's starting location to the first stop is injected. This shifts the arrival and departure times of all subsequent stops. If a stop violates the closing time or daily end time, it is dropped from the schedule. The travel time between its predecessor and successor is then recomputed, and the time shifts are cascaded down the remaining stops.
-    \item \textbf{Gap Insertion:} Any places dropped during the clustering, sequencing, or cascade phases are passed to a conflict resolution stage. The system attempts to insert these dropped places back into "gaps" (between scheduled stops) of any day where the place is open, provided it fits within its time window and does not make subsequent stops infeasible.
+    \item \textbf{Gap Insertion:} Any places dropped during the clustering, sequencing, or cascade phases are passed to a conflict resolution stage. The system attempts to insert these dropped places back into "gaps" (between scheduled stops) of any day where the place is open, provided it fits within its time window and does not make subsequent stops infeasible. This stage reuses the cached Goong matrix from Step~3, so re-inserted places use the same real road durations as the rest of the route instead of straight-line estimates.
 \end{itemize}
+
+\textbf{Step 6: Final Route Ordering}
+\\ The gap insertion in Step~5 can add a place back into a day after its order was set, so the exact search from Step~4 is applied once more to each day's final set of places to confirm the best visit order. The re-ordered day replaces the previous one only if it still fits every stop after the GPS cascade, so this step can only keep or improve a day and never drops a place that was already scheduled. For a day with more than eight places, the greedy sequence is reused instead.
+
 The parameter values used in these steps are summarized in Table~\ref{tab:trip_parameters}.
 
 \begin{table}[h!]
@@ -586,6 +562,7 @@ Avg Speed & 30 km/h & Average speed for motorbikes & Travel time fallback \\ \hl
 Earth Radius & 6371 km & Constant for sphere geometry & Distance calculation \\ \hline
 Parking Buffer & 10 min & Time added per stop & Parking and entry buffer \\ \hline
 Lunch Break & 11:00--13:00 & Time block in minutes from midnight (user-configurable) & Blocked window for breaks \\ \hline
+Exact Sequencing Limit & 8 places & Max places per day solved by brute force & Switch to greedy fallback above this \\ \hline
 \end{tabular}
 \end{table}
 
@@ -727,11 +704,11 @@ The frontend is built with Next.js and the App Router. To keep the project organ
 \label{tab:route_groups}
 \end{table}
 
-Inside the \texttt{(main)} group, a fixed \texttt{Header} gives access to the core pages: Discovery, Trips, Activities, and Places. The header navigation also shows badges for saved places and the total number of unread group-chat messages so users notice new activity without opening each page.
+Inside the \texttt{(main)} group, a fixed \texttt{Header} gives access to the core pages: Discovery, Trips, Activities, and Places. The header navigation also shows badges for saved places and the total number of unread group-chat messages so users notice new activity without opening each page. The navigation structure across these three groups is shown in Figure~\ref{fig:nav_diagram}.
 
 \begin{figure}[H]
     \centering
-    \makebox[\textwidth][c]{\includegraphics[width=1.2\textwidth]{navigation-diagram.pdf}}
+    \makebox[\textwidth][c]{\includegraphics[width=1.25\textwidth]{navigation-diagram.pdf}}
     \caption{HanoiGO Frontend Navigation Diagram}
     \label{fig:nav_diagram}
 \end{figure}
@@ -781,15 +758,15 @@ Shared state is kept in small Zustand stores instead of one global object, so ea
 \label{tab:zustand_stores}
 \end{table}
 
-\subsection{Places Discovery and Trip Planner Interface}
+\subsection{Places Discovery and Trip Planner}
 
 On the Discovery page, tourists browse landmarks on a Leaflet map and add the ones they like to a travel basket. The basket is shown as a floating widget (\texttt{TravelBasket}) that stacks the selected place thumbnails and links to the planner. When the user opens the Trips page, a settings modal collects the trip parameters (number of days, daily start and end time, lunch break, visit duration, travel date, and start location). The start location can be the user's current position or a custom place searched through Goong Maps autocomplete.
 
 After the schedule is generated, the planner uses a two-panel layout (see Figure~\ref{fig:trip_planner_ui}). The left panel is a timeline of stops grouped by color-coded day tabs, and the right panel is the map showing the route. Selecting a day tab filters the map to that day only, and the day colors match the markers so the timeline and the map stay easy to read together. From this view, the user can save the trip or share it as a group activity.
 
-\subsection{Activity and Live Map Interface}
+\subsection{Activity and Live Map}
 
-The Activities page has two view modes (a card feed and a map) and three tabs that separate plain group activities, shared trips, and the activities the user has joined. On the map, each activity is drawn as a marker whose color and animation are computed on the client from the scheduled time, so the map reflects the live status without reloading. The four marker states are listed in Table~\ref{tab:marker_states}, and the activity map interface is detailed in Figure~\ref{fig:activity_map_ui}.
+The Activities page has two view modes (a card feed and a map) and three tabs that separate plain group activities, shared trips, and the activities the user has joined. On the map, each activity is drawn as a marker whose color and animation are computed on the client from the scheduled time, so the map reflects the live status without reloading. The four marker states are listed in Table~\ref{tab:marker_states}, and the shared experiences feed is detailed in Figure~\ref{fig:experiences_feed_ui}.
 
 \begin{table}[H]
 \centering
@@ -809,23 +786,23 @@ Ended & Gray & Faded marker & More than 3 hours after start \\ \hline
 
 When a user opens an activity that is linked to a trip, the interface offers a single button to clone that trip into their own profile, which avoids copying the plan by hand. Markers also show the host name and member count in a popup before the user decides to view or join.
 
-\subsection{Group Chat Interface}
+\subsection{Group Chat}
 
 Approved members chat inside the activity view through the \texttt{ActivityChat} component, which connects to the WebSocket gateway using \texttt{ChatSocketProvider}. To make the chat feel responsive, a sent message appears immediately in the user's own view before the server confirms it (optimistic rendering). The interface also shows typing indicators, supports emoji reactions, and marks messages as read when the room is open. Unread counts are kept in \texttt{useChatNotificationStore} and surfaced both on the activity tab and on the side navigation badge, so a user can see new messages from anywhere in the application.
 
-\subsection{Admin Dashboard and Moderation UI}
+\subsection{Admin Dashboard and Moderation}
 
 The admin panel is built with the same Next.js stack and uses Recharts for its charts, since Recharts works with React and resizes to fit different screen sizes. The dashboard opens with summary cards for active users, heritage sites, total trips, and pending reports, followed by charts for user growth, violation types, report status, and popular places. The other admin pages reuse a common table layout with status badges and action buttons for managing users, places, activities, and reports (see Figure~\ref{fig:admin_dashboard_ui}).
 
 \section{Database Design}
 
-The database system of HanoiGO is built on PostgreSQL, a common relational database management system, with the PostGIS extension enabled to support geospatial operations. The database schema is defined and managed using the Prisma Object-Relational Mapping (\texttt{Prisma ORM}) tool, which provides type safety and manages database migrations. PostgreSQL is selected because it is a stable relational database that handles structured application data efficiently. The PostGIS extension is chosen because it adds support for geographic objects, allowing the application to run location-based queries like finding nearby places and activities. Prisma is used to simplify database interactions and to ensure consistency between the application source code and the database tables. One trade-off of this setup is that running location queries on a single-node database is sufficient for the current scope of HanoiGO, but a larger system would require dedicated spatial index optimizations or distributed replicas to handle heavy traffic.
+The database is built on PostgreSQL with the PostGIS extension, which adds support for geographic objects and enables proximity queries such as \texttt{ST\_DWithin} for finding nearby places and activities. The schema is defined and managed using Prisma ORM, which provides type safety and generates the matching SQL migrations when the schema changes. One trade-off is that a single-node database is sufficient for the current scope, but a larger deployment would require spatial index tuning or distributed replicas to handle heavier traffic.
 
-The complete database schema contains 15 application tables and is illustrated in Figure~\ref{fig:db_complete}. The schema is organized into three main functional clusters: identity and system administration; places and trip planning; and activity and group chat. Each cluster is described below alongside a diagram of the tables it contains.
+The complete schema contains 15 application tables, illustrated in Figure~\ref{fig:db_complete}, and is organized into three functional clusters: identity and system administration; places and trip planning; and activity and group chat. Each cluster is described below alongside a diagram of the tables it contains.
 
 \begin{figure}[H]
     \centering
-    \makebox[\textwidth][c]{\includegraphics[width=1.25\textwidth]{HanoiGO_Diagram_2.pdf}}
+    \makebox[\textwidth][c]{\includegraphics[width=1.25\textwidth]{db-all.pdf}}
     \caption{HanoiGO Database Schema Diagram}
     \label{fig:db_complete}
 \end{figure}
@@ -833,17 +810,23 @@ The complete database schema contains 15 application tables and is illustrated i
 
 \subsection{Identity and System Administration}
 
-This cluster manages identity, account status, administrative accountability, content safety, and user notifications. By combining these security and feedback mechanisms, the system isolates user account lifecycle events and administrative oversight from the public geographic features. It contains four tables.
+This cluster handles user accounts, administrative records, and in-app notifications. It contains four tables.
 
 \begin{itemize}
-    \item \texttt{users}: The central table of the system. It stores login credentials (\texttt{password\_hash}), profile fields (\texttt{username}, \texttt{full\_name}, \texttt{nationality}, \texttt{languages}), role assignment (\texttt{role}: \texttt{USER} or \texttt{ADMIN}), and account lifecycle state (\texttt{status}: \texttt{ACTIVE}, \texttt{PENDING}, or \texttt{BANNED}). The \texttt{token\_version} field is used to invalidate all existing JWT tokens for a user when the account is banned or when the user resets their password. The \texttt{otp\_code} and \texttt{otp\_expires\_at} fields support the email-based password reset flow.
+    \item \textbf{users}: \\
+    The central table. Stores credentials (\texttt{password\_hash}), profile fields (\texttt{username}, \texttt{full\_name}, \texttt{nationality}, \texttt{languages}), role (\texttt{USER}/\texttt{ADMIN}), and account status (\texttt{ACTIVE}, \texttt{PENDING}, \texttt{BANNED}). The \texttt{token\_version} field invalidates existing JWT tokens when the account is banned or the password is reset. The \texttt{otp\_code} and \texttt{otp\_expires\_at} fields support email verification during registration.
 
-    \item \texttt{reports}: Records user-submitted complaints against other users or specific content items (activities, messages). The \texttt{entity\_type} and \texttt{entity\_id} fields allow a single table to reference any reportable object. An admin resolves each report by setting \texttt{status} to \texttt{RESOLVED} or \texttt{DISMISSED} and optionally adding \texttt{admin\_notes}.
+    \item \textbf{reports}: \\
+    Records user complaints. The \texttt{entity\_type} and \texttt{entity\_id} fields allow a single table to reference any reportable object. An admin resolves each report by setting \texttt{status} to \texttt{RESOLVED} or \texttt{DISMISSED}.
 
-    \item \texttt{admin\_logs}: A permanent audit trail of every administrative action. Each row links an admin user (\texttt{admin\_id}), the action string, and an optional \texttt{target\_id}. This table is append-only in practice; no delete operation is exposed through the API.
+    \item \textbf{admin\_logs}: \\
+    A permanent audit trail of every administrative action. Each row links an admin (\texttt{admin\_id}) to an action string and an optional \texttt{target\_id}. No delete operation is exposed through the API.
 
-    \item \texttt{notifications}: Stores in-app notifications delivered to users after key events, such as a join request being approved (\texttt{ACTIVITY\_APPROVED}) or a new message arriving (\texttt{NEW\_MESSAGE}). The \texttt{entity\_type} and \texttt{entity\_id} fields allow the frontend to link the notification to the relevant page. The \texttt{is\_read} boolean is updated when the user opens the notification panel. Two indexes, on \texttt{(user\_id, is\_read)} and \texttt{(user\_id, created\_at)}, support the common queries for fetching unread counts and ordered notification history.
+    \item \textbf{notifications}: \\
+    Stores in-app alerts after key events such as join approvals (\texttt{ACTIVITY\_APPROVED}) or new messages (\texttt{NEW\_MESSAGE}). The \texttt{entity\_type}/\texttt{entity\_id} pair links the notification to the relevant page. Two indexes on \texttt{(user\_id, is\_read)} and \texttt{(user\_id, created\_at)} support unread counts and ordered history.
 \end{itemize}
+
+These four tables are shown in Figure~\ref{fig:db_identity_admin}.
 
 \begin{figure}[H]
     \centering
@@ -854,19 +837,26 @@ This cluster manages identity, account status, administrative accountability, co
 
 \subsection{Places and Trip Planning}
 
-This cluster stores geographical data and the structured output of the trip planner algorithm. It is the most spatially aware part of the schema.
+This cluster stores geographic landmark data and the structured output of the trip planner. It contains five tables and is the most spatially focused part of the schema.
 
 \begin{itemize}
-    \item \texttt{places}: Each row represents a tourist landmark in Hanoi. The \texttt{location} column stores a PostGIS \texttt{geometry(Point, 4326)} value, which enables the \texttt{ST\_DWithin} proximity query used by the discovery feature. The opening hours are stored as separate fields (\texttt{open\_days} as an integer array, \texttt{open\_time\_start}, \texttt{open\_time\_end}) so the trip planner can check time-window feasibility when sequencing stops. A GiST index on the \texttt{location} column is defined to keep spatial queries fast.
+    \item \textbf{places}: \\
+    Each row is a tourist landmark. The \texttt{location} column stores a PostGIS \texttt{geometry(Point, 4326)} value with a GiST index, enabling \texttt{ST\_DWithin} proximity queries. Opening hours (\texttt{open\_days}, \texttt{open\_time\_start}, \texttt{open\_time\_end}) are stored separately so the planner can check time-window feasibility during sequencing.
 
-    \item \texttt{place\_gallery}: Stores additional image URLs linked to a place. It is kept separate from the \texttt{places} table to avoid widening the main row and to allow cascade deletion when a place is removed.
+    \item \textbf{place\_gallery}: \\
+    Stores extra image URLs for a place. Kept separate from \texttt{places} to avoid widening the main row and to allow cascade deletion.
 
-    \item \texttt{trips}: Each trip belongs to one user and has a \texttt{num\_days} value set at generation time. The \texttt{cloned\_from\_id} self-reference records which original trip a cloned trip was copied from, which supports the shared trips feed feature.
+    \item \textbf{trips}: \\
+    One trip per user with a fixed \texttt{num\_days} value. The \texttt{cloned\_from\_id} self-reference records which original trip a clone was copied from, supporting the shared trips feed.
 
-    \item \texttt{trip\_days}: One row per day of a trip. The \texttt{district} field stores the dominant area for that day, derived from the clustering step of the planner algorithm.
+    \item \textbf{trip\_days}: \\
+    One row per day of a trip. The \texttt{district} field stores the dominant area for that day, derived from the clustering step.
 
-    \item \texttt{trip\_stops}: Represents a single place visit within a day. The \texttt{stop\_order}, \texttt{arrive\_at}, and \texttt{depart\_at} fields are set by the sequencing algorithm. The \texttt{distance\_from\_prev\_m} and \texttt{duration\_from\_prev\_s} fields store the routing data fetched from the Goong Maps Distance Matrix API (or the Haversine fallback) at generation time, so the frontend can display travel information without an additional API call.
+    \item \textbf{trip\_stops}: \\
+    One place visit within a day. The \texttt{stop\_order}, \texttt{arrive\_at}, and \texttt{depart\_at} fields are set by the sequencing algorithm. The \texttt{distance\_from\_prev\_m} and \texttt{duration\_from\_prev\_s} fields cache routing data from Goong Maps so the frontend can display travel times without an extra API call.
 \end{itemize}
+
+These five tables are shown in Figure~\ref{fig:db_places_trips}.
 
 \begin{figure}[H]
     \centering
@@ -877,21 +867,29 @@ This cluster stores geographical data and the structured output of the trip plan
 
 \subsection{Activity and Group Chat}
 
-This cluster manages the social layer of HanoiGO: user-created meetup events and the in-activity group messaging system.
+This cluster manages the social layer of HanoiGO: user-created meetup events and in-activity group messaging. It contains six tables.
 
 \begin{itemize}
-    \item \texttt{activities}: Represents a tourist meetup event. Like \texttt{places}, it stores a PostGIS \texttt{location} column with a GiST index so that nearby activities can be retrieved using \texttt{ST\_DWithin}. The \texttt{status} field (\texttt{OPEN}, \texttt{CLOSED}, \texttt{CANCELLED}) drives the animated marker states on the Leaflet map. A composite index on \texttt{(status, scheduled\_at)} supports the common query pattern of filtering upcoming open activities.
+    \item \textbf{activities}: \\
+    Represents a meetup event. Stores a PostGIS \texttt{location} column with a GiST index for \texttt{ST\_DWithin} queries. The \texttt{status} field (\texttt{OPEN}, \texttt{CLOSED}, \texttt{CANCELLED}) controls feed visibility; animated marker states are computed on the client from \texttt{scheduled\_at}. A composite index on \texttt{(status, scheduled\_at)} supports the common query for upcoming open activities.
 
-    \item \texttt{activity\_members}: A join table between \texttt{activities} and \texttt{users} with a \texttt{status} field (\texttt{PENDING}, \texttt{APPROVED}, \texttt{REJECTED}). The host approves or rejects each join request, which changes this status. The composite primary key on \texttt{(activity\_id, user\_id)} prevents duplicate membership records.
+    \item \textbf{activity\_members}: \\
+    Join table with a \texttt{status} field (\texttt{PENDING}, \texttt{APPROVED}, \texttt{REJECTED}). The composite primary key on \texttt{(activity\_id, user\_id)} prevents duplicate membership records.
 
-    \item \texttt{activity\_likes}: Records which users have saved (liked) an activity. It uses the same composite primary key pattern to prevent duplicate likes. The \texttt{saves\_count} field on the \texttt{activities} table is a denormalized counter updated in the same transaction to avoid expensive count queries on the feed.
+    \item \textbf{activity\_likes}: \\
+    Records which users saved an activity. Uses the same composite primary key pattern. The \texttt{saves\_count} on \texttt{activities} is a denormalized counter updated in the same transaction to avoid count queries on the feed.
 
-    \item \texttt{messages}: Stores the chat history for an activity. The \texttt{type} field distinguishes text messages from system events (\texttt{SYSTEM}), images (\texttt{IMAGE}), and file attachments (\texttt{FILE}). The \texttt{media\_url}, \texttt{file\_name}, and \texttt{file\_size} fields apply only to non-text types. A composite index on \texttt{(activity\_id, created\_at)} supports paginated message loading.
+    \item \textbf{messages}: \\
+    Stores chat history. The \texttt{type} field distinguishes \texttt{TEXT}, \texttt{IMAGE}, \texttt{FILE}, and \texttt{SYSTEM} messages. A composite index on \texttt{(activity\_id, created\_at)} supports paginated loading.
 
-    \item \texttt{message\_reactions}: Stores emoji reactions on individual messages. The unique constraint on \texttt{(message\_id, user\_id, emoji)} prevents a user from adding the same emoji reaction twice to the same message.
+    \item \textbf{message\_reactions}: \\
+    Stores emoji reactions. The unique constraint on \texttt{(message\_id, user\_id, emoji)} prevents duplicate reactions per user.
 
-    \item \texttt{message\_read\_status}: Tracks the last time each user read a given activity's chat. The \texttt{last\_read\_at} timestamp is compared against the latest message timestamp to derive the unread count shown in the navigation badge.
+    \item \textbf{message\_read\_status}: \\
+    Tracks the last time each user read a chat. The \textbf{last\_read\_at} timestamp is compared against the latest message to derive the unread count shown in the navigation badge.
 \end{itemize}
+
+These six tables are shown in Figure~\ref{fig:db_activity_chat}.
 
 \begin{figure}[H]
     \centering
@@ -915,41 +913,155 @@ This cluster manages the social layer of HanoiGO: user-created meetup events and
 \linespread{1.3}\selectfont
 \titlespacing*{\section}{0pt}{12pt}{4pt}
 
-\section{System Results}
-This section presents the primary user interfaces of the implemented HanoiGO platform. The web application features responsive layouts and interactive components to facilitate travel discovery, planning, and group communication.
+% Application screenshots and the full API endpoint list have been moved to the Appendices.
 
-Figure~\ref{fig:trip_planner_ui} shows the trip planner interface. The layout consists of a two-panel design with a color-coded daily timeline on the left and a Leaflet-based route map on the right.
+\section{Results}
 
+This section lists the modules that were built and are working in the final HanoiGO application. Each item describes what the module delivers for the user. The matching user interfaces are collected in the Appendices, from Figure~\ref{fig:login_ui} to Figure~\ref{fig:admin_dashboard_ui}, so the main text stays focused on the delivered functions rather than on screenshots.
+
+\begin{itemize}
+    \item \textbf{User and Security:} Tourists register with email-based OTP verification, log in with a JWT stored in an HttpOnly cookie, and reset a forgotten password by email. Access is separated by role (USER and ADMIN) through the \texttt{RolesGuard}, and banning a user increments the \texttt{token\_version} to invalidate active sessions.
+
+    \item \textbf{Places Discovery:} Tourists browse Hanoi heritage landmarks on a Leaflet map, filter them, and add places to a travel basket. Nearby places are resolved at the database level with PostGIS \texttt{ST\_DWithin} proximity queries, and each place keeps its parsed opening hours for later scheduling.
+
+    \item \textbf{Trip Planner:} From the selected places and trip settings, the system generates a timed multi-day itinerary using K-Means++ day grouping and an exact time-window ordering, with a greedy fallback for larger days and Goong Maps travel times. The result is shown in a two-panel interface with a day-tab timeline and a route map, and can be saved to the user's profile (Figure~\ref{fig:trip_planner_ui}).
+
+    \item \textbf{Activity and Group Chat:} Tourists host or join group activities and browse shared trips in a card-based experiences feed (Figure~\ref{fig:experiences_feed_ui}), and approved members talk in a real-time Socket.io group chat with typing indicators, emoji reactions, file attachments, and unread tracking (Figure~\ref{fig:group_chat_ui}).
+
+    \item \textbf{Admin and Moderation:} Administrators use a dashboard with summary cards and Recharts statistics (Figure~\ref{fig:admin_dashboard_ui}) and manage users, places, activities, and user reports, with every action recorded in an audit log.
+\end{itemize}
+
+
+\section{Discussion}
+
+This section evaluates the two parts of the system whose quality can be measured with concrete numbers: the trip planner and the real-time group chat. For the planner, the goal is to check whether the automated planner produces more useful daily itineraries than the simple methods a tourist would otherwise use by hand; for the chat, the goal is to confirm that the server-side message path is sufficiently fast to avoid being a bottleneck for real-time delivery.
+
+\subsection{Trip Planner Effectiveness}
+
+The planner takes a set of places and trip settings and returns a timed daily schedule:
+
+\begin{center}
+\fbox{\parbox{0.92\textwidth}{
+\textbf{Input:} selected places, number of days, daily start and end time, lunch break, and the traveler's start point. \\
+\textbf{Output:} for each day, an ordered list of stops with arrival and departure times; any place that cannot fit its opening hours is returned as unscheduled.
+}}
+\end{center}
+
+To test its usefulness, the planner output was compared against two manual strategies a tourist might use instead:
+
+\begin{itemize}
+    \item \textbf{HanoiGO:} the full pipeline of Chapter~\ref{ch:methodology} (K-Means++ day grouping and exact time-window ordering).
+    \item \textbf{By-District:} places grouped by administrative district and visited in the order they were defined in the input dataset.
+    \item \textbf{Random:} places assigned to days and ordered at random, averaged over 200 seeds.
+\end{itemize}
+
+All three methods used the same inputs and the same feasibility check (\texttt{calculateVisitWindow}), with travel times retrieved from a frozen Goong motorbike distance matrix to ensure the difference in outcomes comes only from the planning strategy. The HanoiGO arm runs the production \texttt{TripPlannerService}. Table~\ref{tab:planner_results} reports four metrics on four scenarios, and Figure~\ref{fig:planner_gantt} draws the Case~1 schedules on a timeline. Here, compactness measures the average of the mean distances from each scheduled stop in a day to the day's geographic centroid, indicating geographic concentration.
+
+\begin{table}[H]
+\centering
+\small
+\renewcommand{\arraystretch}{1.2}
+\caption[Trip planner compared with two manual strategies on four Hanoi scenarios]{Trip planner compared with two manual strategies on four Hanoi scenarios. ``Visited'' counts the places scheduled within their opening hours; lower travel, wait, and compactness values are better.}
+\label{tab:planner_results}
+\begin{tabular}{|l|l|c|c|c|c|}
+\hline
+\textbf{Scenario} & \textbf{Method} & \textbf{Visited} & \textbf{Travel (min)} & \textbf{Wait (min)} & \textbf{Compact (km)} \\ \hline
+Case 1: Ba Dinh   & HanoiGO     & 5/5      & 25  & 0   & 0.80 \\ \cline{2-6}
+1 day, 5 places   & By-District & 4/5      & 19  & 0   & 0.91 \\ \cline{2-6}
+                  & Random      & 3.6/5    & 25  & 0   & 0.96 \\ \hline
+Case 2: Multi     & HanoiGO     & 12/12    & 100 & 0   & 0.35 \\ \cline{2-6}
+3 days, 12 places & By-District & 12/12    & 112 & 0   & 1.53 \\ \cline{2-6}
+                  & Random      & 10.2/12  & 136 & 0   & 1.93 \\ \hline
+Case 3: Mon close & HanoiGO     & 8/8      & 33  & 0   & 0.61 \\ \cline{2-6}
+2 days, 8 places  & By-District & 5/8      & 31  & 0   & 0.36 \\ \cline{2-6}
+                  & Random      & 6.3/8    & 44  & 0   & 0.77 \\ \hline
+Case 4: Late open & HanoiGO     & 5/5      & 27  & 0   & 0.37 \\ \cline{2-6}
+1 day, 5 places   & By-District & 3/5      & 15  & 404 & 0.20 \\ \cline{2-6}
+                  & Random      & 4.3/5    & 20  & 257 & 0.32 \\ \hline
+\end{tabular}
+\end{table}
+
+\def\gb#1#2#3#4#5{%
+  \fill[#1,rounded corners=1.5pt] ({#3-480},{#2-0.28}) rectangle ({#4-480},{#2+0.28});
+  \node[font=\tiny,text=white] at ({(#3+#4)/2-480},{#2}) {#5};}
 \begin{figure}[H]
-    \centering
-    \includegraphics[width=\linewidth]{trip-planner-ui.png}
-    \caption{Trip planner interface: day-tab timeline (left) and route map (right)}
-    \label{fig:trip_planner_ui}
+\centering
+\begin{tikzpicture}[x=0.022cm,y=1cm]
+  \fill[gray!12] ({660-480},0.55) rectangle ({780-480},3.5);
+  \node[gray!55,font=\tiny] at ({720-480},0.78) {lunch};
+  \draw[->,gray] (0,0.45) -- ({1095-480},0.45);
+  \foreach \h in {8,9,10,11,12,13,14,15,16,17,18}
+    \draw[gray] ({\h*60-480},0.50) -- ({\h*60-480},0.40)
+      node[below=1pt,font=\tiny,black] {\h};
+  \draw[red,dashed,thick] ({630-480},0.55) -- ({630-480},3.75);
+  \node[red,font=\tiny,anchor=south] at ({630-480},3.75) {Mausoleum closes 10:30};
+  \node[anchor=east,font=\small] at (-10,3) {HanoiGO};
+  \node[anchor=east,font=\small] at (-10,2) {By-District};
+  \node[anchor=east,font=\small] at (-10,1) {Random};
+  % HanoiGO — all 5 scheduled
+  \gb{red!75}{3}{499}{559}{Mausol.}
+  \gb{blue!70}{3}{569}{629}{Museum}
+  \gb{green!55!black}{3}{792}{822}{Pagoda}
+  \gb{orange!85!black}{3}{836}{926}{Citadel}
+  \gb{violet}{3}{945}{1005}{Women}
+  \node[anchor=west,font=\tiny,green!50!black] at ({1060-480},3) {all 5 scheduled};
+  % By-District — drops Mausoleum
+  \gb{violet}{2}{493}{553}{Women}
+  \gb{blue!70}{2}{573}{633}{Museum}
+  \gb{green!55!black}{2}{792}{822}{Pagoda}
+  \gb{orange!85!black}{2}{836}{926}{Citadel}
+  \node[anchor=west,font=\tiny,red] at ({1060-480},2) {drops Mausol.};
+  % Random — drops Museum + Mausoleum
+  \gb{orange!85!black}{1}{498}{588}{Citadel}
+  \gb{violet}{1}{800}{860}{Women}
+  \gb{green!55!black}{1}{880}{910}{Pagoda}
+  \node[anchor=west,font=\tiny,red] at ({1060-480},1) {drops 2 places};
+\end{tikzpicture}
+\caption{Case 1 schedules on a time axis (Ba Dinh, one day)}
+\label{fig:planner_gantt}
 \end{figure}
 
-Figure~\ref{fig:activity_map_ui} illustrates the live activity map interface, highlighting the status-coded markers for different activity phases and the user's current GPS location.
+In Case~1, the Mausoleum closes at 10:30 and a nearby museum at noon, while the other places stay open all day. As Figure~\ref{fig:planner_gantt} shows, By-District reaches the Mausoleum after it closes and drops it, and the random order drops about one and a half places on average; the planner visits the early-closing places first and schedules all five, with travel time marginally higher than By-District only because it fits one extra place. This trap also drove a design change: an earlier greedy version looked one step ahead and stranded the Mausoleum, so small days now use the exact time-window search of Chapter~\ref{ch:methodology}, which checks every order.
 
-\begin{figure}[H]
-    \centering
-    \includegraphics[width=\linewidth]{activity-map-ui.png}
-    \caption{Activity map with status-coded markers and the user's location}
-    \label{fig:activity_map_ui}
-\end{figure}
+In Case~2, a three-day trip across several districts, the planner and By-District both schedule all twelve places while the random order drops about two. The planner's advantage here is geographic concentration: its days are about four times more compact (0.35 against 1.53, Table~\ref{tab:planner_results}), since administrative districts do not always follow the road network. It also keeps the lowest total travel time (100 minutes against 112 and 136), though the margin over By-District is small once real road durations are used.
 
-Figure~\ref{fig:admin_dashboard_ui} presents the administrator dashboard, displaying system analytics charts and moderation queues.
+Case~3 places the first day of a two-day trip on a Monday, when three of the eight selected places are closed. The planner reads each place's opening days and moves the three closed places to the second day, scheduling all eight; By-District ignores the weekday and drops the three left on Monday (5/8), while the random order drops about two (6.3/8). By-District shows tighter compactness (0.36 against 0.61) only because it visits fewer places; the planner trades slight compactness for fitting every place selected.
 
-\begin{figure}[H]
-    \centering
-    \includegraphics[width=\linewidth]{admin-dashboard-ui.png}
-    \caption{Admin dashboard with summary cards and Recharts statistics}
-    \label{fig:admin_dashboard_ui}
-\end{figure}
+Case~4 adds an afternoon-only venue, a water puppet theatre opening at 15:00, to four morning places. The planner schedules the theatre last and fills the morning with the others, so it never waits (0 minutes); By-District and Random keep the theatre in its given position and idle until it opens, building up 404 and 257 minutes of waiting, which also forces By-District to drop two places (3/5). Ordering by opening time, rather than by district or at random, is what avoids the wasted wait.
 
-\section{Performance Evaluation}
-% Content to be added.
+The Goong durations are a frozen snapshot and all methods share the same inputs, so the comparison stays consistent across runs.
 
-\section{Discussion and Limitations}
-% Content to be added.
+\subsection{Real-Time Chat Performance}
+
+The group chat uses Socket.io rather than HTTP polling so members see new messages without refreshing the page. To check that delivery is fast enough for real-time use, the round-trip latency of a message was measured end to end against the running \texttt{GroupChatGateway}. A real Socket.io client joins a room and sends a message; since the sender is also in the room, it receives its own broadcast, which lets a single client time the full path of one message:
+
+\begin{center}
+\fbox{\parbox{0.92\textwidth}{
+\texttt{send\_message} (client) $\rightarrow$ gateway handler $\rightarrow$ \texttt{Prisma} insert into PostgreSQL $\rightarrow$ \texttt{server.to(room).emit} $\rightarrow$ \texttt{new\_message} (client)
+}}
+\end{center}
+
+The test sent 200 messages back to back (after a 20-message warm-up) and recorded the time from each \texttt{send\_message} call to the matching \texttt{new\_message} event. The handshake that opens the connection, including the JWT check in \texttt{handleConnection}, was timed separately. Every message created during the run was deleted afterwards so the database was left unchanged. Table~\ref{tab:chat_latency} reports the results.
+
+\begin{table}[H]
+\centering
+\renewcommand{\arraystretch}{1.2}
+\caption[Measured chat latency over 200 messages locally on a single system]{Measured chat latency over 200 messages locally on a single system. The round-trip covers the gateway handler, the database write, and the Socket.io broadcast.}
+\label{tab:chat_latency}
+\begin{tabular}{|l|c|}
+\hline
+\textbf{Measurement} & \textbf{Latency (ms)} \\ \hline
+Connection handshake (with JWT verification) & 26 \\ \hline
+Message round-trip --- median (p50) & 5.1 \\ \hline
+Message round-trip --- mean & 5.3 \\ \hline
+Message round-trip --- 95th percentile (p95) & 6.9 \\ \hline
+Message round-trip --- maximum & 9.5 \\ \hline
+\end{tabular}
+\end{table}
+
+The median round-trip stayed near 5~ms and the 95th percentile under 7~ms. These figures were recorded locally on a single system over the loopback interface, where the application server and PostgreSQL ran on the same host, so no real network cost was present. Two costs the loopback setup omits would appear in a distributed deployment: the network round-trip between the user and the server, and the network hop to the database host.
+
+What the numbers do show is that the gateway's own compute (the membership check, message serialisation, and Socket.io fan-out) is not the bottleneck; in production, the dominant latency terms would be those two network paths. The test also used a small two-member room, so it does not capture how fan-out cost grows with more participants. Presence and typing state are tracked in in-memory maps (\texttt{onlineMap} and \texttt{typingMap}) on a single server, so horizontal scaling would require the Redis adapter noted in Chapter~\ref{ch:conclusion}.
 
 \newpage
 % Reset spacing for Chapter V and subsequent sections
@@ -958,7 +1070,7 @@ Figure~\ref{fig:admin_dashboard_ui} presents the administrator dashboard, displa
 \linespread{1}\selectfont
 
 % --- CHAPTER V ---
-\chapter{CONCLUSION AND FUTURE WORK}
+\chapter{CONCLUSION}\label{ch:conclusion}
 
 % Apply same spacing as Chapter IV
 \setlength{\parindent}{0pt}
@@ -967,18 +1079,28 @@ Figure~\ref{fig:admin_dashboard_ui} presents the administrator dashboard, displa
 \titlespacing*{\section}{0pt}{12pt}{4pt}
 
 \section{Conclusion}
-This chapter will summarize the core academic and practical contributions of this thesis in developing HanoiGO.
+
+This thesis presented HanoiGO, a web application that helps foreign tourists in Hanoi plan multi-day trips and connect with other travelers on a shared map. The five implemented modules (user authentication, places discovery, trip planning, activity management with group chat, and administrative moderation) address the objectives set out in Chapter~I.
+
+The trip planner, the central technical contribution, uses K-Means++ clustering and an exact time-window search to build timed daily schedules. Compared with two simpler ordering strategies, it scheduled more places and reduced total travel time, particularly when some places have early closing times. The Socket.io group chat gateway achieved a median round-trip of 5.1~ms locally on a single system, confirming that the server's own processing is not a bottleneck for real-time delivery.
+
+The platform has known limitations in its current form, and several directions for future improvement are identified in the sections that follow.
+
+\section{Limitations}
+
+The current implementation has four limitations. The trip planner requires users to fill in all parameters manually before a schedule can be generated, including trip duration, daily start and end times, visit durations, and start location. Travel times are based on a motorbike profile only, using the Goong Maps API or a fixed 30~km/h fallback that does not adjust for traffic conditions or peak hours. Presence and typing state in the group chat are kept in in-memory maps (\texttt{onlineMap} and \texttt{typingMap}) on a single server, so the chat cannot scale horizontally without a distributed message broker. Finally, the evaluation used simulated scenarios and objective metrics only; no study with real tourists was conducted, so how practical the application is in everyday use has not been confirmed.
 
 \section{Future Work}
-Future developments will be discussed, focusing on several areas of improvement and extension.
 
-First, an AI-powered conversational assistant will be integrated as a key next step. The planned assistant will use the Gemini 2.5 Flash model to support multiple interaction types through a single chat interface: answering general questions about Hanoi, recommending nearby places based on the user's current GPS location, and generating full trip itineraries through a guided conversation. When a user wants a trip plan, the assistant will collect required parameters such as number of days, travel date, and place categories across multiple chat turns before calling the trip planner automatically.
+First, a conversational AI assistant using the Gemini model will be added so that users can set up a trip through a natural chat instead of filling in a form. The existing manual settings form will remain available for users who prefer it.
 
-Second, multi-mo\-dal public transit routing will be explored to complement the current motorbike-based travel time calculations from the Goong Maps API.
+Second, multi-modal routing options such as walking and public transit will be explored to complement the current motorbike-only travel time calculations.
 
-Third, the geographic dataset will be expanded beyond Hanoi to cover other major cities in Vietnam, broadening the platform's usefulness for longer trips.
+Third, the landmark dataset will be extended to cover other major cities in Vietnam so the platform can support trips outside Hanoi.
 
-Fourth, horizontal scaling of the real-time group chat and notification gateways will be implemented using a Redis Pub/Sub adapter to support high concurrent connections across multiple server instances.
+Fourth, the group chat and notification gateways will be scaled horizontally using a Redis Pub/Sub adapter to support multiple concurrent server instances.
+
+Fifth, a usability study with real foreign tourists will be conducted to confirm whether the trip planner and activity features work well in practice, and to guide further improvements to the interface.
 
 \newpage
 % Reset spacing
@@ -993,15 +1115,21 @@ Fourth, horizontal scaling of the real-time group chat and notification gateways
 \addcontentsline{toc}{chapter}{References}
 \setlength{\itemsep}{0.8em} % Increase vertical spacing between references
 
-\bibitem{gretzel2015smart} U. Gretzel, M. Sigala, T.-H. Xiang, and C. Koo, "Smart tourism: foundations and developments," \textit{Electronic Markets}, vol. 25, no. 3, pp. 179--188, 2015.
+\bibitem{gretzel2015smart} U. Gretzel, M. Sigala, Z. Xiang, and C. Koo, "Smart tourism: foundations and developments," \textit{Electronic Markets}, vol. 25, no. 3, pp. 179--188, 2015.
 
 \bibitem{vietnamtourism2024} Vietnam National Authority of Tourism, "Annual Report on Vietnam Tourism Statistics," Ministry of Culture, Sports and Tourism, Hanoi, Vietnam, 2024.
 
-\bibitem{buhalis2020smartness} D. Buhalis, "Technology in tourism-from information communication technologies to smartness and ambient intelligence," \textit{Tourism Management}, vol. 80, p. 104113, 2020.
+\bibitem{buhalis2020smartness} D. Buhalis, "Technology in tourism-from information communication technologies to eTourism and smart tourism towards ambient intelligence tourism: a perspective article," \textit{Tourism Review}, vol. 75, no. 1, pp. 267--272, 2020.
 
 \bibitem{buhalis2019cocreation} D. Buhalis and M. Sinarta, "Real-time co-creation and nowness service: lessons from tourism and hospitality," \textit{Journal of Travel and Tourism Marketing}, vol. 36, no. 5, pp. 563--582, 2019.
 
 \bibitem{ricci2011recommender} F. Ricci, L. Rokach, and B. Shapira, \textit{Introduction to Recommender Systems Handbook}. Boston, MA: Springer, 2011.
+
+\bibitem{arthur2007kmeans} D. Arthur and S. Vassilvitskii, ``k-means++: The advantages of careful seeding,'' in \textit{Proc. 18th Annual ACM-SIAM Symposium on Discrete Algorithms (SODA)}, 2007, pp. 1027--1035.
+
+\bibitem{sinnott1984haversine} R. W. Sinnott, ``Virtues of the Haversine,'' \textit{Sky and Telescope}, vol. 68, no. 2, p. 158, 1984.
+
+\bibitem{solomon1987tsptw} M. M. Solomon, ``Algorithms for the vehicle routing and scheduling problems with time window constraints,'' \textit{Operations Research}, vol. 35, no. 2, pp. 254--265, 1987.
 
 \end{thebibliography}
 
@@ -1013,11 +1141,92 @@ Fourth, horizontal scaling of the real-time group chat and notification gateways
 \vspace{10pt}
 \addcontentsline{toc}{chapter}{Appendices}
 
-\textbf{HanoiGO System Overview}
+
+\vspace{12pt}
+\textbf{Application Screenshots}
+
+This appendix collects the primary user interfaces of the implemented HanoiGO platform.
+
 \begin{figure}[H]
     \centering
-    \caption{Conceptual overview of the HanoiGO map-centric architecture}
-    \label{fig:hanoigo_overview_app}
+    \includegraphics[width=\linewidth]{login-ui.png}
+    \caption{Login interface with credentials input and password recovery gateway}
+    \label{fig:login_ui}
 \end{figure}
+
+\begin{figure}[H]
+    \centering
+    \includegraphics[width=\linewidth]{discovery-ui.png}
+    \caption{Discovery interface: heritage search, filters, and interactive map}
+    \label{fig:discovery_ui}
+\end{figure}
+
+\begin{figure}[H]
+    \centering
+    \includegraphics[width=\linewidth]{trip-planner-ui.png}
+    \caption{Trip planner interface: day-tab timeline (left) and route map (right)}
+    \label{fig:trip_planner_ui}
+\end{figure}
+
+\begin{figure}[H]
+    \centering
+    \includegraphics[width=\linewidth]{experiences-feed-ui.png}
+    \caption{Shared experiences feed: browsing and cloning shared trip plans}
+    \label{fig:experiences_feed_ui}
+\end{figure}
+
+\begin{figure}[H]
+    \centering
+    \includegraphics[width=\linewidth]{group-chat-ui.png}
+    \caption{Real-time group chat interface for active trip coordination}
+    \label{fig:group_chat_ui}
+\end{figure}
+
+\begin{figure}[H]
+    \centering
+    \includegraphics[width=\linewidth]{admin-dashboard-ui.png}
+    \caption{Admin dashboard with summary cards and Recharts statistics}
+    \label{fig:admin_dashboard_ui}
+\end{figure}
+
+\vspace{190pt}
+\textbf{API Endpoints}
+
+The backend exposes RESTful API endpoints for all major features. Representative endpoints for each module are listed below.
+
+\textbf{Authentication:}
+\begin{itemize}
+    \item POST /auth/register --- Register and send an OTP verification email
+    \item POST /auth/login --- Log in and issue the JWT cookie
+    \item POST /auth/forgot-password --- Start an email-based password reset
+    \item PATCH /auth/change-password --- Change the password while logged in
+\end{itemize}
+
+\textbf{Trip Planner:}
+\begin{itemize}
+    \item POST /trips/generate-itinerary --- Build a multi-day itinerary from selected places
+    \item POST /trips/save --- Save a generated itinerary to the user's profile
+    \item GET /trips/my-trips --- List the user's saved trips
+    \item DELETE /trips/:id --- Delete a saved trip
+\end{itemize}
+
+\textbf{Activities:}
+\begin{itemize}
+    \item POST /activities --- Create a new group activity
+    \item GET /activities --- List all open activities (with optional proximity filter)
+    \item POST /activities/:id/join --- Request to join an activity
+    \item PATCH /activities/:id/approve/:userId --- Approve a join request
+    \item POST /activities/:id/clone-trip --- Clone the linked trip into the user's profile
+    \item POST /activities/:id/report --- Report an activity for guideline violations
+\end{itemize}
+
+\textbf{Admin:}
+\begin{itemize}
+    \item GET /admin/stats --- Dashboard statistics (users, trips, reports)
+    \item GET /admin/users --- List all registered users
+    \item PATCH /admin/users/:id/ban --- Suspend a user account
+    \item GET /admin/reports --- List all moderation reports
+    \item PATCH /admin/reports/:id/resolve --- Resolve a report and optionally act on the target
+\end{itemize}
 
 \end{document}

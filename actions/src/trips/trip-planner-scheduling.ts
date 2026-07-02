@@ -1,4 +1,5 @@
 import {
+  AVG_SPEED_KMH,
   DAY_NAMES,
   MAX_PLACES_PER_DAY,
   PARKING_BUFFER_MIN,
@@ -182,6 +183,150 @@ export function greedyNearestNeighborWithTimeWindow(
   }
 
   return { route, droppedInGNN };
+}
+
+/**
+ * Exact day sequencing: tries every visit order (Heap's algorithm) and keeps the
+ * one that schedules the MOST places, breaking ties by least total travel. Unlike
+ * the greedy nearest-neighbour heuristic it never misses a place that a different
+ * ordering could have fit, which matters for tight time windows (e.g. Ba Dinh's
+ * early-closing museums). Same signature/return shape as the greedy version so the
+ * two are interchangeable. Caller must keep N within BRUTE_FORCE_MAX_PLACES.
+ *
+ * When `startTravelSec` is supplied (place id → real start→place seconds, e.g. the
+ * prefetched Goong durations) the first leg is charged on the first stop too, so the
+ * chosen order stays feasible once the GPS first-leg is applied by cascadeRouteTimes
+ * — otherwise a tight-window stop that only fits at an idealised 08:00 start can be
+ * silently dropped after the real first leg shifts the whole day later. Without it,
+ * the first leg is treated as 0 and the straight-line start→first leg feeds the
+ * tie-break score only (used by the greedy fallback path / direct test calls).
+ */
+export function bruteForceWithTimeWindow(
+  places: Place[],
+  durationMatrix: number[][],
+  dayOfWeek: number,
+  startTimeMin: number,
+  endTimeMin: number,
+  lunchStart: number,
+  lunchEnd: number,
+  startLat?: number,
+  startLng?: number,
+  startTravelSec?: Map<string, number>,
+): { route: ScheduledStop[]; dropped: { place: Place; reason: string }[] } {
+  const openIdx = places
+    .map((_, i) => i)
+    .filter((i) => places[i].alwaysOpen || places[i].openDays.includes(dayOfWeek));
+
+  const closedDropped = places
+    .filter((p) => !p.alwaysOpen && !p.openDays.includes(dayOfWeek))
+    .map((p) => ({ place: p, reason: `Closed on ${DAY_NAMES[dayOfWeek]}` }));
+
+  if (openIdx.length === 0) return { route: [], dropped: closedDropped };
+
+  let bestRoute: ScheduledStop[] = [];
+  let bestStops = -1;
+  let bestTravelScore = Infinity;
+
+  const evaluate = (perm: number[]) => {
+    const route: ScheduledStop[] = [];
+    let currentTimeMin = startTimeMin;
+    let lastIdx = -1;
+    let totalTravelSec = 0;
+    let totalWaitMin = 0;
+
+    for (const idx of perm) {
+      const place = places[idx];
+      const isFirst = route.length === 0;
+      const startSec = startTravelSec?.get(place.id);
+      const travelSec = isFirst
+        ? startSec ?? 0
+        : durationMatrix[lastIdx][idx];
+      const travelMin = travelSec / 60;
+      const buffer =
+        isFirst && startSec == null ? 0 : PARKING_BUFFER_MIN;
+      const arriveMin = isFirst
+        ? startTimeMin + travelMin + buffer
+        : currentTimeMin + travelMin + buffer;
+
+      const window = calculateVisitWindow(
+        place,
+        arriveMin,
+        endTimeMin,
+        lunchStart,
+        lunchEnd,
+        travelMin,
+        buffer,
+      );
+      if (!window) continue; // infeasible here — skip it, keep filling the order
+
+      route.push(createStop(place, window, travelSec, buffer));
+      currentTimeMin = window.departMin;
+      lastIdx = idx;
+      totalTravelSec += travelSec;
+      totalWaitMin += window.waitMin;
+    }
+
+    if (route.length === 0) return;
+
+    // Tie-break score mirrors the greedy cost (travel×2 + wait×60) so the exact
+    // search shares the same preferences — penalising idle waiting, not just
+    // distance. The straight-line start→first leg keeps the first stop start-aware.
+    let score = totalTravelSec * 2 + totalWaitMin * 60;
+    // Only fold the straight-line start→first leg into the score when the real first
+    // leg was NOT already charged above (otherwise it would be double-counted).
+    if (startTravelSec == null && startLat != null && startLng != null) {
+      const f = route[0].place;
+      score +=
+        ((haversine(startLat, startLng, f.lat, f.lng) / AVG_SPEED_KMH) * 3600) *
+        2;
+    }
+
+    if (
+      route.length > bestStops ||
+      (route.length === bestStops && score < bestTravelScore)
+    ) {
+      bestStops = route.length;
+      bestTravelScore = score;
+      bestRoute = route;
+    }
+  };
+
+  permuteIndices(openIdx, evaluate);
+
+  const scheduledIds = new Set(bestRoute.map((s) => s.place.id));
+  const dropped = [
+    ...closedDropped,
+    ...openIdx
+      .filter((i) => !scheduledIds.has(places[i].id))
+      .map((i) => ({
+        place: places[i],
+        reason: `Could not fit in day (time window ${minToTime(startTimeMin)}-${minToTime(endTimeMin)})`,
+      })),
+  ];
+
+  return { route: bestRoute, dropped };
+}
+
+// Heap's algorithm — enumerate every permutation of `items` without allocating
+// them all at once, invoking `cb` on each. cb must not mutate the passed array.
+function permuteIndices(items: number[], cb: (perm: number[]) => void) {
+  const arr = items.slice();
+  const n = arr.length;
+  const c = new Array(n).fill(0);
+  cb(arr);
+  let i = 0;
+  while (i < n) {
+    if (c[i] < i) {
+      const swap = i % 2 === 0 ? 0 : c[i];
+      [arr[swap], arr[i]] = [arr[i], arr[swap]];
+      cb(arr);
+      c[i]++;
+      i = 0;
+    } else {
+      c[i] = 0;
+      i++;
+    }
+  }
 }
 
 export function calculateVisitWindow(

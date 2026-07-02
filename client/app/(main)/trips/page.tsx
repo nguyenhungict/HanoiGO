@@ -378,7 +378,10 @@ export default function TripsPage() {
             startTime: timeToMin(config.startTime),
             endTime: timeToMin(config.endTime),
             travelDate: config.travelDate,
-            visitDurationMin: config.visitDuration,
+            // Only override per-place suggested durations when the user opted in.
+            ...(config.customVisitDuration
+              ? { visitDurationMin: config.visitDuration }
+              : {}),
             startLat: startLocationType === 'custom' ? customStartLocation?.lat : userLocation?.[0],
             startLng: startLocationType === 'custom' ? customStartLocation?.lng : userLocation?.[1],
             lunchBreakStart: timeToMin(config.lunchBreakStart),
@@ -1175,25 +1178,49 @@ export default function TripsPage() {
 
             {/* Visit duration */}
             <div className="space-y-2">
-              <label className="text-[10px] font-black text-outline uppercase tracking-widest block">
-                Visit duration per place:{' '}
-                <span className="text-primary">{config.visitDuration} mins</span>
+              <label className="flex items-center justify-between gap-2 text-[10px] font-black text-outline uppercase tracking-widest">
+                <span>Visit duration per place</span>
+                <span className="flex items-center gap-1.5 normal-case tracking-normal">
+                  <input
+                    type="checkbox"
+                    checked={config.customVisitDuration}
+                    onChange={(e) =>
+                      setConfig({ customVisitDuration: e.target.checked })
+                    }
+                    className="accent-primary"
+                  />
+                  Customize
+                </span>
               </label>
-              <input
-                type="range"
-                min={15}
-                max={120}
-                step={5}
-                value={config.visitDuration}
-                onChange={(e) =>
-                  setConfig({ visitDuration: Number(e.target.value) })
-                }
-                className="w-full accent-primary"
-              />
-              <div className="flex justify-between text-[9px] font-bold text-outline">
-                <span>15 mins</span>
-                <span>120 mins</span>
-              </div>
+
+              {config.customVisitDuration ? (
+                <>
+                  <div className="text-[10px] font-black text-outline uppercase tracking-widest">
+                    <span className="text-primary">{config.visitDuration} mins</span>{' '}
+                    for every place
+                  </div>
+                  <input
+                    type="range"
+                    min={15}
+                    max={120}
+                    step={5}
+                    value={config.visitDuration}
+                    onChange={(e) =>
+                      setConfig({ visitDuration: Number(e.target.value) })
+                    }
+                    className="w-full accent-primary"
+                  />
+                  <div className="flex justify-between text-[9px] font-bold text-outline">
+                    <span>15 mins</span>
+                    <span>120 mins</span>
+                  </div>
+                </>
+              ) : (
+                <p className="text-[10px] font-semibold text-outline/80 leading-relaxed">
+                  Auto — each place uses its suggested time (e.g. museums 90m,
+                  temples 45m). Tick “Customize” to set one duration for all.
+                </p>
+              )}
             </div>
 
             {/* Actions */}

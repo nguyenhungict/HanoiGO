@@ -10,9 +10,10 @@ import { NotificationBell } from '@/components/notifications/NotificationBell';
 
 interface HeaderProps {
   username: string;
+  isAdmin?: boolean;
 }
 
-export default function Header({ username }: HeaderProps) {
+export default function Header({ username, isAdmin = false }: HeaderProps) {
   const pathname = usePathname();
   const placeCount = useTripStore((s) => Object.keys(s.selectedPlaces).length);
   const totalUnreadCount = useChatNotificationStore((s) =>
@@ -74,6 +75,15 @@ export default function Header({ username }: HeaderProps) {
 
       {/* Right: Search & Profile */}
       <div className="flex items-center gap-6">
+        {isAdmin && (
+          <Link 
+            href="/admin/dashboard" 
+            className="flex items-center gap-1.5 px-4 py-2 rounded-xl border border-outline/15 text-[9px] font-black uppercase tracking-[0.2em] text-on-surface-variant hover:text-primary hover:bg-secondary transition-all shadow-sm active:scale-95"
+          >
+            <span className="material-symbols-outlined text-[15px]">admin_panel_settings</span>
+            Admin Panel
+          </Link>
+        )}
         <NotificationBell />
         <div className="flex items-center gap-4 pl-8 border-l border-outline/10">
           <div className="text-right hidden sm:block">

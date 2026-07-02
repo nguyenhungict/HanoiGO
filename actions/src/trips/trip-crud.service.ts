@@ -83,48 +83,5 @@ export class TripCrudService {
     return this.prisma.trip.delete({ where: { id: tripId } });
   }
 
-  async cloneTrip(userId: string, sourceTripId: string) {
-    const source = await this.prisma.trip.findFirst({
-      where: { id: sourceTripId, userId },
-      include: {
-        tripDays: {
-          include: { tripStops: { orderBy: { stopOrder: 'asc' } } },
-          orderBy: { dayNumber: 'asc' },
-        },
-      },
-    });
 
-    if (!source) {
-      throw new ForbiddenException('Trip not found or access denied');
-    }
-
-    return this.prisma.trip.create({
-      data: {
-        userId,
-        title: `${source.title || 'Hanoi Trip'} (Cloned)`,
-        numDays: source.numDays,
-        clonedFromId: source.id,
-        tripDays: {
-          create: source.tripDays.map((day) => ({
-            dayNumber: day.dayNumber,
-            district: day.district,
-            tripStops: {
-              create: day.tripStops.map((stop) => ({
-                placeId: stop.placeId,
-                stopOrder: stop.stopOrder,
-                arriveAt: stop.arriveAt,
-                departAt: stop.departAt,
-                distanceFromPrevM: stop.distanceFromPrevM,
-                durationFromPrevS: stop.durationFromPrevS,
-                isSkipped: stop.isSkipped,
-              })),
-            },
-          })),
-        },
-      },
-      include: {
-        tripDays: { include: { tripStops: true } },
-      },
-    });
-  }
 }

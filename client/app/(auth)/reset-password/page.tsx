@@ -19,7 +19,7 @@ function ResetPasswordContent() {
 
   useEffect(() => {
     if (!token) {
-      setMessage({ type: 'error', text: 'Mã khôi phục không hợp lệ hoặc đã hết hạn.' });
+      setMessage({ type: 'error', text: 'Invalid or expired recovery token.' });
     }
   }, [token]);
 
@@ -28,7 +28,7 @@ function ResetPasswordContent() {
     if (!token) return;
 
     if (formData.newPassword !== formData.confirmPassword) {
-      setMessage({ type: 'error', text: 'Mật khẩu xác nhận không khớp.' });
+      setMessage({ type: 'error', text: 'Passwords do not match.' });
       return;
     }
 
@@ -41,7 +41,7 @@ function ResetPasswordContent() {
     });
 
     if (result.success) {
-      setMessage({ type: 'success', text: 'Mật khẩu đã được cập nhật! Đang chuyển về trang đăng nhập...' });
+      setMessage({ type: 'success', text: 'Password has been updated! Redirecting to login...' });
       setTimeout(() => {
         router.push("/login");
       }, 3000);

@@ -13,10 +13,10 @@ import { useConfirm } from '@/hooks/use-confirm';
 const BACKEND_URL = process.env.NEXT_PUBLIC_ACTIONS_URL || 'http://localhost:8888';
 
 const CATEGORY_COLORS: Record<string, string> = {
-  'Nature & Outdoors':  '#43A047',
+  'Food & Drink':       '#E53535',
+  'Sports & Active':    '#43A047',
   'Arts & Culture':     '#3F51B5',
-  'Heritage & History': '#607D8B',
-  'Spiritual':          '#FF9800',
+  'Social & Nightlife': '#9C27B0',
   'Sightseeing':        '#0288D1',
 };
 

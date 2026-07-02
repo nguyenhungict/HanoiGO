@@ -14,11 +14,11 @@ interface EditActivityDialogProps {
 const BACKEND_URL = process.env.NEXT_PUBLIC_ACTIONS_URL || 'http://localhost:8888';
 
 const CATEGORY_META: Record<string, { icon: string; label: string }> = {
-  'Nature & Outdoors':  { icon: 'forest',           label: 'Nature' },
-  'Arts & Culture':     { icon: 'theater_comedy',    label: 'Culture' },
-  'Heritage & History': { icon: 'history_edu',       label: 'History' },
-  'Spiritual':          { icon: 'temple_buddhist',   label: 'Spiritual' },
-  'Sightseeing':        { icon: 'photo_camera',      label: 'Sightseeing' },
+  'Food & Drink':       { icon: 'restaurant',      label: 'Food & Drink' },
+  'Sports & Active':    { icon: 'directions_bike', label: 'Sports & Active' },
+  'Arts & Culture':     { icon: 'theater_comedy',  label: 'Arts & Culture' },
+  'Social & Nightlife': { icon: 'local_bar',        label: 'Social & Nightlife' },
+  'Sightseeing':        { icon: 'photo_camera',    label: 'Sightseeing' },
 };
 
 function toDatetimeLocal(iso: string): string {
@@ -43,7 +43,7 @@ export const EditActivityDialog: React.FC<EditActivityDialogProps> = ({ activity
     lng:         activity.lng ?? 105.8542,
     scheduledAt: activity.scheduledAt ? toDatetimeLocal(activity.scheduledAt) : '',
     maxMembers:  activity.maxMembers ?? 10,
-    category:    activity.category ?? 'Arts & Culture',
+    category:    activity.category ?? 'Sightseeing',
     imageUrl:    activity.imageUrl ?? '',
   });
   const [loading, setLoading]               = useState(false);
@@ -160,7 +160,7 @@ export const EditActivityDialog: React.FC<EditActivityDialogProps> = ({ activity
     }
   };
 
-  const selectedCategory = CATEGORY_META[formData.category] ?? CATEGORY_META['Arts & Culture'];
+  const selectedCategory = CATEGORY_META[formData.category] ?? CATEGORY_META['Sightseeing'];
 
   return (
     <div className="fixed inset-0 z-[150] flex items-center justify-center p-4 bg-on-surface/15 backdrop-blur-sm animate-in fade-in duration-300">
@@ -314,11 +314,11 @@ export const EditActivityDialog: React.FC<EditActivityDialogProps> = ({ activity
               <label className="text-[10px] font-black uppercase tracking-widest text-on-surface-variant">Category</label>
               <div className="grid grid-cols-3 gap-2">
                 {[
-                  { id: 'Nature & Outdoors',   name: 'Nature',      icon: 'forest' },
-                  { id: 'Arts & Culture',      name: 'Culture',     icon: 'theater_comedy' },
-                  { id: 'Heritage & History',  name: 'History',     icon: 'history_edu' },
-                  { id: 'Spiritual',           name: 'Spiritual',   icon: 'temple_buddhist' },
-                  { id: 'Sightseeing',         name: 'Sightseeing', icon: 'photo_camera' },
+                  { id: 'Food & Drink',       name: 'Food & Drink',       icon: 'restaurant' },
+                  { id: 'Sports & Active',    name: 'Sports & Active',    icon: 'directions_bike' },
+                  { id: 'Arts & Culture',     name: 'Arts & Culture',     icon: 'theater_comedy' },
+                  { id: 'Social & Nightlife', name: 'Social & Nightlife', icon: 'local_bar' },
+                  { id: 'Sightseeing',        name: 'Sightseeing',        icon: 'photo_camera' },
                 ].map(cat => (
                   <button
                     key={cat.id} type="button"

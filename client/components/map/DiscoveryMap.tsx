@@ -18,33 +18,26 @@ interface Landmark {
   district?: string;
 }
 
-// Map icon categories to material icons
-const getCategoryIcon = (category: string) => {
-  const cat = category.toLowerCase();
-  
-  if (cat.includes('nature')) return 'park';
-  if (cat.includes('art')) return 'museum';
-  if (cat.includes('heritage') || cat.includes('historic')) return 'account_balance';
-  if (cat.includes('spiritual') || cat.includes('temple')) return 'temple_buddhist';
-  if (cat.includes('eat') || cat.includes('shop')) return 'restaurant';
-  if (cat.includes('sightseeing')) return 'location_on';
-  
-  return 'location_on';
+const CATEGORY_ICON: Record<string, string> = {
+  'Museum': 'museum',
+  'Temple & Pagoda': 'temple_buddhist',
+  'Historic Site': 'castle',
+  'Nature & Lake': 'forest',
+  'Arts & Performance': 'theater_comedy',
+  'Street & Market': 'storefront',
 };
 
-// Map categories to distinct colors for better UI distinction
-const getCategoryColor = (category: string) => {
-  const cat = category.toLowerCase();
-  
-  if (cat.includes('nature')) return '#43A047'; // Green
-  if (cat.includes('art')) return '#3F51B5'; // Indigo
-  if (cat.includes('heritage')) return '#607D8B'; // Blue Grey
-  if (cat.includes('spiritual')) return '#FF9800'; // Orange
-  if (cat.includes('eat') || cat.includes('shop')) return '#F44336'; // Red
-  if (cat.includes('sightseeing')) return '#0288D1'; // Light Blue
-    
-  return '#607D8B'; // Default
+const CATEGORY_COLOR: Record<string, string> = {
+  'Museum': '#3F51B5',       // Indigo
+  'Temple & Pagoda': '#FF9800', // Orange
+  'Historic Site': '#607D8B',  // Blue Grey
+  'Nature & Lake': '#43A047',  // Green
+  'Arts & Performance': '#9C27B0', // Purple
+  'Street & Market': '#E53935',   // Red
 };
+
+const getCategoryIcon = (category: string) => CATEGORY_ICON[category] ?? 'location_on';
+const getCategoryColor = (category: string) => CATEGORY_COLOR[category] ?? '#607D8B';
 
 // Tạo icon tùy chỉnh sử dụng HTML và Tailwind
 const createCustomIcon = (landmark: Landmark, showLabel: boolean, isFocused: boolean = false) => {
@@ -141,7 +134,7 @@ function LocationMarker({ setUserPos }: { setUserPos: (pos: [number, number] | n
   return position === null ? null : (
     <Marker position={position} icon={userLocationIcon}>
       <Popup>
-        <div className="text-xs font-bold py-1 px-2">Vị trí của bạn</div>
+        <div className="text-xs font-bold py-1 px-2">Your location</div>
       </Popup>
     </Marker>
   );
@@ -520,7 +513,7 @@ export default function DiscoveryMap({
                   <span className="material-symbols-outlined text-[22px]">{getCategoryIcon(routingDestination.category)}</span>
                </div>
                <div className="flex flex-col">
-                  <span className="text-[9px] font-black text-primary uppercase tracking-[0.2em]">Đường đến</span>
+                  <span className="text-[9px] font-black text-primary uppercase tracking-[0.2em]">Route to</span>
                   <span className="text-[15px] font-extrabold text-on-surface line-clamp-1 max-w-[180px] tracking-tight">{routingDestination.name}</span>
                </div>
                <div className="flex flex-col gap-0.5 ml-2 opacity-30">
@@ -531,7 +524,7 @@ export default function DiscoveryMap({
             <button 
               onClick={() => setIsRoutePanelMinimized(true)} 
               className="w-9 h-9 flex items-center justify-center rounded-full bg-on-surface/5 hover:bg-on-surface/10 text-on-surface transition-all active:scale-90 z-10"
-              title="Ẩn bảng chi tiết"
+              title="Hide details"
             >
               <span className="material-symbols-outlined text-[20px]">close</span>
             </button>
@@ -544,14 +537,14 @@ export default function DiscoveryMap({
                   className={`flex-1 py-2 flex items-center justify-center gap-2.5 rounded-xl text-[12px] font-black uppercase tracking-wider transition-all ${transportMode === 'driving' ? 'bg-white text-primary shadow-md' : 'text-on-surface/60 hover:text-on-surface'}`}
                >
                  <span className="material-symbols-outlined text-[18px]">two_wheeler</span>
-                 Xe máy
+                 Motor
                </button>
                <button 
                   onClick={() => setTransportMode('foot')}
                   className={`flex-1 py-2 flex items-center justify-center gap-2.5 rounded-xl text-[12px] font-black uppercase tracking-wider transition-all ${transportMode === 'foot' ? 'bg-white text-primary shadow-md' : 'text-on-surface/60 hover:text-on-surface'}`}
                >
                  <span className="material-symbols-outlined text-[18px]">directions_walk</span>
-                 Đi bộ
+                 Walking
                </button>
             </div>
             
@@ -564,12 +557,12 @@ export default function DiscoveryMap({
                  <div className="flex items-center justify-center gap-10 py-2">
                     <div className="flex flex-col items-center">
                        <span className="text-3xl font-black text-on-surface tracking-tighter tabular-nums">{routeDetails.duration}</span>
-                       <span className="text-[10px] font-black text-outline uppercase tracking-[0.2em] mt-1 opacity-60">Thời gian</span>
+                       <span className="text-[10px] font-black text-outline uppercase tracking-[0.2em] mt-1 opacity-60">Duration</span>
                     </div>
                     <div className="w-px h-10 bg-outline/10"></div>
                     <div className="flex flex-col items-center">
                        <span className="text-3xl font-black text-on-surface tracking-tighter tabular-nums">{routeDetails.distance}</span>
-                       <span className="text-[10px] font-black text-outline uppercase tracking-[0.2em] mt-1 opacity-60">Quãng đường</span>
+                       <span className="text-[10px] font-black text-outline uppercase tracking-[0.2em] mt-1 opacity-60">Distance</span>
                     </div>
                  </div>
                  
@@ -577,17 +570,17 @@ export default function DiscoveryMap({
                     onClick={handleCancelRouting}
                     className="w-full mt-2 text-center text-[10px] font-black text-red-500 uppercase tracking-widest hover:bg-red-500 hover:text-white transition-all py-3 bg-red-500/10 rounded-2xl active:scale-95"
                  >
-                   Hủy chỉ đường
+                   Cancel routing
                  </button>
                </div>
             ) : (
                <div className="flex flex-col gap-3">
-                 <div className="text-center py-3 text-xs font-bold text-outline uppercase tracking-widest opacity-60">Không tìm được đường đi</div>
+                 <div className="text-center py-3 text-xs font-bold text-outline uppercase tracking-widest opacity-60">Route not found</div>
                  <button 
                     onClick={handleCancelRouting}
                     className="w-full mt-2 text-center text-[10px] font-black text-red-500 uppercase tracking-widest hover:bg-red-500 hover:text-white transition-all py-3 bg-red-500/10 rounded-2xl active:scale-95"
                  >
-                   Hủy chỉ đường
+                   Cancel routing
                  </button>
                </div>
             )}
@@ -616,16 +609,16 @@ export default function DiscoveryMap({
             <button 
               onClick={() => setIsRoutePanelMinimized(false)}
               className="w-7 h-7 flex items-center justify-center rounded-full bg-primary/10 text-primary hover:bg-primary/20 transition-all active:scale-90"
-              title="Hiện chi tiết"
+              title="Show details"
             >
               <span className="material-symbols-outlined text-[16px]">open_in_full</span>
             </button>
             <button 
               onClick={handleCancelRouting}
               className="bg-red-500/10 text-red-500 hover:bg-red-500 hover:text-white px-3.5 py-1 rounded-full text-[10px] font-black uppercase tracking-wider transition-all active:scale-95 flex items-center gap-1"
-              title="Thoát chỉ đường"
+              title="Exit routing"
             >
-              Thoát
+              Exit
             </button>
           </div>
         </div>
@@ -695,11 +688,11 @@ export default function DiscoveryMap({
                 <div className="bg-white rounded-2xl p-4 shadow-xl min-w-[180px] border border-orange-100">
                   <div className="flex items-center gap-1.5 mb-1">
                     <span className="material-symbols-outlined text-sm text-amber-500">auto_awesome</span>
-                    <span className="text-[9px] font-black uppercase tracking-widest text-amber-500">AI gợi ý</span>
+                    <span className="text-[9px] font-black uppercase tracking-widest text-amber-500">AI Recommended</span>
                   </div>
                   <h3 className="font-black text-sm tracking-tight text-on-surface">{m.name}</h3>
                   <p className="text-[10px] font-bold text-outline mt-0.5">{m.category}</p>
-                  {m.distanceKm && <p className="text-[10px] font-black text-primary mt-1">{m.distanceKm.toFixed(1)} km từ bạn</p>}
+                  {m.distanceKm && <p className="text-[10px] font-black text-primary mt-1">{m.distanceKm.toFixed(1)} km from you</p>}
                 </div>
               </Popup>
             </Marker>
@@ -808,7 +801,7 @@ export default function DiscoveryMap({
                           <div>
                             <h3 className="font-black text-xl tracking-tight text-on-surface leading-tight mb-2 hover:text-primary transition-colors">{landmark.name}</h3>
                             <p className="text-[12.5px] text-on-surface/75 font-medium line-clamp-3 leading-relaxed">
-                              {landmark.description || `Khám phá vẻ đẹp lịch sử và văn hóa tại ${landmark.name}, một trong những điểm đến nổi tiếng hàng đầu tại Hà Nội.`}
+                              {landmark.description || `Explore the historical and cultural beauty of ${landmark.name}, one of the top destinations in Hanoi.`}
                             </p>
                           </div>
 
@@ -821,7 +814,7 @@ export default function DiscoveryMap({
                                 <span className="material-symbols-outlined text-[16px]">location_on</span>
                               </div>
                               <div className="flex flex-col">
-                                <span className="text-[8px] font-black text-outline uppercase tracking-wider">Khu vực</span>
+                                <span className="text-[8px] font-black text-outline uppercase tracking-wider">District</span>
                                 <span className="text-[11px] font-black text-on-surface tracking-tight truncate max-w-[90px]">{landmark.district || 'Hoan Kiem'}</span>
                               </div>
                             </div>
@@ -830,8 +823,8 @@ export default function DiscoveryMap({
                                 <span className="material-symbols-outlined text-[16px]">schedule</span>
                               </div>
                               <div className="flex flex-col">
-                                <span className="text-[8px] font-black text-outline uppercase tracking-wider">Thời gian</span>
-                                <span className="text-[11px] font-black text-on-surface tracking-tight">~60 phút</span>
+                                <span className="text-[8px] font-black text-outline uppercase tracking-wider">Duration</span>
+                                <span className="text-[11px] font-black text-on-surface tracking-tight">~60 mins</span>
                               </div>
                             </div>
                           </div>
@@ -845,7 +838,7 @@ export default function DiscoveryMap({
                               className="flex-1 rounded-2xl border border-outline/15 bg-on-surface/5 py-3.5 text-center text-[10px] font-black uppercase tracking-[0.15em] text-on-surface hover:bg-on-surface hover:text-white transition-all active:scale-95 flex items-center justify-center gap-1.5"
                             >
                               <span className="material-symbols-outlined text-[16px]">explore</span>
-                              Chi tiết
+                              Details
                             </Link>
                             <button 
                               onClick={() => {
@@ -855,7 +848,7 @@ export default function DiscoveryMap({
                               className="flex-[1.4] py-3.5 bg-primary text-white font-black text-[10px] uppercase tracking-[0.15em] rounded-2xl transition-all shadow-xl shadow-primary/20 hover:scale-[1.02] hover:bg-primary-hover active:scale-95 flex items-center justify-center gap-1.5"
                             >
                               <span className="material-symbols-outlined text-[16px]">directions</span>
-                              Đường đi
+                              Route
                             </button>
                           </div>
                         </div>

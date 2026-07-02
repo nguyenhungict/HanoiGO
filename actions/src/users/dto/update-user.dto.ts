@@ -10,7 +10,7 @@ import { ApiPropertyOptional } from '@nestjs/swagger';
 export class UpdateUserDto {
   @ApiPropertyOptional({
     example: 'Hung Nguyen',
-    description: 'Họ và tên hiển thị',
+    description: 'Full name of the user',
   })
   @IsOptional()
   @IsString()
@@ -18,20 +18,20 @@ export class UpdateUserDto {
 
   @ApiPropertyOptional({
     example: 'hung_nguyen',
-    description: 'Tên định danh (username)',
+    description: 'Unique username',
   })
   @IsOptional()
   @IsString()
   username?: string;
 
-  @ApiPropertyOptional({ example: 'Vietnam', description: 'Quốc tịch' })
+  @ApiPropertyOptional({ example: 'Vietnam', description: 'Nationality' })
   @IsOptional()
   @IsString()
   nationality?: string;
 
   @ApiPropertyOptional({
     example: ['Vietnamese', 'English'],
-    description: 'Danh sách ngôn ngữ',
+    description: 'List of languages spoken',
   })
   @IsOptional()
   @IsArray()
@@ -40,14 +40,14 @@ export class UpdateUserDto {
 
   @ApiPropertyOptional({
     example: 'I love Hanoi!',
-    description: 'Giới thiệu bản thân',
+    description: 'User bio or introduction',
   })
   @IsOptional()
   @IsString()
   @MaxLength(150)
   bio?: string;
 
-  @ApiPropertyOptional({ example: 'https://...', description: 'Ảnh đại diện' })
+  @ApiPropertyOptional({ example: 'https://...', description: 'Avatar image URL' })
   @IsOptional()
   @IsString()
   avatarUrl?: string;

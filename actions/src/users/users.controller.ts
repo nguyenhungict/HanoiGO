@@ -19,20 +19,20 @@ export class UsersController {
 
   @UseGuards(JwtAuthGuard)
   @ApiBearerAuth()
-  @ApiOperation({ summary: 'Lấy thông tin hồ sơ hiện tại' })
+  @ApiOperation({ summary: 'Get current user profile' })
   @Get('profile')
   async getProfile(@Req() req: any) {
     const user = await this.usersService.findById(req.user.id);
-    if (!user) throw new NotFoundException('Không tìm thấy người dùng');
+    if (!user) throw new NotFoundException('User not found');
 
-    // Loại bỏ passwordHash trước khi trả về
+    // Remove passwordHash before returning
     const { passwordHash, ...result } = user;
     return result;
   }
 
   @UseGuards(JwtAuthGuard)
   @ApiBearerAuth()
-  @ApiOperation({ summary: 'Cập nhật thông tin hồ sơ' })
+  @ApiOperation({ summary: 'Update user profile' })
   @Patch('profile')
   async updateProfile(@Req() req: any, @Body() updateUserDto: UpdateUserDto) {
     const user = await this.usersService.updateProfile(

@@ -18,6 +18,9 @@ interface TripConfig {
   endTime: string;
   lunchBreakStart: string;
   lunchBreakEnd: string;
+  // When false, the planner uses each place's suggested duration (per category).
+  // When true, `visitDuration` overrides every place with a single value.
+  customVisitDuration: boolean;
   visitDuration: number;
   travelDate: string;
 }
@@ -39,7 +42,8 @@ const DEFAULT_CONFIG: TripConfig = {
   endTime: '18:00',
   lunchBreakStart: '11:00',
   lunchBreakEnd: '13:00',
-  visitDuration: 30,
+  customVisitDuration: false,
+  visitDuration: 60,
   travelDate: new Date().toISOString().split('T')[0],
 };
 

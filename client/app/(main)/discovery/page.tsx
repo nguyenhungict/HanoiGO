@@ -1,7 +1,8 @@
 'use client';
 
-import React, { useState, useEffect, useMemo, useCallback } from 'react';
+import React, { useState, useEffect, useMemo, useCallback, Suspense } from 'react';
 import dynamic from 'next/dynamic';
+import { useSearchParams } from 'next/navigation';
 import { useTripStore, type Landmark } from '@/store/useTripStore';
 
 const DiscoveryMap = dynamic(() => import('@/components/map/DiscoveryMap'), {
@@ -26,14 +27,15 @@ export interface AiMarker {
 
 const CATEGORIES = [
   { id: 'all', name: 'All', icon: 'explore' },
-  { id: 'nature', name: 'Nature & Outdoors', icon: 'forest' },
-  { id: 'art', name: 'Arts & Culture', icon: 'theater_comedy' },
-  { id: 'heritage', name: 'Heritage & History', icon: 'history_edu' },
-  { id: 'spiritual', name: 'Spiritual', icon: 'temple_buddhist' },
-  { id: 'sightseeing', name: 'Sightseeing', icon: 'photo_camera' },
+  { id: 'Museum', name: 'Museum', icon: 'museum' },
+  { id: 'Temple & Pagoda', name: 'Temple & Pagoda', icon: 'temple_buddhist' },
+  { id: 'Historic Site', name: 'Historic Site', icon: 'castle' },
+  { id: 'Nature & Lake', name: 'Nature & Lake', icon: 'forest' },
+  { id: 'Arts & Performance', name: 'Arts & Performance', icon: 'theater_comedy' },
+  { id: 'Street & Market', name: 'Street & Market', icon: 'storefront' },
 ];
 
-export default function DiscoveryPage() {
+function DiscoveryPageContent() {
   const [landmarks, setLandmarks] = useState<Landmark[]>([]);
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedCategory, setSelectedCategory] = useState('all');
@@ -42,8 +44,10 @@ export default function DiscoveryPage() {
   const [mapFocus, setMapFocus] = useState<[number, number] | null>(null);
   const [activeLandmarkId, setActiveLandmarkId] = useState<string | null>(null);
   const [aiMarkers, setAiMarkers] = useState<AiMarker[]>([]);
-
   const [visibleCount, setVisibleCount] = useState(20);
+  const [isFilterBarVisible, setIsFilterBarVisible] = useState(true);
+
+  const searchParams = useSearchParams();
 
   // Zustand — subscribe to selectedPlaces directly for reactivity
   const selectedPlaces = useTripStore((s) => s.selectedPlaces);
@@ -58,21 +62,25 @@ export default function DiscoveryPage() {
     loadData();
   }, []);
 
+  // Handle auto-focus / selection via URL query (?select=...)
+  useEffect(() => {
+    const selectId = searchParams.get('select');
+    if (selectId && landmarks.length > 0) {
+      const landmark = landmarks.find(l => l.id === selectId);
+      if (landmark) {
+        setMapFocus([landmark.lat, landmark.lng]);
+        setActiveLandmarkId(landmark.id);
+      }
+    }
+  }, [searchParams, landmarks]);
+
   // Memoize filtered list — only recalculates when landmarks, selectedCategory, or searchQuery change
   const filteredLandmarks = useMemo(() => {
     let list = landmarks;
 
     // Filter by selected category
     if (selectedCategory !== 'all') {
-      list = list.filter(l => {
-        const cat = l.category.toLowerCase();
-        if (selectedCategory === 'heritage') return cat.includes('heritage') || cat.includes('historic');
-        if (selectedCategory === 'spiritual') return cat.includes('spiritual') || cat.includes('temple');
-        if (selectedCategory === 'nature') return cat.includes('nature') || cat.includes('outdoor');
-        if (selectedCategory === 'art') return cat.includes('art') || cat.includes('museum') || cat.includes('theater');
-        if (selectedCategory === 'sightseeing') return cat.includes('sightseeing') || cat.includes('tourist') || cat.includes('attraction');
-        return cat.includes(selectedCategory);
-      });
+      list = list.filter(l => l.category === selectedCategory);
     }
 
     // Filter by search query
@@ -143,7 +151,6 @@ export default function DiscoveryPage() {
             />
           </div>
 
-
           {/* Place Cards Container (Restricted scroll strictly here) */}
           <div 
             onScroll={handleScroll}
@@ -153,7 +160,6 @@ export default function DiscoveryPage() {
                <label className="font-label text-[10px] font-black uppercase tracking-[0.25em] text-outline/60 block">
                  Heritage Collection
                </label>
-               {/* <span className="text-[10px] font-black text-primary bg-primary/5 px-2 py-1 rounded-md">{filteredLandmarks.length} results</span> */}
             </div>
             {filteredLandmarks.slice(0, visibleCount).map(l => {
               const saved = l.id in selectedPlaces;
@@ -216,26 +222,52 @@ export default function DiscoveryPage() {
           </button>
         )}
 
-        {/* Floating Category Selector (Sleek and compact size) */}
-        <div className="absolute top-6 left-1/2 -translate-x-1/2 z-[1000] flex gap-1.5 max-w-[90%] overflow-x-auto scrollbar-none bg-background/90 backdrop-blur-xl p-1 px-2 rounded-[20px] shadow-lg border border-white/20 animate-in fade-in slide-in-from-top-4 duration-500">
-          {CATEGORIES.map((cat) => {
-            const active = selectedCategory === cat.id;
-            return (
-              <button
-                key={cat.id}
-                onClick={() => setSelectedCategory(cat.id)}
-                className={`flex items-center gap-1 px-3 py-1.5 rounded-full text-[10px] font-black uppercase tracking-wider transition-all duration-300 active:scale-95 whitespace-nowrap border
-                  ${active 
-                    ? 'bg-primary text-white border-primary shadow-md shadow-primary/20 scale-[1.02]' 
-                    : 'bg-white/40 text-on-surface/80 border-outline/10 hover:text-on-surface hover:bg-white/80 hover:border-outline/20 active:scale-95'
-                  }`}
-              >
-                <span className="material-symbols-outlined text-[13px]">{cat.icon}</span>
-                {cat.name}
-              </button>
-            );
-          })}
-        </div>
+        {/* Floating Category Selector */}
+        {isFilterBarVisible ? (
+          <div className="absolute top-6 left-1/2 -translate-x-1/2 z-[1000] flex items-center gap-1 max-w-[90%] bg-background/90 backdrop-blur-xl p-0.5 pl-1.5 pr-0.5 rounded-[16px] shadow-lg border border-white/20 animate-in fade-in slide-in-from-top-4 duration-500">
+            <div className="flex gap-1 overflow-x-auto hide-scrollbar pr-1">
+              {CATEGORIES.map((cat) => {
+                const active = selectedCategory === cat.id;
+                return (
+                  <button
+                    key={cat.id}
+                    onClick={() => setSelectedCategory(cat.id)}
+                    className={`flex items-center gap-1 px-2.5 py-1 rounded-full text-[9px] font-black uppercase tracking-wider transition-all duration-300 active:scale-95 whitespace-nowrap border
+                      ${active 
+                        ? 'bg-primary text-white border-primary shadow-md shadow-primary/20 scale-[1.02]' 
+                        : 'bg-white/40 text-on-surface/80 border-outline/10 hover:text-on-surface hover:bg-white/80 hover:border-outline/20 active:scale-95'
+                      }`}
+                  >
+                    <span className="material-symbols-outlined text-[11px]">{cat.icon}</span>
+                    {cat.name}
+                  </button>
+                );
+              })}
+            </div>
+            
+            {/* Divider */}
+            <div className="h-5 w-px bg-outline/10 mx-1 flex-shrink-0"></div>
+
+            {/* Close button */}
+            <button 
+              onClick={() => setIsFilterBarVisible(false)}
+              className="w-7 h-7 rounded-full flex items-center justify-center text-outline/50 hover:text-primary hover:bg-primary/5 transition-all active:scale-90 flex-shrink-0"
+              title="Hide filter bar"
+            >
+              <span className="material-symbols-outlined text-sm">close</span>
+            </button>
+          </div>
+        ) : (
+          /* Mini Floating Filter Icon Button */
+          <button 
+            onClick={() => setIsFilterBarVisible(true)}
+            className={`absolute top-6 z-[1000] w-12 h-12 bg-background/90 backdrop-blur-xl rounded-[20px] shadow-[0_15px_40px_rgba(0,0,0,0.15)] flex items-center justify-center border border-white/50 hover:bg-white transition-all active:scale-90 animate-in fade-in duration-300
+              ${isSidebarOpen ? 'left-6' : 'left-[80px]'}`}
+            title="Show filter bar"
+          >
+            <span className="material-symbols-outlined text-2xl text-primary">filter_list</span>
+          </button>
+        )}
 
         <DiscoveryMap
           onLocationFound={setUserLocation}
@@ -259,5 +291,17 @@ export default function DiscoveryPage() {
         }}
       />
     </div>
+  );
+}
+
+export default function DiscoveryPage() {
+  return (
+    <Suspense fallback={
+      <div className="h-screen w-full flex items-center justify-center bg-background">
+        <div className="w-12 h-12 border-4 border-primary border-t-transparent rounded-full animate-spin"></div>
+      </div>
+    }>
+      <DiscoveryPageContent />
+    </Suspense>
   );
 }

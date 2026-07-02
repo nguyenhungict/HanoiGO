@@ -108,6 +108,7 @@ Every technical claim, schema design, or API description in the thesis report mu
 - **LaTeX Formatting for Emphasis:**
   - **No `\textbf{}` or `\textit{}` in body paragraphs.** If emphasis is needed, rewrite the sentence instead. Bold/italic are reserved only for headers, subheaders, or template-defined elements.
   - Use `\texttt{}` strictly for code elements, file names, libraries, commands, API endpoints, and technical identifiers (e.g., `\texttt{GroupChatGateway}`).
+  - **No `---` (em dash) in body paragraphs.** Do not use `---` for parenthetical breaks; use commas, parentheses, or restructure the sentence instead.
 - **Figure & Table Placement:**
   - Put figures/tables immediately after the first paragraph that introduces them.
   - Refer to every figure, diagram, and table in the text *before* it appears using `Figure~\ref{...}` and `Table~\ref{...}`. Never write "the figure below" or "the table above".

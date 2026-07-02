@@ -1,0 +1,394 @@
+{
+  "mode": "GOONG",
+  "scenarios": {
+    "badinh-trap": {
+      "title": "Case 1 — Ba Dinh early-closing trap (1 day)",
+      "totalInput": 5,
+      "hanoiGo": {
+        "method": "HanoiGO",
+        "placesVisited": 5,
+        "totalInput": 5,
+        "totalTravelMin": 25,
+        "totalWaitMin": 0,
+        "compactnessKm": 0.8,
+        "perDay": [
+          {
+            "day": 1,
+            "visited": [
+              "Ho Chi Minh Mausoleum",
+              "Ho Chi Minh Museum",
+              "One Pillar Pagoda",
+              "Imperial Citadel of Thang Long",
+              "Vietnamese Women Museum"
+            ]
+          }
+        ],
+        "droppedNames": []
+      },
+      "byDistrict": {
+        "method": "By-District",
+        "placesVisited": 4,
+        "totalInput": 5,
+        "totalTravelMin": 19,
+        "totalWaitMin": 0,
+        "compactnessKm": 0.91,
+        "perDay": [
+          {
+            "day": 1,
+            "visited": [
+              "Vietnamese Women Museum",
+              "Ho Chi Minh Museum",
+              "One Pillar Pagoda",
+              "Imperial Citadel of Thang Long"
+            ]
+          }
+        ],
+        "droppedNames": [
+          "Ho Chi Minh Mausoleum"
+        ]
+      },
+      "randomMean": {
+        "method": "Random (avg)",
+        "placesVisited": 3.59,
+        "totalInput": 5,
+        "totalTravelMin": 25,
+        "totalWaitMin": 0,
+        "compactnessKm": 0.96,
+        "perDay": [],
+        "droppedNames": []
+      },
+      "randomSample": {
+        "method": "Random",
+        "placesVisited": 3,
+        "totalInput": 5,
+        "totalTravelMin": 28,
+        "totalWaitMin": 0,
+        "compactnessKm": 1.03,
+        "perDay": [
+          {
+            "day": 1,
+            "visited": [
+              "Imperial Citadel of Thang Long",
+              "Vietnamese Women Museum",
+              "One Pillar Pagoda"
+            ]
+          }
+        ],
+        "droppedNames": [
+          "Ho Chi Minh Museum",
+          "Ho Chi Minh Mausoleum"
+        ]
+      }
+    },
+    "multi-district-3day": {
+      "title": "Case 2 — Mixed multi-district trip (3 days, 12 places)",
+      "totalInput": 12,
+      "hanoiGo": {
+        "method": "HanoiGO",
+        "placesVisited": 12,
+        "totalInput": 12,
+        "totalTravelMin": 100,
+        "totalWaitMin": 0,
+        "compactnessKm": 0.35,
+        "perDay": [
+          {
+            "day": 1,
+            "visited": [
+              "Ho Chi Minh Mausoleum",
+              "Ho Chi Minh Museum",
+              "Imperial Citadel of Thang Long",
+              "Tran Quoc Pagoda",
+              "Temple of Literature",
+              "One Pillar Pagoda"
+            ]
+          },
+          {
+            "day": 2,
+            "visited": [
+              "Bat Trang Ceramic Village"
+            ]
+          },
+          {
+            "day": 3,
+            "visited": [
+              "Hoan Kiem Lake",
+              "Hoa Lo Prison",
+              "Vietnamese Women Museum",
+              "Ngoc Son Temple",
+              "Dong Xuan Market"
+            ]
+          }
+        ],
+        "droppedNames": []
+      },
+      "byDistrict": {
+        "method": "By-District",
+        "placesVisited": 12,
+        "totalInput": 12,
+        "totalTravelMin": 112,
+        "totalWaitMin": 0,
+        "compactnessKm": 1.53,
+        "perDay": [
+          {
+            "day": 1,
+            "visited": [
+              "Ho Chi Minh Mausoleum",
+              "Ho Chi Minh Museum",
+              "One Pillar Pagoda",
+              "Imperial Citadel of Thang Long"
+            ]
+          },
+          {
+            "day": 2,
+            "visited": [
+              "Hoan Kiem Lake",
+              "Ngoc Son Temple",
+              "Hoa Lo Prison",
+              "Vietnamese Women Museum"
+            ]
+          },
+          {
+            "day": 3,
+            "visited": [
+              "Dong Xuan Market",
+              "Temple of Literature",
+              "Tran Quoc Pagoda",
+              "Bat Trang Ceramic Village"
+            ]
+          }
+        ],
+        "droppedNames": []
+      },
+      "randomMean": {
+        "method": "Random (avg)",
+        "placesVisited": 10.24,
+        "totalInput": 12,
+        "totalTravelMin": 136,
+        "totalWaitMin": 0,
+        "compactnessKm": 1.93,
+        "perDay": [],
+        "droppedNames": []
+      },
+      "randomSample": {
+        "method": "Random",
+        "placesVisited": 10,
+        "totalInput": 12,
+        "totalTravelMin": 105,
+        "totalWaitMin": 0,
+        "compactnessKm": 1.98,
+        "perDay": [
+          {
+            "day": 1,
+            "visited": [
+              "Hoan Kiem Lake",
+              "Hoa Lo Prison",
+              "Ngoc Son Temple"
+            ]
+          },
+          {
+            "day": 2,
+            "visited": [
+              "Dong Xuan Market",
+              "Tran Quoc Pagoda",
+              "Bat Trang Ceramic Village"
+            ]
+          },
+          {
+            "day": 3,
+            "visited": [
+              "One Pillar Pagoda",
+              "Imperial Citadel of Thang Long",
+              "Temple of Literature",
+              "Vietnamese Women Museum"
+            ]
+          }
+        ],
+        "droppedNames": [
+          "Ho Chi Minh Museum",
+          "Ho Chi Minh Mausoleum"
+        ]
+      }
+    },
+    "closed-day-2day": {
+      "title": "Case 3 — Monday closures (2 days)",
+      "totalInput": 8,
+      "hanoiGo": {
+        "method": "HanoiGO",
+        "placesVisited": 8,
+        "totalInput": 8,
+        "totalTravelMin": 33,
+        "totalWaitMin": 0,
+        "compactnessKm": 0.61,
+        "perDay": [
+          {
+            "day": 1,
+            "visited": [
+              "Ngoc Son Temple",
+              "Hoan Kiem Lake",
+              "Hoa Lo Prison"
+            ]
+          },
+          {
+            "day": 2,
+            "visited": [
+              "Vietnamese Women Museum",
+              "Ho Chi Minh Museum",
+              "One Pillar Pagoda",
+              "Temple of Literature",
+              "Imperial Citadel of Thang Long"
+            ]
+          }
+        ],
+        "droppedNames": []
+      },
+      "byDistrict": {
+        "method": "By-District",
+        "placesVisited": 5,
+        "totalInput": 8,
+        "totalTravelMin": 31,
+        "totalWaitMin": 0,
+        "compactnessKm": 0.36,
+        "perDay": [
+          {
+            "day": 1,
+            "visited": [
+              "One Pillar Pagoda"
+            ]
+          },
+          {
+            "day": 2,
+            "visited": [
+              "Hoan Kiem Lake",
+              "Ngoc Son Temple",
+              "Hoa Lo Prison",
+              "Temple of Literature"
+            ]
+          }
+        ],
+        "droppedNames": [
+          "Ho Chi Minh Museum",
+          "Imperial Citadel of Thang Long",
+          "Vietnamese Women Museum"
+        ]
+      },
+      "randomMean": {
+        "method": "Random (avg)",
+        "placesVisited": 6.25,
+        "totalInput": 8,
+        "totalTravelMin": 44,
+        "totalWaitMin": 0,
+        "compactnessKm": 0.77,
+        "perDay": [],
+        "droppedNames": []
+      },
+      "randomSample": {
+        "method": "Random",
+        "placesVisited": 7,
+        "totalInput": 8,
+        "totalTravelMin": 49,
+        "totalWaitMin": 0,
+        "compactnessKm": 0.94,
+        "perDay": [
+          {
+            "day": 1,
+            "visited": [
+              "One Pillar Pagoda",
+              "Hoa Lo Prison",
+              "Hoan Kiem Lake"
+            ]
+          },
+          {
+            "day": 2,
+            "visited": [
+              "Imperial Citadel of Thang Long",
+              "Temple of Literature",
+              "Vietnamese Women Museum",
+              "Ngoc Son Temple"
+            ]
+          }
+        ],
+        "droppedNames": [
+          "Ho Chi Minh Museum"
+        ]
+      }
+    },
+    "late-opening-1day": {
+      "title": "Case 4 — Afternoon-only venue (1 day)",
+      "totalInput": 5,
+      "hanoiGo": {
+        "method": "HanoiGO",
+        "placesVisited": 5,
+        "totalInput": 5,
+        "totalTravelMin": 27,
+        "totalWaitMin": 0,
+        "compactnessKm": 0.37,
+        "perDay": [
+          {
+            "day": 1,
+            "visited": [
+              "Ngoc Son Temple",
+              "Hoa Lo Prison",
+              "Hoan Kiem Lake",
+              "St Joseph's Cathedral",
+              "Thang Long Water Puppet Theatre"
+            ]
+          }
+        ],
+        "droppedNames": []
+      },
+      "byDistrict": {
+        "method": "By-District",
+        "placesVisited": 3,
+        "totalInput": 5,
+        "totalTravelMin": 15,
+        "totalWaitMin": 404,
+        "compactnessKm": 0.2,
+        "perDay": [
+          {
+            "day": 1,
+            "visited": [
+              "Thang Long Water Puppet Theatre",
+              "Hoan Kiem Lake",
+              "Ngoc Son Temple"
+            ]
+          }
+        ],
+        "droppedNames": [
+          "St Joseph's Cathedral",
+          "Hoa Lo Prison"
+        ]
+      },
+      "randomMean": {
+        "method": "Random (avg)",
+        "placesVisited": 4.28,
+        "totalInput": 5,
+        "totalTravelMin": 20,
+        "totalWaitMin": 257,
+        "compactnessKm": 0.32,
+        "perDay": [],
+        "droppedNames": []
+      },
+      "randomSample": {
+        "method": "Random",
+        "placesVisited": 5,
+        "totalInput": 5,
+        "totalTravelMin": 25,
+        "totalWaitMin": 226,
+        "compactnessKm": 0.37,
+        "perDay": [
+          {
+            "day": 1,
+            "visited": [
+              "Hoa Lo Prison",
+              "Ngoc Son Temple",
+              "Hoan Kiem Lake",
+              "Thang Long Water Puppet Theatre",
+              "St Joseph's Cathedral"
+            ]
+          }
+        ],
+        "droppedNames": []
+      }
+    }
+  }
+}

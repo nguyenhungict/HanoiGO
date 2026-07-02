@@ -14,11 +14,11 @@ interface ActivityReelCardProps {
 }
 
 const CATEGORY_CONFIG: Record<string, { icon: string; label: string; bg: string; text: string }> = {
-  'Nature & Outdoors':  { icon: 'park',            label: 'Nature',      bg: '#43A0471A', text: '#43A047' },
-  'Arts & Culture':     { icon: 'museum',          label: 'Culture',     bg: '#3F51B51A', text: '#3F51B5' },
-  'Heritage & History': { icon: 'account_balance', label: 'Heritage',    bg: '#607D8B1A', text: '#607D8B' },
-  'Spiritual':          { icon: 'temple_buddhist', label: 'Spiritual',   bg: '#FF98001A', text: '#FF9800' },
-  'Sightseeing':        { icon: 'location_on',     label: 'Sightseeing', bg: '#0288D11A', text: '#0288D1' },
+  'Food & Drink':       { icon: 'restaurant',      label: 'Food & Drink',       bg: '#E535351A', text: '#E53535' },
+  'Sports & Active':    { icon: 'directions_bike', label: 'Sports & Active',    bg: '#43A0471A', text: '#43A047' },
+  'Arts & Culture':     { icon: 'theater_comedy',  label: 'Arts & Culture',     bg: '#3F51B51A', text: '#3F51B5' },
+  'Social & Nightlife': { icon: 'local_bar',        label: 'Social & Nightlife', bg: '#9C27B01A', text: '#9C27B0' },
+  'Sightseeing':        { icon: 'photo_camera',    label: 'Sightseeing',        bg: '#0288D11A', text: '#0288D1' },
 };
 
 const BACKEND_URL = process.env.NEXT_PUBLIC_ACTIONS_URL || 'http://localhost:8888';
@@ -67,7 +67,7 @@ export const ActivityReelCard: React.FC<ActivityReelCardProps> = ({ activity, on
   const isMember = activity.myStatus === 'APPROVED' && !isHost;
   const hasRequested = activity.myStatus === 'PENDING';
 
-  const cat = CATEGORY_CONFIG[activity.category] ?? CATEGORY_CONFIG['Arts & Culture'];
+  const cat = CATEGORY_CONFIG[activity.category] ?? CATEGORY_CONFIG['Sightseeing'];
   const memberCount = activity.memberCount || 1;
   const imageUrl = resolveImageUrl(activity.imageUrl);
   const hasImage = !!activity.imageUrl && !imgError;

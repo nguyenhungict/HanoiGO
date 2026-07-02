@@ -17,12 +17,12 @@ import { useAuthStore } from '@/store/useAuthStore';
 import { useChatNotificationStore } from '@/store/useChatNotificationStore';
 
 const CATEGORIES = [
-  { id: 'all',                name: 'All',                icon: 'apps' },
-  { id: 'Nature & Outdoors',   name: 'Nature',             icon: 'forest' },
-  { id: 'Arts & Culture',      name: 'Culture',            icon: 'theater_comedy' },
-  { id: 'Heritage & History',  name: 'History',            icon: 'history_edu' },
-  { id: 'Spiritual',           name: 'Spiritual',          icon: 'temple_buddhist' },
-  { id: 'Sightseeing',         name: 'Sightseeing',        icon: 'photo_camera' },
+  { id: 'all',              name: 'All',        icon: 'apps' },
+  { id: 'Food & Drink',     name: 'Food',       icon: 'restaurant' },
+  { id: 'Sports & Active',  name: 'Sports',     icon: 'directions_bike' },
+  { id: 'Arts & Culture',   name: 'Arts',       icon: 'theater_comedy' },
+  { id: 'Social & Nightlife', name: 'Social',   icon: 'local_bar' },
+  { id: 'Sightseeing',      name: 'Sightseeing', icon: 'photo_camera' },
 ];
 
 import { Activity } from '@/types';

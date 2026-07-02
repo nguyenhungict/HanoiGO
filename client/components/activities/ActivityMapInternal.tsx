@@ -45,13 +45,14 @@ const getActivityIcon = (scheduledAtStr: string, category: string) => {
     opacity = 'opacity-50';
   }
 
-  // Get icon by category
-  let iconName = 'group';
-  if (category === 'Nature & Outdoors') iconName = 'forest';
-  else if (category === 'Arts & Culture') iconName = 'theater_comedy';
-  else if (category === 'Heritage & History') iconName = 'history_edu';
-  else if (category === 'Spiritual') iconName = 'temple_buddhist';
-  else if (category === 'Sightseeing') iconName = 'photo_camera';
+  const ACTIVITY_ICONS: Record<string, string> = {
+    'Food & Drink':       'restaurant',
+    'Sports & Active':    'directions_bike',
+    'Arts & Culture':     'theater_comedy',
+    'Social & Nightlife': 'local_bar',
+    'Sightseeing':        'photo_camera',
+  };
+  const iconName = ACTIVITY_ICONS[category] ?? 'group';
 
   return L.divIcon({
     className: `activity-marker ${opacity}`,

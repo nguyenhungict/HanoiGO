@@ -4,12 +4,12 @@ import { ApiProperty } from '@nestjs/swagger';
 export class LoginDto {
   @ApiProperty({
     example: 'explorer@hanoigo.vn',
-    description: 'Địa chỉ email người dùng',
+    description: 'User email address',
   })
   @IsEmail()
   email: string;
 
-  @ApiProperty({ example: 'password123', description: 'Mật khẩu đăng nhập' })
+  @ApiProperty({ example: 'password123', description: 'Login password' })
   @IsNotEmpty()
   password: string;
 }

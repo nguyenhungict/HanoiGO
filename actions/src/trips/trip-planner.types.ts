@@ -47,7 +47,9 @@ export interface GenerateItineraryDto {
   startTime: number;
   endTime: number;
   travelDate: string;
-  visitDurationMin: number;
+  // Optional: a single duration applied to every place. When omitted, each
+  // place falls back to its own suggested visit_duration_min (per category).
+  visitDurationMin?: number;
   startLat?: number;
   startLng?: number;
   lunchBreakStart?: number;

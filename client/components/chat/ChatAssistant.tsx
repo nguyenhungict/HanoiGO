@@ -135,7 +135,7 @@ function ItineraryCard({ itinerary }: { itinerary: { days: ItineraryDay[] } }) {
 export default function ChatAssistant({ onAiMarkers }: Props) {
   const [isOpen, setIsOpen] = useState(false);
   const [messages, setMessages] = useState<Message[]>([
-    { role: 'assistant', content: 'Chào bạn! Tôi là **HanoiGO AI**. Bạn cần tôi hỗ trợ gì? ✨\n\nTôi có thể:\n- 📍 Gợi ý địa điểm **gần bạn**\n- 🗺️ **Lên kế hoạch chuyến đi** cho bạn\n- 💬 Trả lời câu hỏi về Hà Nội' }
+    { role: 'assistant', content: 'Hello! I am **HanoiGO AI**. How can I help you today? ✨\n\nI can:\n- 📍 Recommend places **near you**\n- 🗺️ **Plan a trip** for you\n- 💬 Answer questions about Hanoi' }
   ]);
   const [input, setInput] = useState('');
   const [isLoading, setIsLoading] = useState(false);
@@ -188,17 +188,17 @@ export default function ChatAssistant({ onAiMarkers }: Props) {
         }
       ]);
     } catch {
-      setMessages(prev => [...prev, { role: 'assistant', content: 'Hệ thống đang bận một chút, bạn thử lại sau nhé! 🙏' }]);
+      setMessages(prev => [...prev, { role: 'assistant', content: 'The system is a bit busy, please try again later! 🙏' }]);
     } finally {
       setIsLoading(false);
     }
   };
 
   const suggestions = [
-    { label: 'Gần tôi', icon: 'location_on' },
-    { label: 'Lên kế hoạch 1 ngày', icon: 'map' },
-    { label: 'Ăn uống', icon: 'restaurant' },
-    { label: 'Di tích lịch sử', icon: 'history_edu' },
+    { label: 'Near me', icon: 'location_on' },
+    { label: '1-day itinerary', icon: 'map' },
+    { label: 'Food & Dining', icon: 'restaurant' },
+    { label: 'Historical sites', icon: 'history_edu' },
   ];
 
   return (

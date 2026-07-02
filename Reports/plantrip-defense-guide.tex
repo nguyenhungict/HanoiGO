@@ -1,0 +1,474 @@
+% =====================================================================
+%  Plan Trip Module — Study & Defense Guide  (STANDALONE, not part of the thesis)
+%  Compile with pdfLaTeX on Overleaf. Explanations in Vietnamese; the
+%  practice answers are in English so they can be rehearsed for the jury.
+% =====================================================================
+\documentclass[12pt,a4paper]{article}
+\usepackage[utf8]{inputenc}
+\usepackage{lmodern}
+\usepackage[T5]{fontenc}
+\usepackage[vietnamese]{babel}
+\usepackage{amsmath}
+\usepackage[margin=2.4cm]{geometry}
+\usepackage{enumitem}
+\usepackage{xcolor}
+\usepackage[hidelinks]{hyperref}
+
+\setlength{\parskip}{0.5em}
+\setlength{\parindent}{0pt}
+\newcommand{\en}[1]{\textit{(#1)}}            % English term gloss
+\newcommand{\Q}[1]{\medskip\noindent\textbf{Q:} \textit{#1}\par}
+\newcommand{\A}{\noindent\textbf{A:} }
+
+\title{\textbf{HanoiGO --- Module Plan Trip}\\[4pt]
+\large Tài liệu giải thích \& luyện bảo vệ trước hội đồng}
+\author{Nguyen Duy Hung --- 22BA13154}
+\date{}
+
+\begin{document}
+\maketitle
+\hrule
+\medskip
+
+\textbf{Cách dùng tài liệu:} phần 1--8 giải thích module bằng tiếng Việt (kèm
+thuật ngữ tiếng Anh trong ngoặc để bạn nhớ từ vựng). Phần 9 là bộ câu hỏi luyện
+tập: câu hỏi và câu trả lời mẫu viết bằng tiếng Anh để bạn nói trực tiếp trước
+hội đồng. Các con số đều là kết quả thật từ benchmark, không bịa.
+
+\tableofcontents
+\medskip\hrule
+
+% =====================================================================
+\section{Module Plan Trip làm gì?}
+
+Module này nhận một danh sách địa điểm và vài thiết lập, rồi tự sinh ra một
+\textbf{lịch trình nhiều ngày} \en{multi-day itinerary}.
+
+\begin{itemize}[nosep]
+  \item \textbf{Đầu vào} \en{input}: các địa điểm đã chọn; số ngày đi; giờ bắt
+  đầu / kết thúc mỗi ngày; khung nghỉ trưa; điểm xuất phát (khách sạn).
+  \item \textbf{Đầu ra} \en{output}: với mỗi ngày, một danh sách điểm \textbf{theo
+  thứ tự}, kèm giờ đến \en{arrival} và giờ đi \en{departure}. Điểm nào không kịp
+  giờ mở cửa thì báo là \textit{unscheduled}.
+\end{itemize}
+
+Ví von dễ hiểu: module đóng vai một hướng dẫn viên, xếp lịch sao cho khách
+\textbf{đi được nhiều điểm nhất}, \textbf{ít di chuyển nhất}, và \textbf{không
+tới nơi lúc đã đóng cửa}.
+
+% =====================================================================
+\section{Bài toán cốt lõi: TSPTW}
+
+Đây là bài toán \textbf{Người giao hàng với khung giờ} \en{Travelling Salesman
+Problem with Time Windows --- TSPTW}.
+
+\begin{itemize}[nosep]
+  \item \textbf{TSP} (bài toán người giao hàng): tìm thứ tự thăm các điểm sao cho
+  tổng quãng đường / thời gian di chuyển nhỏ nhất. Đây là bài toán
+  \textbf{NP-hard} --- số thứ tự khả dĩ tăng theo giai thừa $n!$.
+  \item \textbf{Time Windows} (khung giờ): mỗi điểm chỉ mở trong một khoảng giờ
+  nhất định (ví dụ Lăng Bác 07:30--10:30). Phải thăm \textbf{trong} khung đó.
+\end{itemize}
+
+Vì sao khó: phải đồng thời (1) chọn thứ tự tốt, (2) tôn trọng giờ mở/đóng của
+từng điểm, (3) chừa giờ nghỉ trưa, và (4) không vượt quá giờ kết thúc ngày. Một
+thứ tự ``ngắn đường'' nhưng tới Lăng Bác sau 10:30 là vô dụng.
+
+% =====================================================================
+\section{Quy trình 6 bước (pipeline)}
+
+Hệ thống không giải một cục lớn, mà chia thành 6 bước nối tiếp:
+
+\begin{enumerate}[leftmargin=2.2em]
+  \item \textbf{Lọc trước} \en{Pre-Filtering}: bỏ những điểm đóng cửa suốt mọi
+  ngày của chuyến đi.
+  \item \textbf{Gom cụm theo địa lý} \en{K-Means++ clustering}: chia các điểm
+  thành $K$ cụm (mỗi cụm = 1 ngày), tối đa 5 điểm/ngày.
+  \item \textbf{Lấy ma trận thời gian đi} \en{Distance Matrix}: gọi Goong Maps
+  một lần để lấy thời gian đi đường thật giữa mọi cặp điểm (có dự phòng
+  Haversine khi API lỗi).
+  \item \textbf{Xếp thứ tự trong ngày} \en{sequencing, TSPTW}: dùng
+  \textbf{tìm kiếm chính xác} \en{exact search} cho ngày $\le 8$ điểm; GNN
+  (tham lam) chỉ là dự phòng cho ngày lớn hơn.
+  \item \textbf{Hiệu chỉnh GPS \& chèn lại} \en{GPS cascade \& gap insertion}:
+  cộng thời gian thật từ khách sạn tới điểm đầu; thử chèn lại các điểm đã rớt
+  vào ``khe trống'' của ngày khác.
+  \item \textbf{Xếp thứ tự lần cuối} \en{final ordering}: sau khi chèn lại có
+  thể đổi thành viên trong ngày, nên chạy lại tìm kiếm chính xác để chốt thứ tự
+  tốt nhất.
+\end{enumerate}
+
+\textbf{Ý chính cần nhớ:} bước 1--3 dùng \textbf{heuristic nhanh} để chia việc;
+bước 4 và 6 dùng \textbf{thuật toán chính xác} để xếp thứ tự trong từng ngày nhỏ.
+
+% =====================================================================
+\section{Trái tim thuật toán: Tham lam vs Tìm kiếm chính xác}
+
+\subsection{Tham lam (Greedy Nearest Neighbor --- GNN)}
+
+Tham lam nghĩa là \textbf{mỗi bước chỉ chọn điểm gần nhất hiện tại}, nhìn đúng
+một bước phía trước. Công thức chi phí chuyển tiếp:
+\[
+\text{Cost}(i,j) = t_{\text{travel}}(i,j)\times 2 + t_{\text{wait}}(j)
+\]
+(ưu tiên đi gần và ít phải chờ). Nhanh, nhưng \textbf{thiển cận}.
+
+\subsection{Cái bẫy Ba Đình (ví dụ kinh điển)}
+
+Xuất phát từ khách sạn cạnh Hồ Gươm lúc 8:00, có 5 điểm, trong đó
+\textbf{Lăng Bác đóng 10:30} và một bảo tàng đóng 12:00, các điểm khác mở cả
+ngày. Cách tham lam chọn ngay điểm gần nhất (Bảo tàng Phụ nữ, sát khách sạn),
+rồi lòng vòng các điểm mở-cả-ngày $\Rightarrow$ tới Lăng Bác thì đã quá 10:30
+$\Rightarrow$ \textbf{bỏ lỡ}. Kết quả tham lam: chỉ 3/5 điểm.
+
+Cách đúng: \textbf{đi điểm đóng sớm trước}. Thứ tự
+Bảo tàng HCM $\rightarrow$ Lăng Bác $\rightarrow$ \dots cho phép thăm
+\textbf{cả 5/5}.
+
+\subsection{Tìm kiếm chính xác (Exact / Brute-force search)}
+
+Thay vì đoán, ta \textbf{thử mọi thứ tự} rồi giữ thứ tự thăm được nhiều điểm
+nhất (hoà nhau thì chọn ít di chuyển nhất). Với $n$ điểm có $n!$ thứ tự.
+
+\textbf{Vì sao chấp nhận được dù $n!$ là giai thừa?} Vì mỗi ngày bị
+\textbf{giới hạn nhỏ}: tối đa 5 điểm (cap), trần an toàn 8 điểm. Mà
+$8! = 40{,}320$ phép thử $\Rightarrow$ chạy \textbf{dưới 1 mili-giây}. So sánh:
+một lần gọi Goong API mất 200--500 ms. Nói cách khác, ở quy mô bài toán này,
+``giai thừa'' vẫn rất rẻ.
+
+\subsection{Sửa quan trọng: nhận biết chặng GPS đầu tiên}
+
+Ban đầu tìm kiếm chính xác giả định ``đi tới điểm đầu = 0 giây''. Nhưng khi
+bước 5 cộng thời gian thật từ khách sạn ($\approx 14$ phút), mọi mốc trượt trễ
+và một điểm sát giờ trưa bị đẩy quá hạn rồi rớt. Cách sửa: cho tìm kiếm chính
+xác \textbf{biết trước thời gian thật từ khách sạn tới điểm đầu} (lấy từ
+\textit{startCache} đã prefetch), nên nó chọn thứ tự \textbf{bền vững với độ trễ
+thật}. Sau sửa: thăm đủ 5/5.
+
+% =====================================================================
+\section{Vì sao chọn từng kỹ thuật (design rationale)}
+
+\begin{itemize}[nosep]
+  \item \textbf{K-Means++ để chia ngày, không phải để xếp thứ tự.} Chia điểm
+  theo cụm địa lý đảm bảo mỗi ngày gọn trong một khu, đỡ chạy lòng vòng giữa các
+  quận xa nhau.
+  \item \textbf{Haversine cho bước gom cụm} \en{straight-line distance}: gom cụm
+  chỉ cần khoảng cách tương đối, nên dùng công thức đường chim bay tính
+  \textbf{offline, miễn phí, tức thì}.
+  \item \textbf{Goong cho bước xếp thứ tự}: xếp lịch theo giờ cần
+  \textbf{thời gian đi đường thật} (tránh hồ, phố một chiều), nên dùng Goong
+  Distance Matrix.
+  \item \textbf{Dự phòng Haversine + retry}: nếu Goong lỗi/giới hạn tần suất, thử
+  lại 3 lần (exponential backoff) rồi quay về ước lượng Haversine --- hệ không
+  bao giờ chết.
+  \item \textbf{Đệm tiếp cận 10 phút \& nghỉ trưa}: mỗi điểm cộng 10 phút đệm cho
+  việc tiếp cận thực tế --- từ chỗ xuống xe/taxi tới cổng, mua hoặc quét vé, định
+  vị --- trước khi bắt đầu thăm. Đây là con số bảo thủ, \textbf{không phụ thuộc
+  loại phương tiện} (đi xe máy, Grab hay đi bộ đều cần), giúp giờ in ra trung
+  thực. Nếu giờ thăm đụng khung trưa thì đẩy sang sau trưa.
+\end{itemize}
+
+% =====================================================================
+\section{Đánh giá: chứng minh tốt hơn cách thủ công}
+
+So sánh lịch của module \textbf{HanoiGO} với hai cách du khách hay tự làm:
+\textbf{By-District} (gom theo quận, thăm theo thứ tự liệt kê) và \textbf{Random}
+(ngẫu nhiên, trung bình 200 lần). Cả ba dùng \textbf{cùng dữ liệu và cùng bộ
+kiểm tra giờ giấc}, chỉ khác chiến lược.
+
+\begin{center}
+\renewcommand{\arraystretch}{1.2}
+\begin{tabular}{|l|l|c|c|c|c|}
+\hline
+\textbf{Kịch bản} & \textbf{Phương pháp} & \textbf{Điểm thăm} & \textbf{Di chuyển} & \textbf{Chờ} & \textbf{Độ gọn} \\
+ & & & \textbf{(phút)} & \textbf{(phút)} & \textbf{(km)} \\ \hline
+Case 1 (1 ngày,    & HanoiGO     & \textbf{5/5}   & 25  & 0   & 0.80 \\ \cline{2-6}
+5 điểm,            & By-District & 4/5            & 19  & 0   & 0.91 \\ \cline{2-6}
+bẫy Ba Đình)       & Random      & 3.6/5          & 25  & 0   & 0.96 \\ \hline
+Case 2 (3 ngày,    & HanoiGO     & \textbf{12/12} & \textbf{100} & 0 & \textbf{0.35} \\ \cline{2-6}
+12 điểm,           & By-District & 12/12          & 112 & 0   & 1.53 \\ \cline{2-6}
+nhiều quận)        & Random      & 10.2/12        & 136 & 0   & 1.93 \\ \hline
+Case 3 (2 ngày,    & HanoiGO     & \textbf{8/8}   & 33  & 0   & 0.61 \\ \cline{2-6}
+8 điểm, đóng cửa   & By-District & 5/8            & 31  & 0   & 0.36 \\ \cline{2-6}
+thứ Hai)           & Random      & 6.3/8          & 44  & 0   & 0.77 \\ \hline
+Case 4 (1 ngày,    & HanoiGO     & \textbf{5/5}   & 27  & \textbf{0}   & 0.37 \\ \cline{2-6}
+5 điểm, mở         & By-District & 3/5            & 15  & 404 & 0.20 \\ \cline{2-6}
+buổi chiều)        & Random      & 4.3/5          & 20  & 257 & 0.32 \\ \hline
+\end{tabular}
+\end{center}
+
+\textbf{Đọc kết quả:} các con số trên dùng \textbf{thời gian đi đường thật của
+Goong} (ảnh chụp đông cứng để tái lập được). HanoiGO \textbf{thăm đủ mọi điểm
+người dùng chọn ở cả 4 case}. Ở Case 2, lợi thế chính là \textbf{độ gọn}: ngày
+của nó gọn gấp khoảng 4 lần (0.35 so với 1.53 km), đồng thời tổng di chuyển vẫn
+thấp nhất (100 so với 112 và 136 phút) --- dù khi dùng đường thật, khoảng cách
+với By-District thu hẹp lại (đường thật phạt các ngày trải rộng về địa lý, nhưng
+By-District ở Case 2 vẫn giữ được 12/12 nên travel không chênh nhiều). Case 3 và
+Case 4 mới là nơi module bỏ xa cách thủ công, vì chúng kiểm tra hai ràng buộc
+giờ giấc mà cách thủ công bỏ qua (xem mục dưới).
+
+\subsection*{Case 3 --- Đóng cửa theo thứ trong tuần}
+
+\textbf{Bối cảnh:} chuyến 2 ngày, \textbf{ngày 1 rơi vào thứ Hai}. Trong 8 điểm
+chọn, có 3 điểm đóng cửa thứ Hai (Bảo tàng Hồ Chí Minh, Hoàng thành Thăng Long,
+Bảo tàng Phụ nữ --- nhiều bảo tàng ở Hà Nội nghỉ đầu tuần là chuyện có thật).
+
+\begin{itemize}[nosep]
+  \item \textbf{HanoiGO} đọc danh sách ngày-mở \en{openDays} của từng điểm, nên
+  \textbf{đẩy cả 3 điểm đóng sang ngày 2} (thứ Ba) và thăm đủ \textbf{8/8}.
+  \item \textbf{By-District} không quan tâm hôm đó là thứ mấy, để 3 điểm đó ở
+  ngày thứ Hai rồi \textbf{rớt cả 3} (5/8). Random rớt trung bình $\approx 2$
+  điểm (6.3/8).
+\end{itemize}
+
+\textbf{Lưu ý trung thực (rất dễ bị hỏi):} ở bảng, By-District ``gọn'' hơn
+(0.36 so với 0.61) --- nhưng \textbf{chỉ vì nó đã rớt 3 điểm xa}, nên độ gọn được
+đo trên ít điểm hơn. HanoiGO chịu kém gọn một chút để \textbf{giữ đủ điểm}. Đừng
+để con số độ gọn đánh lừa: tiêu chí quan trọng nhất ở đây là số điểm thăm được.
+
+\textbf{Ý nghĩa bảo vệ:} đây chính là lý do app bắt người dùng \textbf{nhập ngày
+đi} --- để biết thứ trong tuần và không xếp khách tới nơi đúng hôm đóng cửa.
+
+\subsection*{Case 4 --- Điểm chỉ mở buổi chiều}
+
+\textbf{Bối cảnh:} 1 ngày, có \textbf{Nhà hát Múa rối Thăng Long mở từ 15:00}
+(suất chiều/tối) cùng 4 điểm mở buổi sáng.
+
+\begin{itemize}[nosep]
+  \item \textbf{HanoiGO} xếp nhà hát \textbf{cuối ngày}, lấp buổi sáng bằng 4 điểm
+  kia, nên \textbf{không phải chờ} (0 phút) và thăm đủ 5/5.
+  \item \textbf{By-District} giữ nhà hát ở vị trí cố định (đầu danh sách), tới nơi
+  lúc sáng rồi \textbf{ngồi chờ tới 15:00 = 404 phút}; thời gian mất vào việc chờ
+  khiến nó \textbf{rớt 2 điểm} (3/5). Random chờ 257 phút.
+\end{itemize}
+
+\textbf{Vì sao HanoiGO tự biết làm vậy:} hàm chi phí phạt cả thời gian chờ
+($\text{Cost} = t_{\text{travel}}\times 2 + t_{\text{wait}}$), nên một điểm mở
+muộn tự bị đẩy về cuối. Case này cũng là lý do bảng có \textbf{cột ``Chờ''}: khi
+mọi điểm đều mở cả ngày thì cột này bằng 0 và vô nghĩa, nhưng khi có điểm mở muộn
+thì nó cho thấy rõ giá trị của việc xếp theo giờ mở cửa.
+
+% =====================================================================
+\section{Hạn chế \& đánh đổi (phải nói trung thực)}
+
+\begin{itemize}[nosep]
+  \item \textbf{Không tối ưu toàn cục} \en{not globally optimal}: tìm kiếm chính
+  xác chỉ tối ưu \textbf{trong từng ngày} với tập điểm đã cho; còn việc
+  \textbf{chia điểm vào ngày} (K-Means) là heuristic, nên tổng thể chưa chắc tối
+  ưu tuyệt đối.
+  \item \textbf{Có thể tách hai điểm gần nhau sang hai ngày}: khi hai điểm sát
+  nhau cùng đóng cửa buổi trưa (ví dụ một điểm đóng 11:00, một điểm đóng 13:00),
+  mỗi điểm cần trọn một buổi sáng và khung nghỉ trưa chen vào giữa, nên không thể
+  xếp chung một ngày. Hệ \textbf{ưu tiên tính khả thi về giờ giấc hơn độ gọn địa
+  lý} --- đây là đánh đổi của cách gom cụm, không phải lỗi.
+  \item \textbf{Trần 8 điểm/ngày}: trên 8 điểm phải quay về GNN để tránh bùng nổ
+  giai thừa (thực tế hiếm vì cap 5).
+  \item \textbf{Chỉ tính theo xe máy} \en{motorbike mode}; chưa hỗ trợ phương
+  tiện công cộng.
+  \item \textbf{Phụ thuộc Goong}; số liệu travel time là ảnh chụp tại một thời
+  điểm, sẽ đổi theo giao thông.
+  \item \textbf{Benchmark dùng fixture cố định}, không phải toàn bộ cơ sở dữ
+  liệu, nên mô tả chuyến đi tiêu biểu chứ không phải mọi trường hợp.
+\end{itemize}
+
+\subsection*{Ví dụ thực tế: chuyến \texttt{test123} (2 ngày, 7 điểm)}
+
+Một chuyến người dùng tạo thật minh hoạ rõ hạn chế ``tách hai điểm gần nhau sang
+hai ngày'':
+
+\begin{itemize}[nosep]
+  \item \textbf{Ngày 1}: Lăng Bác \en{mở 07:30--11:00} $\rightarrow$ Cột cờ Hà
+  Nội $\rightarrow$ Vườn thú Thủ Lệ.
+  \item \textbf{Ngày 2}: Bảo tàng B52 \en{mở 09:00--13:00} $\rightarrow$ Bảo tàng
+  Mỹ thuật $\rightarrow$ Phố tàu hoả $\rightarrow$ Hồ Gươm.
+\end{itemize}
+
+\textbf{Nghịch lý:} Cột cờ Hà Nội (Ngày 1) và Bảo tàng Mỹ thuật (Ngày 2) chỉ cách
+nhau \textbf{0,35 km} nhưng lại bị xếp vào hai ngày khác nhau; tương tự Cột cờ và
+Phố tàu hoả cách \textbf{0,49 km} cũng bị tách. Trong khi đó các điểm \emph{trong
+cùng một ngày} lại xa nhau hơn (tới hơn 2 km).
+
+\textbf{Vì sao:} hai ``điểm neo'' đóng cửa buổi trưa --- Lăng Bác (đóng 11:00) và
+B52 (đóng 13:00) --- \textbf{không thể chung một ngày}. Mỗi điểm cần trọn một buổi
+sáng, mà khung nghỉ trưa 11:00--13:00 chen vào giữa khiến không kịp thăm điểm thứ
+hai trước giờ đóng. Vì thế chúng buộc phải neo ở hai ngày khác nhau. Sau đó
+K-Means gắn các điểm ``linh hoạt'' (mở cả ngày) vào cụm của điểm neo \emph{gần
+nhất}, nên Cột cờ dính theo cụm Lăng Bác còn Mỹ thuật dính theo cụm B52 --- dù hai
+điểm này sát nhau.
+
+\textbf{Kết luận:} lịch \textbf{vẫn hợp lệ} --- không vi phạm giờ giấc, không bỏ
+lỡ điểm nào --- nhưng \textbf{chưa gọn nhất về địa lý}. Đây đúng là đánh đổi
+``khả thi theo giờ $>$ gọn theo địa lý'', không phải lỗi. Hướng cải tiến: sau khi
+cố định các điểm neo theo giờ, chạy thêm một bước \textbf{hoán đổi cục bộ}
+\en{local search} để dồn các điểm linh hoạt sát nhau về cùng một ngày.
+
+% =====================================================================
+\section{Bảng thuật ngữ nhanh}
+
+\begin{description}[leftmargin=0pt,style=nextline,itemsep=2pt]
+  \item[TSPTW] Travelling Salesman Problem with Time Windows --- xếp thứ tự thăm
+  có ràng buộc khung giờ.
+  \item[K-Means++] thuật toán gom cụm điểm theo vị trí; ``++'' là cách chọn tâm
+  cụm ban đầu cho trải đều hơn.
+  \item[Heuristic] cách giải nhanh, gần đúng, không đảm bảo tối ưu.
+  \item[Exact / Brute-force] thử mọi khả năng để chắc chắn tìm ra lời giải tốt
+  nhất (trong phạm vi nhỏ).
+  \item[Time window] khung giờ mở--đóng của một địa điểm.
+  \item[Haversine] công thức tính khoảng cách đường chim bay trên mặt cầu.
+  \item[GPS cascade] cộng thời gian đi thật từ điểm xuất phát rồi dồn dịch các
+  mốc giờ phía sau.
+\end{description}
+
+% =====================================================================
+\section{Câu hỏi luyện tập bảo vệ (English)}
+
+Câu trả lời mẫu viết bằng tiếng Anh để luyện nói. Hãy tập trả lời ngắn gọn,
+tự tin, và \textbf{thừa nhận hạn chế khi cần}.
+
+\Q{Brute-force search is factorial, $O(n!)$. Why is it acceptable in your planner?}
+\A Each day is capped at a very small number of places --- at most five by design,
+eight as a hard limit. With at most $8! = 40{,}320$ orderings, one day is solved
+in under a millisecond, far cheaper than a single Goong API call (200--500 ms).
+The factorial cost only matters for large $n$, which never happens within one day.
+
+\Q{Why not use a dedicated TSP solver such as Google OR-Tools, or a metaheuristic
+like genetic algorithms or simulated annealing?}
+\A Those tools are designed for problems with tens or hundreds of nodes, where
+exact search is impossible. My sub-problem has at most eight nodes, so the exact
+search already returns the guaranteed best order instantly, with no extra
+dependency and fully deterministic results. Using a heavier solver would add
+complexity without improving the answer.
+
+\Q{Why split the problem into clustering then ordering, instead of solving it as
+one big optimisation?}
+\A Solving multi-day TSPTW jointly is very expensive. Splitting it keeps each
+part tractable: K-Means++ quickly assigns places to days by geography, and the
+exact search then optimises each small day. It is a divide-and-conquer trade-off:
+slightly less than a global optimum, but fast and good enough for a web app.
+
+\Q{Why use Haversine for clustering but the Goong API for sequencing? Isn't that
+inconsistent?}
+\A They serve different needs. Clustering only needs relative closeness, so the
+free, offline Haversine distance is enough and keeps it fast. Sequencing schedules
+against real opening hours, so it needs accurate road travel times, which is why
+it uses Goong. Using the right tool for each step is a deliberate design choice.
+
+\Q{What exactly is a ``time window'', and how does the planner respect it?}
+\A A time window is the open--close interval of a place, for example the
+Mausoleum from 07:30 to 10:30. For every candidate order, the planner simulates
+arrival, waiting, and departure times; a stop is kept only if the visit finishes
+before both its closing time and the daily end time, otherwise it is dropped.
+
+\Q{How do you handle the lunch break?}
+\A The lunch break (default 11:00--13:00) is a blocked window. If a visit would
+overlap it, the arrival is shifted to after lunch and the following stops are
+recomputed. It is user-configurable.
+
+\Q{Why do you add a fixed 10-minute buffer at every stop?}
+\A It is a realistic access buffer, not a parking fee. At each site a visitor
+still needs time to get from the drop-off point to the entrance, buy or scan a
+ticket, and orient themselves before the visit actually starts. Ten minutes is a
+conservative constant that keeps the printed arrival and departure times honest.
+It is independent of the transport mode, so it holds whether the tourist rides a
+motorbike, takes a Grab, or walks --- which matters because most foreign visitors
+do not self-drive.
+
+\Q{What happens if the Goong API fails or is rate-limited?}
+\A The system retries up to three times with exponential backoff. If it still
+fails, it falls back to estimating travel time from the Haversine distance and an
+average motorbike speed of 30 km/h, so the planner always returns a result.
+
+\Q{How do you prove the planner is actually better than planning by hand?}
+\A I ran a benchmark comparing HanoiGO against two manual strategies, By-District
+and Random, on the same places, the same settings, and the same feasibility
+check, with frozen real Goong road travel times for reproducibility. Across all
+four scenarios HanoiGO scheduled every place the user selected. In the multi-day
+case its days were about four times more compact (0.35 versus 1.53 km) with the
+lowest total travel time, and in the two constrained cases it respected Monday
+closures and an afternoon-only opening time that the manual methods ignored.
+
+\Q{How did you keep the benchmark fair between methods?}
+\A All three methods received identical inputs and used the exact same
+time-window feasibility function, so the only variable was the planning strategy.
+The HanoiGO arm called the real production service, and the Random method was
+averaged over 200 seeds to avoid cherry-picking a lucky case.
+
+\Q{In Case 2, By-District also visited all 12 places. So what is the real
+advantage of your planner?}
+\A Visiting all places is only half the goal; the experience matters too. For the
+same 12 places, my planner kept far more compact days, about four times tighter
+(0.35 versus 1.53 km), and still the lowest total travel time (100 against 112
+minutes). Administrative districts do not match the real road network, so grouping
+by geography is what keeps each day tight; the travel margin is smaller once real
+road durations are used, but the compactness gap stays large.
+
+\Q{Did you find any flaw during evaluation, and how did you fix it?}
+\A Yes. The benchmark revealed that the greedy heuristic chose each day's places
+short-sightedly and stranded the early-closing Mausoleum. I changed small days to
+use the exact search, and also made it account for the real first-leg travel time
+from the start point, after which the planner scheduled every place.
+
+\Q{What is the GPS cascade and why is it needed?}
+\A The ordering step initially assumes the day starts exactly at the first stop.
+The GPS cascade injects the real travel time from the user's start point to the
+first stop and shifts all later times accordingly, then drops or re-checks any
+stop that no longer fits. It makes the printed schedule match reality.
+
+\Q{Is your solution globally optimal?}
+\A No, and I do not claim that. The ordering within each day is exact and optimal
+for that day's set of places, but assigning places to days uses K-Means, which is
+a heuristic. So the result is high quality and feasible, but not guaranteed
+globally optimal --- a reasonable trade-off for an interactive web app.
+
+\Q{Two places in the itinerary are very close together, yet the planner put them
+on different days. Is that a bug?}
+\A No. Day assignment starts from geography via K-Means, but it is overridden by
+time-window feasibility. When two nearby places both close around midday --- say
+one at 11:00 and another at 13:00 --- each needs a full morning slot before it
+shuts, and the fixed lunch break sits between them, so they cannot share the same
+morning. The planner therefore anchors them on separate days even though they are
+physically close. It deliberately prioritises feasibility over pure geographic
+compactness; this is the clustering trade-off listed in my limitations. To avoid
+confusing a viewer during a live demo, I pick example trips whose early-closing
+sites do not collide in this way.
+
+\Q{What if a user selects 50 places for a 2-day trip?}
+\A Clustering would put about 25 places per day, far above the 5-place cap, so
+capacity rebalancing moves the overflow and some places become unscheduled and
+are reported. Days above eight places fall back to the greedy heuristic. In
+practice the UI encourages a realistic number of places per day.
+
+\Q{How are times represented in the code?}
+\A Clock times are stored as integer minutes from midnight, which makes the
+window arithmetic simple, while travel durations from Goong are in seconds. This
+avoids time-zone and date-object pitfalls.
+
+\Q{What would you improve in future work?}
+\A Public-transport and walking modes besides motorbike; a joint multi-day
+optimisation instead of clustering-then-ordering; and expanding the dataset
+beyond Hanoi. I would also re-run the benchmark on a larger, randomly sampled set
+of real trips to strengthen the statistical claim.
+
+\Q{Your planner asks for a travel date. Why does the exact date matter?}
+\A Because opening hours depend on the day of the week; several Hanoi museums
+close on Mondays. The planner reads each place's open days and moves a place that
+is closed on a chosen day to another day where it is open. In the Monday test
+scenario it scheduled all eight places, while grouping by district left three on
+the closed day and dropped them.
+
+\Q{In one of your cases, By-District shows a better compactness number than
+HanoiGO. Doesn't that mean it planned better there?}
+\A No. By-District looks more compact only because it dropped three far-apart
+places, so its compactness is measured over fewer points. HanoiGO kept all eight,
+including the distant ones, so its days are slightly less tight. Scheduling every
+place the user chose matters more than a compactness value computed over a smaller
+set, so I report visited count as the primary metric.
+
+\Q{How does the planner deal with a place that only opens in the afternoon?}
+\A The cost function penalises waiting time, so a late-opening place is naturally
+pushed toward the end of the day. In the afternoon-only test, the planner filled
+the morning with the other places and visited the 15:00 theatre last with zero
+waiting, whereas a fixed order that kept the theatre early idled for over six
+hours and lost two places to the wasted time.
+
+\end{document}

@@ -1,13 +1,13 @@
 import { IsNotEmpty, MinLength, Matches } from 'class-validator';
 
 export class ChangePasswordDto {
-  @IsNotEmpty({ message: 'Vui lòng nhập mật khẩu hiện tại' })
+  @IsNotEmpty({ message: 'Current password is required' })
   currentPassword: string;
 
-  @IsNotEmpty({ message: 'Vui lòng nhập mật khẩu mới' })
-  @MinLength(8, { message: 'Mật khẩu mới phải có ít nhất 8 ký tự' })
+  @IsNotEmpty({ message: 'New password is required' })
+  @MinLength(8, { message: 'New password must be at least 8 characters long' })
   @Matches(/^(?=.*[A-Z])(?=.*[a-z])(?=.*\d)(?=.*[\W_]).{8,}$/, {
-    message: 'Mật khẩu mới phải có chữ hoa, chữ thường, số và ký tự đặc biệt',
+    message: 'New password must contain uppercase, lowercase, numbers, and special characters',
   })
   newPassword: string;
 }

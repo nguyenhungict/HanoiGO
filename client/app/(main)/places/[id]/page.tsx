@@ -6,186 +6,170 @@ export const dynamic = 'force-dynamic';
 
 type PlaceDetailsPageProps = {
   params: { id: string };
-  searchParams?: { category?: string };
 };
 
-export default async function PlaceDetailsPage({ params, searchParams }: PlaceDetailsPageProps) {
+const CATEGORY_ICONS: Record<string, string> = {
+  'All': 'travel_explore',
+  'Heritage & History': 'history_edu',
+  'Arts & Culture': 'palette',
+  'Sightseeing': 'photo_camera',
+  'Nature & Outdoors': 'forest',
+  'Spiritual': 'temple_buddhist',
+  'Museum': 'museum',
+  'Temple': 'temple_buddhist',
+  'Historic Site': 'castle',
+  'Park': 'park',
+  'Lake': 'water',
+  'Market': 'storefront',
+  'Theater': 'theater_comedy',
+};
+
+const getCategoryIcon = (category: string) => {
+  return CATEGORY_ICONS[category] || 'location_on';
+};
+
+const getVisitDuration = (category: string): number => {
+  const cat = category.toLowerCase();
+  if (cat.includes('museum')) return 90;
+  if (cat.includes('temple') || cat.includes('pagoda') || cat.includes('spiritual')) return 45;
+  if (cat.includes('historic') || cat.includes('heritage')) return 60;
+  if (cat.includes('park') || cat.includes('garden')) return 60;
+  if (cat.includes('lake') || cat.includes('water')) return 45;
+  if (cat.includes('market')) return 60;
+  if (cat.includes('theater') || cat.includes('performance')) return 90;
+  if (cat.includes('neighborhood') || cat.includes('street')) return 90;
+  if (cat.includes('art') || cat.includes('gallery')) return 60;
+  return 60;
+};
+
+export default async function PlaceDetailsPage({ params }: PlaceDetailsPageProps) {
   const landmarks = await fetchLandmarks();
-  const selectedCategory = searchParams?.category || 'All';
-  const filteredLandmarks =
-    selectedCategory === 'All'
-      ? landmarks
-      : landmarks.filter((landmark) => landmark.category === selectedCategory);
-
   const selectedLandmark = landmarks.find(l => l.id === params.id) || landmarks[0];
-
   const story = getPlaceStory(selectedLandmark);
-  const categories = [
-    'All',
-    ...Array.from(new Set(landmarks.map((landmark) => landmark.category))).slice(0, 6),
-  ];
+
+  // Find exactly 3 related landmarks (in same category or district)
+  const relatedLandmarks = landmarks
+    .filter((l) => l.id !== selectedLandmark.id && (l.category === selectedLandmark.category || l.district === selectedLandmark.district))
+    .slice(0, 3);
   
-  const archiveLandmarks = filteredLandmarks
-    .filter((landmark) => landmark.id !== selectedLandmark.id)
-    .slice(0, 9);
+  if (relatedLandmarks.length < 3) {
+    const ids = new Set(relatedLandmarks.map(r => r.id));
+    const extra = landmarks
+      .filter((l) => l.id !== selectedLandmark.id && !ids.has(l.id))
+      .slice(0, 3 - relatedLandmarks.length);
+    relatedLandmarks.push(...extra);
+  }
 
   return (
-    <div className="min-h-full bg-background animate-in fade-in duration-700 font-body">
-      <header className="relative z-20 border-b border-outline/10 bg-white/80 backdrop-blur-2xl">
-        <div className="mx-auto flex max-w-7xl flex-col gap-3 px-8 py-3">
-          <div className="space-y-1">
-            <div className="flex items-center justify-between">
-              <div className="flex items-center gap-3">
-                 <Link href="/places" className="text-outline hover:text-primary transition-colors flex items-center gap-1 text-[10px] font-bold uppercase tracking-widest">
-                    <span className="material-symbols-outlined text-[14px]">arrow_back</span>
-                    Back to Directory
-                 </Link>
-                 <span className="text-outline/30 text-xs">|</span>
-                 <p className="text-[9px] font-black uppercase tracking-[0.28em] text-primary">
-                   Place Archive
-                 </p>
-              </div>
-              <Link
-                href="/discovery"
-                className="inline-flex h-9 items-center justify-center rounded-xl border border-outline/15 px-4 text-[9px] font-black uppercase tracking-[0.22em] text-on-surface transition-all hover:bg-secondary"
-              >
-                Return To Discovery Map
-              </Link>
-            </div>
-            
-            <div className="flex flex-col gap-1.5 md:flex-row md:items-end md:justify-between">
-              <div>
-                <h1 className="text-2xl font-black tracking-tighter text-on-surface">
-                  {selectedLandmark.name}
-                </h1>
-                <p className="text-xs font-medium text-on-surface-variant">
-                  Curated from the discovery map into a full editorial view.
-                </p>
-              </div>
-            </div>
-          </div>
+    <div className="min-h-full bg-background animate-in fade-in duration-700 font-body pb-20">
+      {/* Decorative background aurora elements */}
+      <div className="absolute inset-0 bg-background z-0 pointer-events-none overflow-hidden">
+        <div className="absolute top-[-10%] right-[-10%] w-[50%] h-[50%] rounded-full bg-primary/5 blur-[100px] mix-blend-multiply"></div>
+        <div className="absolute bottom-[-10%] left-[-10%] w-[40%] h-[40%] rounded-full bg-secondary/10 blur-[80px] mix-blend-multiply"></div>
+      </div>
 
-          <div className="flex flex-wrap gap-2 border-t border-outline/5 pt-2">
-            {categories.map((category) => {
-              const href = `/places/${selectedLandmark.id}${category !== 'All' ? `?category=${category}` : ''}`;
-              return (
-                <Link
-                  key={category}
-                  href={href}
-                  className={`rounded-lg px-4 py-1.5 text-[9px] font-black uppercase tracking-[0.18em] transition-all border ${
-                    selectedCategory === category
-                      ? 'bg-primary border-primary text-white shadow-lg shadow-primary/20'
-                      : 'bg-white border-outline/10 text-on-surface-variant hover:bg-secondary hover:text-on-surface hover:border-secondary hover:scale-[1.02]'
-                  }`}
-                >
-                  {category}
-                </Link>
-              );
-            })}
+      <header className="relative z-20 border-b border-outline/10 bg-white/80 backdrop-blur-2xl">
+        <div className="mx-auto flex max-w-7xl items-center justify-between px-8 py-4">
+          <div className="flex items-center gap-3">
+             <Link href="/places" className="text-outline hover:text-primary transition-colors flex items-center gap-1.5 text-[10px] font-black uppercase tracking-widest">
+                <span className="material-symbols-outlined text-[15px]">arrow_back</span>
+                Back to Directory
+             </Link>
+             <span className="text-outline/20 text-sm">|</span>
+             <p className="text-[9px] font-black uppercase tracking-[0.25em] text-primary/80">
+               Heritage Chapter
+             </p>
           </div>
+          <Link
+            href="/discovery"
+            className="inline-flex h-9 items-center justify-center rounded-xl border border-outline/15 px-4 text-[9px] font-black uppercase tracking-[0.2em] text-on-surface-variant hover:text-primary hover:bg-secondary transition-all shadow-sm"
+          >
+            Open Discovery Map
+          </Link>
         </div>
       </header>
 
-      <main className="mx-auto flex max-w-7xl flex-col gap-8 px-8 py-8">
-        <section className="grid gap-8 xl:grid-cols-[minmax(0,1.45fr)_24rem]">
-          <PlaceDetailsContent landmark={selectedLandmark} story={story} />
+      <main className="mx-auto max-w-7xl px-8 py-8 relative z-10 space-y-16">
+        {/* Main Place Content */}
+        <PlaceDetailsContent landmark={selectedLandmark} story={story} />
 
-          <aside className="space-y-4">
-            <div className="rounded-3xl border border-outline/10 bg-white p-6 shadow-sm">
-              <p className="text-[10px] font-black uppercase tracking-[0.24em] text-outline">
-                Nearby Archive Flow
-              </p>
-              <p className="mt-3 text-sm font-medium leading-7 text-on-surface-variant">
-                Move through the collection without losing the editorial framing. Each card opens another destination inside the same archive layout.
-              </p>
-            </div>
-
-            {archiveLandmarks.slice(0, 4).map((landmark) => (
-              <Link
-                key={landmark.id}
-                href={`/places/${landmark.id}${selectedCategory !== 'All' ? `?category=${selectedCategory}` : ''}`}
-                className="block overflow-hidden rounded-3xl border border-outline/10 bg-white transition-all duration-300 hover:scale-[1.01] hover:shadow-xl hover:shadow-primary/10"
-              >
-                <div className="flex gap-4 p-4">
-                  <img
-                    src={landmark.image}
-                    alt={landmark.name}
-                    referrerPolicy="no-referrer"
-                    className="h-24 w-24 rounded-2xl object-cover"
-                  />
-                  <div className="min-w-0 flex-1">
-                    <p className="text-[9px] font-black uppercase tracking-[0.2em] text-primary">
-                      {landmark.category}
-                    </p>
-                    <h3 className="mt-2 line-clamp-2 text-lg font-extrabold tracking-tight text-on-surface">
-                      {landmark.name}
-                    </h3>
-                    <p className="mt-3 text-[10px] font-black uppercase tracking-[0.2em] text-outline">
-                      Open Article
-                    </p>
-                  </div>
-                </div>
-              </Link>
-            ))}
-          </aside>
-        </section>
-
-        {archiveLandmarks.length > 4 && (
-          <section className="space-y-5">
-            <div className="flex flex-col gap-2 md:flex-row md:items-end md:justify-between">
-              <div>
-                <p className="text-[10px] font-black uppercase tracking-[0.24em] text-primary">
-                  Archive Continuum
-                </p>
-                <h2 className="text-3xl font-extrabold tracking-tighter text-on-surface">
-                  Continue Through The Collection
-                </h2>
-              </div>
-              <p className="text-sm font-medium text-on-surface-variant">
-                Select another place to swap the hero article without leaving the places route.
+        {/* Curated Related Section */}
+        {relatedLandmarks.length > 0 && (
+          <section className="pt-12 border-t border-outline/5 space-y-8">
+            <div className="space-y-1">
+              <h2 className="text-2xl font-black text-on-surface tracking-tight">
+                Explore Similar Landmarks
+              </h2>
+              <p className="text-xs font-semibold text-on-surface-variant/80">
+                Other historical highlights and cultural hotspots you might want to visit.
               </p>
             </div>
 
-            <div className="grid gap-6 md:grid-cols-2 xl:grid-cols-3">
-              {archiveLandmarks.slice(4).map((landmark) => (
-                <Link
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
+              {relatedLandmarks.map((landmark) => (
+                <Link 
+                  href={`/places/${landmark.id}`} 
                   key={landmark.id}
-                  href={`/places/${landmark.id}${selectedCategory !== 'All' ? `?category=${selectedCategory}` : ''}`}
-                  className="group overflow-hidden rounded-3xl border border-outline/10 bg-white shadow-sm transition-all duration-300 hover:-translate-y-1 hover:shadow-xl hover:shadow-primary/10 flex flex-col"
+                  className="group bg-white rounded-[2rem] overflow-hidden border border-outline/10 shadow-[0_8px_30px_rgba(0,0,0,0.01)] hover:shadow-[0_20px_50px_rgba(255,90,95,0.05)] hover:border-primary/10 transition-all duration-500 hover:-translate-y-1.5 flex flex-col h-full"
                 >
-                  <div className="relative h-56 overflow-hidden">
-                    <img
-                      src={landmark.image}
-                      alt={landmark.name}
-                      referrerPolicy="no-referrer"
-                      className="h-full w-full object-cover transition-transform duration-700 group-hover:scale-105"
-                    />
-                    <div className="absolute inset-0 bg-gradient-to-t from-on-surface/75 via-transparent to-transparent" />
-                    <div className="absolute left-5 top-5 rounded-lg border border-white/20 bg-white/20 px-3 py-1 text-[9px] font-black uppercase tracking-[0.2em] text-white backdrop-blur-md">
-                      {landmark.category}
-                    </div>
-                  </div>
-
-                  <div className="space-y-4 p-6 flex-1 flex flex-col">
-                    <div className="flex items-start justify-between gap-4">
-                      <h3 className="text-xl font-extrabold tracking-tight text-on-surface">
-                        {landmark.name}
-                      </h3>
-                      <div className="flex items-center gap-1 text-primary shrink-0">
-                        <span className="material-symbols-outlined fill-1 text-base">star</span>
-                        <span className="text-xs font-black">{landmark.rating.toFixed(1)}</span>
+                   <div className="relative h-44 overflow-hidden bg-secondary-container">
+                      <img 
+                        src={landmark.image} 
+                        alt={landmark.name} 
+                        className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-105"
+                      />
+                      <div className="absolute inset-0 bg-gradient-to-t from-black/45 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300"></div>
+                      <div className="absolute top-4 left-4 bg-white/95 backdrop-blur-md px-3 py-1.5 rounded-2xl text-[9px] font-black uppercase tracking-widest text-on-surface shadow-sm border border-white/40 flex items-center gap-1.5">
+                        <span className="material-symbols-outlined text-[12px] text-primary">{getCategoryIcon(landmark.category)}</span>
+                        {landmark.category}
                       </div>
-                    </div>
+                      <div className="absolute top-4 right-4 bg-white/95 backdrop-blur-md px-2.5 py-1.5 rounded-2xl text-[10px] font-black text-primary shadow-sm border border-white/40 flex items-center gap-1">
+                        <span className="material-symbols-outlined fill-1 text-[13px]">star</span>
+                        {landmark.rating.toFixed(1)}
+                      </div>
+                   </div>
+                   
+                   <div className="p-6 flex-1 flex flex-col gap-4">
+                      <div className="flex flex-col gap-1.5">
+                        <h3 className="font-extrabold text-base leading-tight text-on-surface tracking-tight group-hover:text-primary transition-colors line-clamp-1">
+                          {landmark.name}
+                        </h3>
+                        <p className="text-on-surface-variant/80 text-xs font-semibold line-clamp-2 leading-relaxed h-8">
+                           {landmark.description || `Explore the historical and cultural beauty of ${landmark.name}.`}
+                        </p>
+                      </div>
+                      
+                      <div className="w-full h-px bg-outline/5"></div>
 
-                    <p className="line-clamp-3 text-sm font-medium leading-7 text-on-surface-variant flex-1">
-                      {getPlaceStory(landmark).sections[0].body}
-                    </p>
+                      {/* Meta Info Grid */}
+                      <div className="grid grid-cols-2 gap-4 text-left">
+                        <div className="flex items-center gap-2">
+                          <div className="w-8 h-8 rounded-xl bg-primary/5 flex items-center justify-center text-primary">
+                            <span className="material-symbols-outlined text-[15px]">location_on</span>
+                          </div>
+                          <div className="flex flex-col">
+                            <span className="text-[8px] font-black text-outline uppercase tracking-wider">District</span>
+                            <span className="text-[10px] font-black text-on-surface tracking-tight truncate max-w-[80px]">{landmark.district || 'Hoan Kiem'}</span>
+                          </div>
+                        </div>
+                        <div className="flex items-center gap-2">
+                          <div className="w-8 h-8 rounded-xl bg-[#10B981]/5 flex items-center justify-center text-[#10B981]">
+                            <span className="material-symbols-outlined text-[15px]">schedule</span>
+                          </div>
+                          <div className="flex flex-col">
+                            <span className="text-[8px] font-black text-outline uppercase tracking-wider">Duration</span>
+                            <span className="text-[10px] font-black text-on-surface tracking-tight">~{getVisitDuration(landmark.category)} mins</span>
+                          </div>
+                        </div>
+                      </div>
 
-                    <div className="flex items-center justify-between border-t border-outline/10 pt-4 text-[10px] font-black uppercase tracking-[0.22em] text-outline transition-colors group-hover:text-primary mt-auto">
-                      <span>Read Introduction</span>
-                      <span className="material-symbols-outlined text-base group-hover:translate-x-1 transition-transform">arrow_forward</span>
-                    </div>
-                  </div>
+                      <div className="w-full h-px bg-outline/5 mt-auto"></div>
+
+                      <div className="flex items-center text-primary text-[10px] font-black uppercase tracking-widest">
+                         View Details
+                         <span className="material-symbols-outlined text-[14px] ml-1 group-hover:translate-x-1.5 transition-transform">arrow_forward</span>
+                      </div>
+                   </div>
                 </Link>
               ))}
             </div>

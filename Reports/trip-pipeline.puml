@@ -1,0 +1,34 @@
+@startuml
+skinparam dpi 300
+skinparam shadowing false
+skinparam defaultFontName Arial
+skinparam ArrowColor black
+skinparam activity {
+  BackgroundColor #EFEFEF
+  BorderColor black
+  FontColor black
+  DiamondBackgroundColor #EFEFEF
+  DiamondBorderColor black
+  DiamondFontColor black
+}
+
+start
+:User selects places, number of days,\nand daily start/end times;
+:**Step 1 — Pre-Filtering**\nremove places closed on all travel days;
+:**Step 2 — K-Means++ Clustering**\ngroup places into K daily clusters;
+:Capacity rebalance (max 5 / day)\nand closed-day swap;
+
+if (Goong API available?) then (yes)
+  :**Step 3 — Prefetch Goong Distance Matrix** (N <= 24);
+else (rate-limited / fails)
+  :Retry up to 3x\n(exponential backoff);
+  :Haversine fallback\nt = d / v_avg;
+endif
+
+:**Step 4 — Exact Time-Window Search**\nsequence each day (TSPTW, N <= 8;\ngreedy fallback if N > 8);
+:**Step 5 — GPS Cascade**\ninject real travel time to first stop;
+:**Gap Insertion**\nreinsert dropped places (reuse Goong matrix);
+:**Step 6 — Final Route Ordering**\nre-order each day exactly (brute force, N <= 8;\ngreedy fallback if N > 8);
+:Return multi-day itinerary;
+stop
+@enduml

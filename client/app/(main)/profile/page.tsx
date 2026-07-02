@@ -255,7 +255,7 @@ export default function ProfilePage() {
                                   <span className="material-symbols-outlined text-xl">map</span>
                                 </div>
                                 <div className="bg-primary/5 text-primary border border-primary/10 px-3 py-1 rounded-full text-[10px] font-black uppercase tracking-wider">
-                                  {trip.numDays} {trip.numDays === 1 ? 'Ngày' : 'Ngày'}
+                                  {trip.numDays} {trip.numDays === 1 ? 'Day' : 'Days'}
                                 </div>
                               </div>
 
@@ -266,14 +266,14 @@ export default function ProfilePage() {
                                 </h3>
                                 <div className="flex items-center gap-1.5 text-[10px] text-outline font-bold">
                                   <span className="material-symbols-outlined text-xs">calendar_month</span>
-                                  <span>Tạo ngày {formatDate(trip.createdAt)}</span>
+                                  <span>Created on {formatDate(trip.createdAt)}</span>
                                 </div>
                               </div>
 
                               {/* Timeline representation of stops */}
                               {placesList.length > 0 ? (
                                 <div className="space-y-2.5 pt-2">
-                                  <div className="text-[10px] font-black text-outline uppercase tracking-wider">Hành trình chi tiết</div>
+                                  <div className="text-[10px] font-black text-outline uppercase tracking-wider">Detailed Itinerary</div>
                                   <div className="relative pl-4 border-l border-dashed border-primary/30 space-y-3.5">
                                     {placesList.slice(0, 3).map((name, idx) => (
                                       <div key={idx} className="relative flex items-center gap-2 text-xs text-on-surface-variant">
@@ -287,14 +287,14 @@ export default function ProfilePage() {
                                     {placesList.length > 3 && (
                                       <div className="relative flex items-center gap-2 text-[10px] text-primary font-black uppercase tracking-wider">
                                         <div className="absolute -left-[20.5px] w-2 h-2 rounded-full bg-rose-400 border-2 border-white ring-1 ring-rose-400/20" />
-                                        <span>+ {placesList.length - 3} điểm dừng khác</span>
+                                        <span>+ {placesList.length - 3} other stops</span>
                                       </div>
                                     )}
                                   </div>
                                 </div>
                               ) : (
                                 <p className="text-xs text-outline font-medium line-clamp-3 leading-relaxed pt-2">
-                                  {trip.description || 'Hành trình di sản tùy biến khám phá các dấu ấn lịch sử, văn hóa ngàn năm của thủ đô Hà Nội.'}
+                                  {trip.description || 'Custom heritage itinerary exploring the thousand-year history and culture of Hanoi.'}
                                 </p>
                               )}
                             </div>
@@ -303,13 +303,13 @@ export default function ProfilePage() {
                             <div className="flex items-center justify-between pt-5 mt-6 border-t border-outline/5">
                               <span className="text-[10px] font-black text-on-surface-variant bg-surface-container-high/60 px-3 py-1.5 rounded-xl flex items-center gap-1.5">
                                 <span className="material-symbols-outlined text-xs text-primary font-bold">location_on</span>
-                                {stopsCount} điểm dừng
+                                {stopsCount} stops
                               </span>
                               <Link 
                                 href="/trips" 
                                 className="text-[10px] font-black text-primary uppercase tracking-wider hover:text-primary-hover flex items-center gap-1 hover:translate-x-0.5 transition-all bg-primary/5 hover:bg-primary hover:text-white px-4 py-2 rounded-xl"
                               >
-                                Xem bản đồ
+                                View Map
                                 <span className="material-symbols-outlined text-[14px]">arrow_forward</span>
                               </Link>
                             </div>
@@ -353,7 +353,7 @@ export default function ProfilePage() {
                             <button 
                               onClick={() => removePlace(place.id)}
                               className="absolute top-4 right-4 w-9 h-9 rounded-full bg-white/90 backdrop-blur-md flex items-center justify-center text-rose-500 hover:bg-rose-50 hover:scale-105 active:scale-95 transition-all shadow-md"
-                              title="Bỏ lưu di sản"
+                              title="Unsave place"
                             >
                               <span className="material-symbols-outlined text-xl fill-1">delete</span>
                             </button>
@@ -362,7 +362,7 @@ export default function ProfilePage() {
                             <div className="space-y-2">
                               <h3 className="text-lg font-black tracking-tighter text-on-surface line-clamp-1">{place.name}</h3>
                               <p className="text-xs text-outline font-medium line-clamp-3 leading-relaxed">
-                                {place.description || 'Khám phá câu chuyện lịch sử ngàn năm của di sản tuyệt đẹp này nằm trong lòng thủ đô Hà Nội cổ kính.'}
+                                {place.description || 'Explore the thousand-year history of this beautiful heritage site in the heart of ancient Hanoi.'}
                               </p>
                             </div>
                             <div className="flex items-center justify-between pt-4 border-t border-outline/5 mt-auto">
@@ -392,7 +392,7 @@ export default function ProfilePage() {
                       <span className="material-symbols-outlined text-5xl text-outline-variant">groups</span>
                       <h3 className="text-lg font-black text-on-surface">No activities joined yet</h3>
                       <p className="text-xs text-outline font-medium max-w-sm mx-auto leading-relaxed">
-                        Explore community group walks, historical meetups, and chatrooms around Hanoi di sản sites.
+                        Explore community group walks, historical meetups, and chatrooms around Hanoi heritage sites.
                       </p>
                       <Link href="/activities" className="inline-block px-6 py-2.5 bg-primary text-white text-[10px] font-black uppercase tracking-widest rounded-xl shadow-lg shadow-primary/20 hover:opacity-90 transition-all">
                         Find Activities
@@ -417,7 +417,7 @@ export default function ProfilePage() {
                               </div>
                               <h4 className="text-on-surface font-black text-lg leading-snug">{act.title}</h4>
                               <p className="text-xs text-outline font-medium line-clamp-1 flex items-center gap-1">
-                                <span className="material-symbols-outlined text-sm">schedule</span> {formatDate(act.scheduledAt)} • {act.address || 'Hà Nội'}
+                                <span className="material-symbols-outlined text-sm">schedule</span> {formatDate(act.scheduledAt)} • {act.address || 'Hanoi'}
                               </p>
                             </div>
                           </div>

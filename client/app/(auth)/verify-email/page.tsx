@@ -70,7 +70,7 @@ function VerifyEmailContent() {
     e.preventDefault();
     const otpString = otp.join("");
     if (otpString.length !== 6) {
-      setError("Vui lòng nhập đầy đủ 6 chữ số");
+      setError("Please enter all 6 digits");
       return;
     }
 
@@ -86,7 +86,7 @@ function VerifyEmailContent() {
         router.push("/profile/edit");
       }
     } catch (err) {
-      setError("Có lỗi xảy ra khi xác thực");
+      setError("An error occurred during verification");
       setLoading(false);
     }
   };
@@ -105,7 +105,7 @@ function VerifyEmailContent() {
         setCanResend(false);
       }
     } catch (err) {
-      setError("Không thể gửi lại mã");
+      setError("Could not resend the code");
     } finally {
       setResending(false);
     }
@@ -128,7 +128,7 @@ function VerifyEmailContent() {
             <span className="text-primary font-black tracking-[0.4em] uppercase text-[10px] mb-4 block">Security Check</span>
             <h1 className="text-4xl font-black text-on-surface tracking-tighter mb-4 leading-tight">Verify your email.</h1>
             <p className="text-outline font-medium text-sm leading-relaxed px-8">
-              Chúng tôi đã gửi mã xác thực 6 số đến <br />
+              We sent a 6-digit verification code to <br />
               <strong className="text-on-surface">{email}</strong>
             </p>
           </header>

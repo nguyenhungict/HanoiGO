@@ -24,14 +24,14 @@ export default function AdminLoginPage() {
       } else {
         // Kiểm tra xem có phải ADMIN không
         if (res.user?.role !== 'ADMIN') {
-          setError('Tài khoản không có quyền truy cập khu vực Admin.');
+          setError('This account does not have Admin access privileges.');
         } else {
           router.push('/admin/dashboard');
           router.refresh();
         }
       }
     } catch (err) {
-      setError('Lỗi kết nối máy chủ.');
+      setError('Server connection error.');
     } finally {
       setLoading(false);
     }

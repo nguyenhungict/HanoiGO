@@ -78,14 +78,14 @@ export default function EditProfilePage() {
       setProfile(prev => ({ ...prev, avatarUrl: res.url }));
       show({
         type: 'success',
-        title: 'Ảnh đại diện đã được tải lên',
-        message: 'Bấm Lưu Thay Đổi để lưu chính thức vào hồ sơ.'
+        title: 'Avatar uploaded',
+        message: 'Click Save Changes to save it permanently to your profile.'
       });
     } else {
       show({
         type: 'error',
-        title: 'Lỗi tải ảnh',
-        message: res.error || 'Không thể tải ảnh đại diện lên.'
+        title: 'Upload Error',
+        message: res.error || 'Could not upload avatar.'
       });
     }
   };
@@ -108,10 +108,10 @@ export default function EditProfilePage() {
     setSaving(false);
     
     if (res.success) {
-      show({ type: 'success', title: 'Hồ sơ đã cập nhật', message: 'Thông tin cá nhân của bạn đã được lưu an toàn.' });
+      show({ type: 'success', title: 'Profile Updated', message: 'Your personal information has been saved successfully.' });
       router.push('/profile');
     } else {
-      show({ type: 'error', title: 'Lỗi cập nhật', message: res.error || 'Có lỗi xảy ra khi lưu hồ sơ của bạn.' });
+      show({ type: 'error', title: 'Update Error', message: res.error || 'An error occurred while saving your profile.' });
     }
   };
 

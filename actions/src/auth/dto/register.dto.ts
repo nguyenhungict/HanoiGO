@@ -4,28 +4,28 @@ import { ApiProperty } from '@nestjs/swagger';
 export class RegisterDto {
   @ApiProperty({
     example: 'explorer@hanoigo.vn',
-    description: 'Email của người dùng',
+    description: 'User email address',
   })
-  @IsEmail({}, { message: 'Email không hợp lệ' })
+  @IsEmail({}, { message: 'Invalid email address' })
   email: string;
 
   @ApiProperty({
     example: 'HanoiGo@2024',
     description:
-      'Mật khẩu (ít nhất 1 chữ hoa, 1 chữ thường, 1 số, 1 ký tự đặc biệt)',
+      'Password (at least 1 uppercase letter, 1 lowercase letter, 1 number, and 1 special character)',
   })
   @IsNotEmpty()
-  @MinLength(8, { message: 'Mật khẩu phải có ít nhất 8 ký tự' })
+  @MinLength(8, { message: 'Password must be at least 8 characters long' })
   @Matches(/^(?=.*[A-Z])(?=.*[a-z])(?=.*\d)(?=.*[\W_]).{8,}$/, {
     message:
-      'Mật khẩu phải có ít nhất 1 chữ hoa, 1 chữ thường, 1 số và 1 ký tự đặc biệt',
+      'Password must contain at least 1 uppercase letter, 1 lowercase letter, 1 number, and 1 special character',
   })
   password: string;
 
   @ApiProperty({
     example: 'hung_nguyen',
-    description: 'Tên người dùng duy nhất',
+    description: 'Unique username',
   })
-  @IsNotEmpty({ message: 'Tên người dùng không được để trống' })
+  @IsNotEmpty({ message: 'Username cannot be empty' })
   username: string;
 }

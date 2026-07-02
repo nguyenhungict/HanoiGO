@@ -201,7 +201,7 @@ export default async function HomePage() {
                 AUTHENTIC
               </div>
               <div className="absolute bottom-0 inset-x-0 p-8 bg-gradient-to-t from-black/90 via-black/40 to-transparent">
-                <p className="text-white/60 text-xs font-bold uppercase tracking-widest mb-2">Old Quarter · Hoàn Kiếm</p>
+                <p className="text-white/60 text-xs font-bold uppercase tracking-widest mb-2">Old Quarter · Hoan Kiem</p>
                 <h3 className="text-white text-3xl font-black tracking-tighter mb-2">The Old Quarter</h3>
                 <p className="text-white/75 text-sm font-medium leading-relaxed max-w-sm">
                   36 streets of history, craftsmanship, and the beating heart of Hanoi's soul.
@@ -221,7 +221,7 @@ export default async function HomePage() {
                   SCHOLARSHIP
                 </div>
                 <div className="absolute bottom-0 inset-x-0 p-7 bg-gradient-to-t from-black/80 to-transparent">
-                  <p className="text-white/60 text-xs font-bold uppercase tracking-wider mb-1">Đống Đa · 1076 AD</p>
+                  <p className="text-white/60 text-xs font-bold uppercase tracking-wider mb-1">Dong Da · 1076 AD</p>
                   <h3 className="text-white text-xl font-black tracking-tighter">Temple of Literature</h3>
                 </div>
               </div>
@@ -235,7 +235,7 @@ export default async function HomePage() {
                   COLONIAL
                 </div>
                 <div className="absolute bottom-0 inset-x-0 p-7 bg-gradient-to-t from-black/80 to-transparent">
-                  <p className="text-white/60 text-xs font-bold uppercase tracking-wider mb-1">Hoàn Kiếm · 1901</p>
+                  <p className="text-white/60 text-xs font-bold uppercase tracking-wider mb-1">Hoan Kiem · 1901</p>
                   <h3 className="text-white text-xl font-black tracking-tighter">Hanoi Opera House</h3>
                 </div>
               </div>

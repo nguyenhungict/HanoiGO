@@ -52,18 +52,16 @@ export async function fetchLandmarks(): Promise<Landmark[]> {
     const data = Array.isArray(responseData) ? responseData : (responseData.places || []);
     
     // Highly reliable Unsplash static placeholders
-    const getPlaceholder = (category: string) => {
-      const cat = (category || '').toLowerCase();
-      if (cat.includes('museum') || cat.includes('historic')) 
-        return "https://images.unsplash.com/photo-1599708153386-62bf3f03361a?w=800&q=80";
-      if (cat.includes('temple') || cat.includes('pagoda')) 
-        return "https://images.unsplash.com/photo-1518548419970-58e3b4079ab2?w=800&q=80";
-      if (cat.includes('lake') || cat.includes('water')) 
-        return "https://images.unsplash.com/photo-1559592442-741e6b89cc46?w=800&q=80";
-      if (cat.includes('food') || cat.includes('cafe')) 
-        return "https://images.unsplash.com/photo-1555921015-5532091f6026?w=800&q=80";
-      return "https://images.unsplash.com/photo-1509030450996-93f25ef2030f?w=800&q=80";
+    const PLACEHOLDERS: Record<string, string> = {
+      'Museum':           "https://images.unsplash.com/photo-1599708153386-62bf3f03361a?w=800&q=80",
+      'Historic Site':    "https://images.unsplash.com/photo-1599708153386-62bf3f03361a?w=800&q=80",
+      'Temple & Pagoda':  "https://images.unsplash.com/photo-1518548419970-58e3b4079ab2?w=800&q=80",
+      'Nature & Lake':    "https://images.unsplash.com/photo-1559592442-741e6b89cc46?w=800&q=80",
+      'Arts & Performance': "https://images.unsplash.com/photo-1571115764595-644a1f56a55c?w=800&q=80",
+      'Street & Market':  "https://images.unsplash.com/photo-1555921015-5532091f6026?w=800&q=80",
     };
+    const getPlaceholder = (category: string) =>
+      PLACEHOLDERS[category] ?? "https://images.unsplash.com/photo-1509030450996-93f25ef2030f?w=800&q=80";
 
     const landmarks = data.map((p: any) => {
       const category = p.category || 'Sightseeing';
@@ -116,50 +114,41 @@ function cleanDescription(description: string, name: string, category: string) {
   return `${name} is one of Hanoi's most memorable ${category.toLowerCase()} destinations, carrying a strong sense of place and a distinct local rhythm.`;
 }
 
+const CATEGORY_LENS: Record<string, { eyebrow: string; mood: string; focus: string }> = {
+  'Museum': {
+    eyebrow: 'Museum',
+    mood: 'quiet observation, layered exhibits, and concentrated history',
+    focus: 'artifacts, collections, and the stories preserved behind glass',
+  },
+  'Temple & Pagoda': {
+    eyebrow: 'Sacred Layer',
+    mood: 'ritual calm, incense, and a slower ceremonial tempo',
+    focus: 'symbolic details, courtyards, altars, and contemplative spaces',
+  },
+  'Historic Site': {
+    eyebrow: 'Historic Trace',
+    mood: 'monumental form, visible age, and strong urban symbolism',
+    focus: 'architectural silhouettes, historical turning points, and urban heritage',
+  },
+  'Nature & Lake': {
+    eyebrow: 'Open Air Frame',
+    mood: 'breathing room, horizon lines, and a softer city cadence',
+    focus: 'landscape atmosphere, movement, and the contrast with the dense urban fabric',
+  },
+  'Arts & Performance': {
+    eyebrow: 'Arts & Performance',
+    mood: 'creative expression, live staging, and layered cultural timelines',
+    focus: 'galleries, performance spaces, and the artistic pulse of Hanoi',
+  },
+  'Street & Market': {
+    eyebrow: 'Local Pulse',
+    mood: 'commerce, conversation, and the dense choreography of daily life',
+    focus: 'street textures, craft traditions, and the social energy of markets',
+  },
+};
+
 function getCategoryLens(category: string) {
-  const value = category.toLowerCase();
-
-  if (value.includes('art') || value.includes('museum') || value.includes('theater')) {
-    return {
-      eyebrow: 'Arts & Culture',
-      mood: 'creative expression, quiet observation, and layered cultural timelines',
-      focus: 'galleries, performance spaces, and the artistic pulse of Hanoi',
-    };
-  }
-
-  if (value.includes('spiritual') || value.includes('temple')) {
-    return {
-      eyebrow: 'Sacred Layer',
-      mood: 'ritual calm, incense, and a slower ceremonial tempo',
-      focus: 'symbolic details, courtyards, altars, and contemplative spaces',
-    };
-  }
-
-  if (value.includes('eat') || value.includes('shop')) {
-    return {
-      eyebrow: 'Local Pulse',
-      mood: 'commerce, conversation, and the dense choreography of daily life',
-      focus: 'street textures, local flavors, and the social energy of markets and cafes',
-    };
-  }
-
-  if (value.includes('heritage') || value.includes('historic')) {
-    return {
-      eyebrow: 'Historic Trace',
-      mood: 'monumental form, visible age, and strong urban symbolism',
-      focus: 'architectural silhouettes, historical turning points, and urban heritage',
-    };
-  }
-
-  if (value.includes('nature') || value.includes('outdoor')) {
-    return {
-      eyebrow: 'Open Air Frame',
-      mood: 'breathing room, horizon lines, and a softer city cadence',
-      focus: 'landscape atmosphere, movement, and the contrast with the dense urban fabric',
-    };
-  }
-
-  return {
+  return CATEGORY_LENS[category] ?? {
     eyebrow: 'City Archive',
     mood: 'local character, spatial memory, and a strong sense of urban texture',
     focus: "what the site reveals about Hanoi's identity when you slow down and read the place closely",

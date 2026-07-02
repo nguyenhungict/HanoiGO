@@ -49,10 +49,10 @@ export default function TravelBasket() {
         {/* Info */}
         <div className="flex-1 min-w-0">
           <p className="text-sm font-black text-on-surface tracking-tight">
-            {count} địa điểm
+            {count} places
           </p>
           <p className="text-[10px] font-bold text-outline uppercase tracking-widest">
-            Sẵn sàng lên lịch
+            Ready to plan
           </p>
         </div>
 
@@ -62,14 +62,14 @@ export default function TravelBasket() {
           className="bg-primary text-white px-6 py-3 rounded-2xl font-black text-[10px] uppercase tracking-widest shadow-lg shadow-primary/20 hover:scale-[1.02] active:scale-[0.98] transition-all flex items-center gap-2 whitespace-nowrap"
         >
           <span className="material-symbols-outlined text-sm">route</span>
-          Lên lịch trình
+          Plan Itinerary
         </button>
 
         {/* Clear button */}
         <button
           onClick={clearPlaces}
           className="w-8 h-8 rounded-full flex items-center justify-center text-outline/40 hover:text-red-500 hover:bg-red-50 transition-all shrink-0"
-          title="Xóa tất cả"
+          title="Clear all"
         >
           <span className="material-symbols-outlined text-[16px]">close</span>
         </button>

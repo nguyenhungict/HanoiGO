@@ -2,25 +2,25 @@ import { IsEmail, IsNotEmpty, MinLength, Matches } from 'class-validator';
 import { ApiProperty } from '@nestjs/swagger';
 
 export class ForgotPasswordDto {
-  @ApiProperty({ example: 'user@gmail.com', description: 'Email đã đăng ký' })
-  @IsEmail({}, { message: 'Email không đúng định dạng' })
+  @ApiProperty({ example: 'user@gmail.com', description: 'Registered email address' })
+  @IsEmail({}, { message: 'Invalid email format' })
   email: string;
 }
 
 export class ResetPasswordDto {
-  @ApiProperty({ example: 'abc123...', description: 'Token nhận từ email' })
-  @IsNotEmpty({ message: 'Token không được để trống' })
+  @ApiProperty({ example: 'abc123...', description: 'Reset password token from email' })
+  @IsNotEmpty({ message: 'Token cannot be empty' })
   token: string;
 
   @ApiProperty({
     example: 'NewPass@123',
-    description: 'Mật khẩu mới (>=8 ký tự, phải có hoa+thường+số+đặc biệt)',
+    description: 'New password (>=8 chars, must contain upper+lower+number+special)',
   })
-  @IsNotEmpty({ message: 'Mật khẩu mới không được để trống' })
-  @MinLength(8, { message: 'Mật khẩu phải có ít nhất 8 ký tự' })
+  @IsNotEmpty({ message: 'New password cannot be empty' })
+  @MinLength(8, { message: 'Password must be at least 8 characters long' })
   @Matches(/^(?=.*[A-Z])(?=.*[a-z])(?=.*\d)(?=.*[\W_]).{8,}$/, {
     message:
-      'Mật khẩu phải có ít nhất 1 chữ hoa, 1 chữ thường, 1 số và 1 ký tự đặc biệt',
+      'Password must contain at least 1 uppercase letter, 1 lowercase letter, 1 number, and 1 special character',
   })
   newPassword: string;
 }

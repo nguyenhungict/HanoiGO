@@ -26,7 +26,7 @@ export default function RegisterPage() {
     setLoading(true);
 
     if (formData.password !== formData.confirm_password) {
-      setError("Mật khẩu không khớp");
+      setError("Passwords do not match");
       setLoading(false);
       return;
     }
@@ -45,7 +45,7 @@ export default function RegisterPage() {
         router.push(`/verify-email?email=${formData.email}`);
       }
     } catch (err: any) {
-      setError("Có lỗi hệ thống xảy ra");
+      setError("A system error occurred");
       setLoading(false);
     }
   };

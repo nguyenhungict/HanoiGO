@@ -355,8 +355,8 @@ JSON ONLY — no markdown fences, no extra text outside the JSON object.
     if (matchedPlaces.length === 0) {
       return {
         response:
-          'Mình không tìm thấy địa điểm phù hợp trong hệ thống. ' +
-          'Bạn thử mô tả lại sở thích hoặc khu vực muốn ghé thăm nhé! 🗺️',
+          "I couldn't find any matching places in our database. " +
+          "Please try describing your preferences or the area you want to visit again! 🗺️",
         intent: 'trip_plan_collecting',
       };
     }

@@ -24,11 +24,11 @@ interface ActivityDetailsModalProps {
 }
 
 const CATEGORY_CONFIG: Record<string, { icon: string; label: string; color: string }> = {
-  'Nature & Outdoors':   { icon: 'park',             label: 'Nature & Outdoors',  color: '#43A047' },
-  'Arts & Culture':      { icon: 'museum',           label: 'Arts & Culture',     color: '#3F51B5' },
-  'Heritage & History':  { icon: 'account_balance',  label: 'Heritage & History', color: '#607D8B' },
-  'Spiritual':           { icon: 'temple_buddhist',  label: 'Spiritual',          color: '#FF9800' },
-  'Sightseeing':         { icon: 'location_on',      label: 'Sightseeing',        color: '#0288D1' },
+  'Food & Drink':       { icon: 'restaurant',      label: 'Food & Drink',       color: '#E53535' },
+  'Sports & Active':    { icon: 'directions_bike', label: 'Sports & Active',    color: '#43A047' },
+  'Arts & Culture':     { icon: 'theater_comedy',  label: 'Arts & Culture',     color: '#3F51B5' },
+  'Social & Nightlife': { icon: 'local_bar',        label: 'Social & Nightlife', color: '#9C27B0' },
+  'Sightseeing':        { icon: 'photo_camera',    label: 'Sightseeing',        color: '#0288D1' },
 };
 
 const BACKEND_URL = process.env.NEXT_PUBLIC_ACTIONS_URL || 'http://localhost:8888';
@@ -82,7 +82,7 @@ export const ActivityDetailsModal: React.FC<ActivityDetailsModalProps> = ({ acti
     avatarUrl: currentActivity.hostAvatar 
   };
   const memberCount = currentActivity.memberCount || 1;
-  const cat = CATEGORY_CONFIG[currentActivity.category] ?? CATEGORY_CONFIG['Arts & Culture'];
+  const cat = CATEGORY_CONFIG[currentActivity.category] ?? CATEGORY_CONFIG['Sightseeing'];
   const maxMembers = currentActivity.maxMembers || memberCount;
   const spaceLeft = Math.max(0, maxMembers - memberCount);
   const occupancyPercent = Math.min(100, Math.round((memberCount / Math.max(maxMembers, 1)) * 100));

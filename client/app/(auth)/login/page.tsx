@@ -21,7 +21,7 @@ export default function LoginPage() {
     const password = formData.get("password");
 
     const result = await loginAction({ email, password }) as any;
-    
+
     if (result?.error) {
       setError(result.error);
       setLoading(false);
@@ -54,29 +54,20 @@ export default function LoginPage() {
       <main className="flex-grow pt-16 flex overflow-hidden">
         {/* Left Half: Photography & Branding Overlay */}
         <section className="relative w-1/2 hidden lg:flex items-center justify-center overflow-hidden">
-          <img 
-            alt="Hanoi Streets" 
-            className="absolute inset-0 w-full h-full object-cover scale-110" 
+          <img
+            alt="Hanoi Streets"
+            className="absolute inset-0 w-full h-full object-cover scale-110"
             src="https://lh3.googleusercontent.com/aida-public/AB6AXuA4-iPwl61wIu2fTOvlPGHdynooI11BBN20UA0Lh_jjmsGeVSnz84vQb18GYamR1CDOncYAkiZOtfiP_TGbK0OMR39ZsGmTsSKr2KvjOBSmNn8m4JnEeijwB-NrfhFQyccJJWrO60ItlhNRLQgroYS6pjSQkJG2zyGTDgBbVjInVcCYocOHECqFYmZ-I7XU7sqZ6ux_4H9tqis2Qs1N-dygzHhIFkFeZboQ7m3_048PWQVBMAkVpfDQMvojSauf_65O5V2TTO-eSdwq"
           />
           <div className="absolute inset-0 bg-black/20"></div>
           {/* Glassmorphic Overlay */}
           <div className="bg-white/10 backdrop-blur-2xl p-12 rounded-3xl relative z-10 max-w-sm border border-white/20 shadow-2xl">
             <div className="text-white">
-              <h2 className="text-4xl font-black tracking-tighter mb-4 leading-none lowercase">Access your <br/>journey.</h2>
+              <h2 className="text-4xl font-black tracking-tighter mb-4 leading-none lowercase">Access your <br />journey.</h2>
               <p className="text-lg font-medium leading-relaxed opacity-90 mb-10">
                 Experience the soul of Vietnam through curated journeys that blend timeless heritage with modern luxury.
               </p>
-              <div className="flex items-center gap-4">
-                <div className="flex -space-x-3">
-                  {[1, 2, 3].map(i => (
-                    <div key={i} className="w-12 h-12 rounded-full border-4 border-white/20 overflow-hidden bg-white/10 backdrop-blur-md">
-                      <div className="w-full h-full bg-primary/20 flex items-center justify-center text-xs font-black">H</div>
-                    </div>
-                  ))}
-                </div>
-                <span className="text-[10px] font-black uppercase tracking-widest">Join 12k+ travelers</span>
-              </div>
+
             </div>
           </div>
         </section>
@@ -89,7 +80,7 @@ export default function LoginPage() {
               <h1 className="text-3xl font-black text-on-surface tracking-tighter mb-3 leading-tight">Authentic Login.</h1>
               <p className="text-outline font-medium text-xs leading-relaxed">Don't have an account? <Link className="text-primary font-black uppercase tracking-widest text-[9px] ml-2 hover:underline" href="/register">Join the guild</Link></p>
             </header>
-            
+
             {error && (
               <div className="mb-8 p-6 bg-primary/5 text-primary rounded-2xl text-[11px] font-black uppercase tracking-widest border border-primary/10 animate-in shake duration-500">
                 {error}
@@ -99,11 +90,11 @@ export default function LoginPage() {
             <form className="space-y-8" onSubmit={handleSubmit}>
               <div className="space-y-3">
                 <label className="block text-[10px] font-black uppercase tracking-[0.2em] text-outline ml-1" htmlFor="email">Email Address</label>
-                <input 
-                  className="w-full bg-surface-container-low px-6 py-4 rounded-xl text-on-surface placeholder:text-outline/40 border border-outline/10 focus:border-primary/50 focus:ring-4 focus:ring-primary/5 outline-none transition-all font-bold text-sm" 
-                  id="email" 
+                <input
+                  className="w-full bg-surface-container-low px-6 py-4 rounded-xl text-on-surface placeholder:text-outline/40 border border-outline/10 focus:border-primary/50 focus:ring-4 focus:ring-primary/5 outline-none transition-all font-bold text-sm"
+                  id="email"
                   name="email"
-                  placeholder="name@hanoigo.com" 
+                  placeholder="name@hanoigo.com"
                   type="email"
                   required
                 />
@@ -111,17 +102,17 @@ export default function LoginPage() {
               <div className="space-y-3">
                 <label className="block text-[10px] font-black uppercase tracking-[0.2em] text-outline ml-1" htmlFor="password">Password</label>
                 <div className="relative">
-                  <input 
-                    className="w-full bg-surface-container-low px-6 py-4 rounded-xl text-on-surface placeholder:text-outline/40 border border-outline/10 focus:border-primary/50 focus:ring-4 focus:ring-primary/5 outline-none transition-all font-bold text-sm" 
-                    id="password" 
+                  <input
+                    className="w-full bg-surface-container-low px-6 py-4 rounded-xl text-on-surface placeholder:text-outline/40 border border-outline/10 focus:border-primary/50 focus:ring-4 focus:ring-primary/5 outline-none transition-all font-bold text-sm"
+                    id="password"
                     name="password"
-                    placeholder="••••••••" 
+                    placeholder="••••••••"
                     type={showPassword ? "text" : "password"}
                     required
                   />
-                  <button 
+                  <button
                     onClick={() => setShowPassword(!showPassword)}
-                    className="absolute right-8 top-1/2 -translate-y-1/2 text-outline hover:text-primary transition-colors" 
+                    className="absolute right-8 top-1/2 -translate-y-1/2 text-outline hover:text-primary transition-colors"
                     type="button"
                   >
                     <span className="material-symbols-outlined text-xl">
@@ -137,18 +128,15 @@ export default function LoginPage() {
                 </label>
                 <Link className="text-[11px] font-black uppercase tracking-widest text-primary hover:underline" href="/forgot-password">Forgot?</Link>
               </div>
-              <button 
+              <button
                 disabled={loading}
-                className="w-full bg-primary text-white py-4 rounded-2xl font-black text-[10px] uppercase tracking-[0.2em] shadow-2xl shadow-primary/20 hover:opacity-95 hover:scale-[1.02] active:scale-[0.98] transition-all disabled:opacity-50 disabled:active:scale-100 mt-2" 
+                className="w-full bg-primary text-white py-4 rounded-2xl font-black text-[10px] uppercase tracking-[0.2em] shadow-2xl shadow-primary/20 hover:opacity-95 hover:scale-[1.02] active:scale-[0.98] transition-all disabled:opacity-50 disabled:active:scale-100 mt-2"
                 type="submit"
               >
                 {loading ? "Verifying..." : "Sign In"}
               </button>
             </form>
             <footer className="mt-16 text-center">
-              <p className="text-[9px] font-black text-outline uppercase tracking-[0.2em] leading-relaxed">
-                By continuing, you agree to HanoiGO's <br/> <Link className="underline hover:text-primary" href="#">Terms</Link> and <Link className="underline hover:text-primary" href="#">Privacy</Link>.
-              </p>
             </footer>
           </div>
         </section>
