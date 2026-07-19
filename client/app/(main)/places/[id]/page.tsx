@@ -1,5 +1,5 @@
 import Link from 'next/link';
-import { getPlaceStory, fetchLandmarks } from '@/lib/landmarks';
+import { getPlaceStory, fetchLandmarks, formatTime } from '@/lib/landmarks';
 import PlaceDetailsContent from '@/components/places/PlaceDetailsContent';
 
 export const dynamic = 'force-dynamic';
@@ -153,12 +153,18 @@ export default async function PlaceDetailsPage({ params }: PlaceDetailsPageProps
                           </div>
                         </div>
                         <div className="flex items-center gap-2">
-                          <div className="w-8 h-8 rounded-xl bg-[#10B981]/5 flex items-center justify-center text-[#10B981]">
+                          <div className="w-8 h-8 rounded-xl bg-amber-500/5 flex items-center justify-center text-amber-500">
                             <span className="material-symbols-outlined text-[15px]">schedule</span>
                           </div>
                           <div className="flex flex-col">
-                            <span className="text-[8px] font-black text-outline uppercase tracking-wider">Duration</span>
-                            <span className="text-[10px] font-black text-on-surface tracking-tight">~{getVisitDuration(landmark.category)} mins</span>
+                            <span className="text-[8px] font-black text-outline uppercase tracking-wider">Hours</span>
+                            <span className="text-[10px] font-black text-on-surface tracking-tight">
+                              {landmark.alwaysOpen
+                                ? '24/7'
+                                : landmark.openTimeStart && landmark.openTimeEnd
+                                  ? `${formatTime(landmark.openTimeStart)} - ${formatTime(landmark.openTimeEnd)}`
+                                  : 'N/A'}
+                            </span>
                           </div>
                         </div>
                       </div>

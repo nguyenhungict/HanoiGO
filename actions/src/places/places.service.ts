@@ -36,6 +36,45 @@ export class PlacesService {
     };
   }
 
+  // ── Public: proximity search (no auth) ────────────────────────────
+  // Resolves nearby places at the database level with PostGIS instead of
+  // fetching every row and measuring distance in JavaScript.
+  //
+  // The `location` column is geometry(Point, 4326), whose native unit is
+  // degrees — ST_DWithin against it would read `radius` as degrees, not
+  // metres. Casting both sides to `geography` makes the radius metric.
+  async findNearby(lat: number, lng: number, radiusMeters = 5000, limit = 20) {
+    const places = await this.prisma.$queryRawUnsafe<any[]>(
+      `SELECT p.id, p.name, p.category, p.district, p.address, p.lat, p.lng,
+              p.image_url         AS "imageUrl",
+              p.description_en    AS "descriptionEn",
+              p.always_open       AS "alwaysOpen",
+              p.open_days         AS "openDays",
+              p.open_time_start   AS "openTimeStart",
+              p.open_time_end     AS "openTimeEnd",
+              ROUND(
+                ST_Distance(
+                  p.location::geography,
+                  ST_SetSRID(ST_MakePoint($2, $1), 4326)::geography
+                )::numeric
+              )::int              AS "distanceMeters"
+       FROM places p
+       WHERE ST_DWithin(
+               p.location::geography,
+               ST_SetSRID(ST_MakePoint($2, $1), 4326)::geography,
+               $3
+             )
+       ORDER BY "distanceMeters" ASC
+       LIMIT $4`,
+      lat,
+      lng,
+      radiusMeters,
+      limit,
+    );
+
+    return { places, total: places.length, radiusMeters, origin: { lat, lng } };
+  }
+
   // ── Admin: paginated list with search + category + trip-stop count ─
   async findAllAdmin(page = 1, limit = 10, search?: string, category?: string) {
     const skip = (page - 1) * limit;

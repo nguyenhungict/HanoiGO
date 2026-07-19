@@ -16,6 +16,10 @@ interface Landmark {
   lat: number;
   lng: number;
   district?: string;
+  alwaysOpen?: boolean;
+  openDays?: number[];
+  openTimeStart?: string | null;
+  openTimeEnd?: string | null;
 }
 
 const CATEGORY_ICON: Record<string, string> = {

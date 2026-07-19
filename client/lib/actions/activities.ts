@@ -7,9 +7,11 @@ import { authHeaders } from './client';
 export async function getActivitiesAction(lat?: number, lng?: number, radius?: number) {
   try {
     const params = new URLSearchParams();
-    if (lat) params.append('lat', String(lat));
-    if (lng) params.append('lng', String(lng));
-    if (radius) params.append('radius', String(radius));
+    // Checked against undefined rather than truthiness: latitude 0 (the
+    // equator) and longitude 0 are valid coordinates that a truthy test drops.
+    if (lat !== undefined) params.append('lat', String(lat));
+    if (lng !== undefined) params.append('lng', String(lng));
+    if (radius !== undefined) params.append('radius', String(radius));
 
     const headers = await authHeaders();
     const response = await api.get(`/activities?${params.toString()}`, { headers });

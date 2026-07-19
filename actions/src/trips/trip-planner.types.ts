@@ -70,6 +70,9 @@ export interface ItineraryStopResponse {
   visitDurationMin: number;
   travelFromPrevMin: number;
   waitMin: number;
+  alwaysOpen: boolean;
+  openTimeStart: string | null;
+  openTimeEnd: string | null;
 }
 
 export interface ItineraryDayResponse {

@@ -3,7 +3,7 @@
 import { useState, useEffect, useCallback } from 'react';
 import { createPortal } from 'react-dom';
 import Link from 'next/link';
-import { Landmark, PlaceStory } from '@/lib/landmarks';
+import { Landmark, PlaceStory, formatTime, formatOpenDays, getOpeningStatus } from '@/lib/landmarks';
 import { useTripStore } from '@/store/useTripStore';
 
 interface PlaceDetailsContentProps {
@@ -150,6 +150,72 @@ export default function PlaceDetailsContent({ landmark, story }: PlaceDetailsCon
                 View on Map
               </Link>
             </div>
+
+            {/* Weekly Schedule */}
+            {(() => {
+              const shortDayNames: Record<number, string> = {
+                1: 'Mon', 2: 'Tue', 3: 'Wed', 4: 'Thu', 5: 'Fri', 6: 'Sat', 0: 'Sun'
+              };
+              const status = getOpeningStatus(landmark);
+              
+              return (
+                <div className="mt-6 p-6 rounded-[24px] border border-outline/10 bg-white/60 backdrop-blur-xl shadow-sm space-y-4">
+                  <div className="flex flex-wrap items-center justify-between gap-3">
+                    <div className="flex items-center gap-2">
+                      <span className="material-symbols-outlined text-primary text-xl">schedule</span>
+                      <h3 className="font-extrabold text-[12px] text-on-surface uppercase tracking-wider">
+                        Weekly Schedule
+                      </h3>
+                    </div>
+                    
+                    <div className={`inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-[10px] font-black uppercase tracking-wider border ${status.colorClass}`}>
+                      <span className={`w-1.5 h-1.5 rounded-full ${status.dotColorClass}`} />
+                      <span>{status.text}</span>
+                    </div>
+                  </div>
+
+                  <div className="grid grid-cols-2 sm:grid-cols-7 gap-2 md:gap-2.5 pt-1">
+                    {[1, 2, 3, 4, 5, 6, 0].map((dayNum) => {
+                      const todayNum = new Date().getDay();
+                      const isToday = dayNum === todayNum;
+                      const openDays = landmark.openDays ?? [0, 1, 2, 3, 4, 5, 6];
+                      const isOpen = landmark.alwaysOpen || openDays.includes(dayNum);
+                      
+                      return (
+                        <div 
+                          key={dayNum}
+                          className={`flex flex-col items-center justify-center p-3 rounded-2xl border text-center transition-all duration-300 ${
+                            isToday 
+                              ? 'bg-primary/5 border-primary/40 ring-1 ring-primary/20 scale-[1.03]' 
+                              : 'bg-white/40 border-outline/5 hover:border-outline/15'
+                          }`}
+                        >
+                          <span className={`text-[10px] font-black uppercase tracking-wider ${isToday ? 'text-primary' : 'text-outline/70'}`}>
+                            {shortDayNames[dayNum]}
+                          </span>
+                          <span className={`text-[9px] sm:text-[10px] font-bold mt-1.5 whitespace-nowrap ${
+                            isOpen 
+                              ? 'text-on-surface' 
+                              : 'text-rose-500/70 dark:text-rose-400/70 font-semibold'
+                          }`}>
+                            {landmark.alwaysOpen 
+                              ? '24/7' 
+                              : isOpen 
+                                ? `${formatTime(landmark.openTimeStart)}-${formatTime(landmark.openTimeEnd)}` 
+                                : 'Closed'}
+                          </span>
+                          {isToday && (
+                            <span className="text-[7px] font-black uppercase tracking-widest text-primary mt-1">
+                              Today
+                            </span>
+                          )}
+                        </div>
+                      );
+                    })}
+                  </div>
+                </div>
+              );
+            })()}
           </div>
 
           {/* Hero Right: Featured Cover Image */}

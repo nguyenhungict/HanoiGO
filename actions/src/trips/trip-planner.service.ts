@@ -365,6 +365,13 @@ export class TripPlannerService {
             visitDurationMin: stop.place.visitDurationMin,
             travelFromPrevMin: Math.round(stop.travelFromPrevSec / 60),
             waitMin: stop.waitMin,
+            alwaysOpen: stop.place.alwaysOpen,
+            openTimeStart: stop.place.alwaysOpen
+              ? null
+              : minToTime(stop.place.openTimeStart),
+            openTimeEnd: stop.place.alwaysOpen
+              ? null
+              : minToTime(stop.place.openTimeEnd),
           })),
           totalTravelMin: Math.round(day.totalTravelSec / 60),
           freeTimeMin: Math.max(0, dto.endTime - dayEndMin),

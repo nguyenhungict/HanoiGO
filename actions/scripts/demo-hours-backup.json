@@ -1,0 +1,222 @@
+[
+  {
+    "name": "Chua Tran Quoc",
+    "alwaysOpen": false,
+    "openTimeStart": "1970-01-01T07:30:00.000Z",
+    "openTimeEnd": "1970-01-01T18:00:00.000Z",
+    "openDays": [
+      0,
+      1,
+      2,
+      3,
+      4,
+      5,
+      6
+    ],
+    "visitDurationMin": 45
+  },
+  {
+    "name": "Thang Long Water Puppet Theater",
+    "alwaysOpen": false,
+    "openTimeStart": "1970-01-01T08:30:00.000Z",
+    "openTimeEnd": "1970-01-01T19:15:00.000Z",
+    "openDays": [
+      0,
+      1,
+      2,
+      3,
+      4,
+      5,
+      6
+    ],
+    "visitDurationMin": 90
+  },
+  {
+    "name": "One Pillar Pagoda",
+    "alwaysOpen": false,
+    "openTimeStart": "1970-01-01T07:00:00.000Z",
+    "openTimeEnd": "1970-01-01T18:00:00.000Z",
+    "openDays": [
+      0,
+      1,
+      2,
+      3,
+      4,
+      5,
+      6
+    ],
+    "visitDurationMin": 45
+  },
+  {
+    "name": "Ho Chi Minh Museum",
+    "alwaysOpen": false,
+    "openTimeStart": "1970-01-01T08:00:00.000Z",
+    "openTimeEnd": "1970-01-01T16:30:00.000Z",
+    "openDays": [
+      0,
+      2,
+      3,
+      4,
+      6
+    ],
+    "visitDurationMin": 90
+  },
+  {
+    "name": "Ngoc Son Temple",
+    "alwaysOpen": false,
+    "openTimeStart": "1970-01-01T07:00:00.000Z",
+    "openTimeEnd": "1970-01-01T18:00:00.000Z",
+    "openDays": [
+      0,
+      1,
+      2,
+      3,
+      4,
+      5,
+      6
+    ],
+    "visitDurationMin": 45
+  },
+  {
+    "name": "Bat Trang Ceramic Village",
+    "alwaysOpen": false,
+    "openTimeStart": "1970-01-01T09:00:00.000Z",
+    "openTimeEnd": "1970-01-01T18:30:00.000Z",
+    "openDays": [
+      0,
+      1,
+      2,
+      3,
+      4,
+      5,
+      6
+    ],
+    "visitDurationMin": 75
+  },
+  {
+    "name": "Imperial Citadel of Thang Long",
+    "alwaysOpen": false,
+    "openTimeStart": "1970-01-01T08:00:00.000Z",
+    "openTimeEnd": "1970-01-01T17:00:00.000Z",
+    "openDays": [
+      0,
+      1,
+      2,
+      3,
+      4,
+      5,
+      6
+    ],
+    "visitDurationMin": 60
+  },
+  {
+    "name": "Temple of Literature",
+    "alwaysOpen": false,
+    "openTimeStart": "1970-01-01T08:00:00.000Z",
+    "openTimeEnd": "1970-01-01T17:00:00.000Z",
+    "openDays": [
+      0,
+      1,
+      2,
+      3,
+      4,
+      5,
+      6
+    ],
+    "visitDurationMin": 60
+  },
+  {
+    "name": "Hoan Kiem Lake",
+    "alwaysOpen": true,
+    "openTimeStart": "1970-01-01T00:00:00.000Z",
+    "openTimeEnd": "1970-01-01T23:59:00.000Z",
+    "openDays": [
+      0,
+      1,
+      2,
+      3,
+      4,
+      5,
+      6
+    ],
+    "visitDurationMin": 45
+  },
+  {
+    "name": "Dong Xuan Market",
+    "alwaysOpen": false,
+    "openTimeStart": "1970-01-01T06:00:00.000Z",
+    "openTimeEnd": "1970-01-01T19:00:00.000Z",
+    "openDays": [
+      0,
+      1,
+      2,
+      3,
+      4,
+      5,
+      6
+    ],
+    "visitDurationMin": 75
+  },
+  {
+    "name": "Ho Chi Minh Mausoleum",
+    "alwaysOpen": false,
+    "openTimeStart": "1970-01-01T07:30:00.000Z",
+    "openTimeEnd": "1970-01-01T11:00:00.000Z",
+    "openDays": [
+      0,
+      2,
+      3,
+      4,
+      6
+    ],
+    "visitDurationMin": 60
+  },
+  {
+    "name": "Hoa Lo Prison",
+    "alwaysOpen": false,
+    "openTimeStart": "1970-01-01T08:00:00.000Z",
+    "openTimeEnd": "1970-01-01T17:00:00.000Z",
+    "openDays": [
+      0,
+      1,
+      2,
+      3,
+      4,
+      5,
+      6
+    ],
+    "visitDurationMin": 90
+  },
+  {
+    "name": "Vietnamese Women's Museum",
+    "alwaysOpen": false,
+    "openTimeStart": "1970-01-01T08:00:00.000Z",
+    "openTimeEnd": "1970-01-01T17:00:00.000Z",
+    "openDays": [
+      0,
+      1,
+      2,
+      3,
+      4,
+      5,
+      6
+    ],
+    "visitDurationMin": 90
+  },
+  {
+    "name": "St. Joseph's Cathedral",
+    "alwaysOpen": false,
+    "openTimeStart": "1970-01-01T08:00:00.000Z",
+    "openTimeEnd": "1970-01-01T18:00:00.000Z",
+    "openDays": [
+      0,
+      1,
+      2,
+      3,
+      4,
+      5,
+      6
+    ],
+    "visitDurationMin": 45
+  }
+]

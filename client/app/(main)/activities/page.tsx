@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { useSearchParams, useRouter } from 'next/navigation';
 import { ActivityReelCard } from '@/components/activities/ActivityReelCard';
 import { ActivityMap } from '@/components/activities/ActivityMap';
@@ -25,6 +25,15 @@ const CATEGORIES = [
   { id: 'Sightseeing',      name: 'Sightseeing', icon: 'photo_camera' },
 ];
 
+// 'all' skips the proximity filter entirely; a number is a radius in metres
+// handed to the backend, which resolves it with a PostGIS ST_DWithin query.
+const DISTANCE_OPTIONS = [
+  { id: 'all' as const, name: 'All Activities', icon: 'public' },
+  { id: 5000,           name: 'Within 5 km',    icon: 'near_me' },
+  { id: 10000,          name: 'Within 10 km',   icon: 'near_me' },
+  { id: 15000,          name: 'Within 15 km',   icon: 'near_me' },
+];
+
 import { Activity } from '@/types';
 
 export default function ActivitiesPage() {
@@ -44,6 +53,8 @@ export default function ActivitiesPage() {
   const [viewMode, setViewMode] = useState<'reel' | 'map'>('reel');
   const [chatActivity, setChatActivity] = useState<Activity | null>(null);
   const [selectedCategory, setSelectedCategory] = useState('all');
+  const [distanceFilter, setDistanceFilter] = useState<number | 'all'>('all');
+  const [locationError, setLocationError] = useState<string | null>(null);
 
   const { setUser, setToken } = useAuthStore();
   const totalUnreadCount = useChatNotificationStore((s) =>
@@ -87,11 +98,51 @@ export default function ActivitiesPage() {
     };
   }, [chatActivity, setActiveChatId]);
 
+  // Holds the live proximity filter so fetchActivities can read it without
+  // becoming a dependency of anything — every existing refreshAll() call site
+  // keeps working unchanged and simply respects whatever filter is active.
+  const proximityRef = useRef<{
+    radius: number | 'all';
+    coords: [number, number] | null;
+  }>({ radius: 'all', coords: null });
+  proximityRef.current = { radius: distanceFilter, coords: userLocation };
+
   const fetchActivities = async () => {
     setLoading(true);
-    const result = await getActivitiesAction();
+    const { radius, coords } = proximityRef.current;
+    const result =
+      radius !== 'all' && coords
+        ? await getActivitiesAction(coords[0], coords[1], radius)
+        : await getActivitiesAction();
     if (result.success) setActivities(result.data ?? []);
     setLoading(false);
+  };
+
+  // Switching radius needs a position; ask for it only when the user actually
+  // picks a distance, and fall back to the unfiltered feed if they decline.
+  const selectDistance = (value: number | 'all') => {
+    setLocationError(null);
+
+    if (value === 'all' || userLocation) {
+      setDistanceFilter(value);
+      return;
+    }
+
+    if (!('geolocation' in navigator)) {
+      setLocationError('Your browser does not support geolocation.');
+      return;
+    }
+
+    navigator.geolocation.getCurrentPosition(
+      pos => {
+        setUserLocation([pos.coords.latitude, pos.coords.longitude]);
+        setDistanceFilter(value);
+      },
+      () =>
+        setLocationError(
+          'Location access is required to filter activities by distance.',
+        ),
+    );
   };
 
   const fetchMyActivities = async () => {
@@ -126,6 +177,18 @@ export default function ActivitiesPage() {
       );
     }
   }, []);
+
+  // Refetch when the radius changes. The mount render is skipped so this does
+  // not race the initial refreshAll() above.
+  const skipFirstDistanceRun = useRef(true);
+  useEffect(() => {
+    if (skipFirstDistanceRun.current) {
+      skipFirstDistanceRun.current = false;
+      return;
+    }
+    fetchActivities();
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [distanceFilter]);
 
   const displayActivities = (activeTab === 'my' ? myActivities : activities).filter(a => {
     if (selectedCategory !== 'all' && a.category !== selectedCategory) return false;
@@ -206,6 +269,39 @@ export default function ActivitiesPage() {
                   <span>{cat.name}</span>
                 </button>
               ))}
+            </div>
+          </div>
+
+          {/* Distance filter — 'All' keeps the full feed; a radius sends the
+              user's coordinates to the PostGIS proximity query */}
+          <div className="relative group">
+            <button className="flex items-center gap-1.5 px-3 py-2 bg-secondary-container rounded-lg text-[9px] font-black uppercase tracking-widest text-on-surface hover:bg-secondary transition-all border border-outline/10">
+              <span className="material-symbols-outlined text-sm">
+                {DISTANCE_OPTIONS.find(d => d.id === distanceFilter)?.icon || 'public'}
+              </span>
+              <span>{DISTANCE_OPTIONS.find(d => d.id === distanceFilter)?.name || 'All Activities'}</span>
+              <span className="material-symbols-outlined text-sm">expand_more</span>
+            </button>
+            <div className="absolute top-full right-0 mt-2 w-48 bg-white border border-outline/10 rounded-xl shadow-lg opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-200 z-50 flex flex-col p-2">
+              {DISTANCE_OPTIONS.map(opt => (
+                <button
+                  key={String(opt.id)}
+                  onClick={() => selectDistance(opt.id)}
+                  className={`flex items-center gap-2.5 px-3 py-2.5 rounded-xl text-[10px] font-bold uppercase tracking-widest transition-colors w-full text-left ${
+                    distanceFilter === opt.id
+                      ? 'bg-primary text-white'
+                      : 'text-on-surface hover:bg-secondary-container hover:text-primary'
+                  }`}
+                >
+                  <span className="material-symbols-outlined text-sm">{opt.icon}</span>
+                  <span>{opt.name}</span>
+                </button>
+              ))}
+              {locationError && (
+                <p className="px-3 py-2 text-[9px] font-bold text-on-surface-variant leading-relaxed normal-case tracking-normal">
+                  {locationError}
+                </p>
+              )}
             </div>
           </div>
 

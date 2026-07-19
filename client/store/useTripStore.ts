@@ -10,6 +10,12 @@ export interface Landmark {
   description: string;
   lat: number;
   lng: number;
+  district?: string;
+  gallery?: string[];
+  alwaysOpen?: boolean;
+  openDays?: number[];
+  openTimeStart?: string | null;
+  openTimeEnd?: string | null;
 }
 
 interface TripConfig {

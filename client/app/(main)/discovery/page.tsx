@@ -13,7 +13,7 @@ const DiscoveryMap = dynamic(() => import('@/components/map/DiscoveryMap'), {
 const ChatAssistant = dynamic(() => import('@/components/chat/ChatAssistant'), { ssr: false });
 const TravelBasket = dynamic(() => import('@/components/TravelBasket'), { ssr: false });
 
-import { fetchLandmarks } from '@/lib/landmarks';
+import { fetchLandmarks, getOpeningStatus } from '@/lib/landmarks';
 
 // AI-recommended marker to highlight on map
 export interface AiMarker {
@@ -163,6 +163,7 @@ function DiscoveryPageContent() {
             </div>
             {filteredLandmarks.slice(0, visibleCount).map(l => {
               const saved = l.id in selectedPlaces;
+              const status = getOpeningStatus(l);
               return (
                 <div
                   key={l.id}
@@ -170,10 +171,10 @@ function DiscoveryPageContent() {
                     setMapFocus([l.lat, l.lng]);
                     setActiveLandmarkId(l.id);
                   }}
-                  className={`group cursor-pointer border p-3 rounded-[20px] shadow-sm transition-all duration-500 flex gap-4 items-center hover:border-primary/30 hover:shadow-xl hover:shadow-primary/5 hover:scale-[1.02] active:scale-[0.98] relative overflow-hidden
+                  className={`group cursor-pointer border p-4 rounded-[22px] shadow-sm transition-all duration-500 flex gap-4 items-center hover:border-primary/30 hover:shadow-xl hover:shadow-primary/5 hover:scale-[1.02] active:scale-[0.98] relative overflow-hidden
                     ${activeLandmarkId === l.id ? 'bg-primary/5 border-primary/40 ring-1 ring-primary/20' : 'bg-surface-container-lowest border-outline/5'}`}
                 >
-                  <div className="w-14 h-14 rounded-xl overflow-hidden flex-shrink-0 relative shadow-inner">
+                  <div className="w-[72px] h-[72px] rounded-[16px] overflow-hidden flex-shrink-0 relative shadow-inner">
                     <img 
                       className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-700" 
                       src={l.image} 
@@ -185,8 +186,12 @@ function DiscoveryPageContent() {
                     <div className="absolute inset-0 bg-black/5 group-hover:bg-transparent transition-colors"></div>
                   </div>
                   <div className="flex-1 min-w-0">
-                    <h3 className="font-extrabold text-on-surface text-[15px] leading-tight tracking-tight truncate">{l.name}</h3>
-                    <p className="text-[10px] text-outline/60 font-black uppercase tracking-widest mt-1 truncate">{l.category}</p>
+                    <h3 className="font-extrabold text-on-surface text-[16px] leading-tight tracking-tight truncate">{l.name}</h3>
+                    <p className="text-[11px] text-outline/60 font-black uppercase tracking-widest mt-1 truncate">{l.category}</p>
+                    <div className={`inline-flex items-center gap-1.5 px-2 py-0.5 mt-1.5 rounded-full text-[9px] font-bold border w-fit ${status.colorClass}`}>
+                      <span className={`w-1.5 h-1.5 rounded-full ${status.dotColorClass}`} />
+                      <span>{status.text}</span>
+                    </div>
                   </div>
 
                   {/* Heart/Save button */}

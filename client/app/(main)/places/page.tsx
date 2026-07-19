@@ -1,5 +1,6 @@
 import Link from 'next/link';
-import { fetchLandmarks } from '@/lib/landmarks';
+import { fetchLandmarks, formatTime } from '@/lib/landmarks';
+import NearbyPlaces from '@/components/places/NearbyPlaces';
 
 export const dynamic = 'force-dynamic';
 
@@ -143,6 +144,10 @@ export default async function PlacesDirectoryPage({
                  />
               </form>
             </div>
+
+            {/* Proximity search (PostGIS ST_DWithin) — opt-in, never replaces
+                the full list below */}
+            <NearbyPlaces />
 
             {/* Categories List */}
             <div className="bg-white/60 backdrop-blur-xl border border-outline/10 p-5 rounded-[2rem] shadow-[0_8px_30px_rgba(0,0,0,0.015)] space-y-4">
@@ -297,12 +302,18 @@ export default async function PlacesDirectoryPage({
                                 </div>
                               </div>
                               <div className="flex items-center gap-2">
-                                <div className="w-8 h-8 rounded-xl bg-[#10B981]/5 flex items-center justify-center text-[#10B981]">
+                                <div className="w-8 h-8 rounded-xl bg-amber-500/5 flex items-center justify-center text-amber-500">
                                   <span className="material-symbols-outlined text-[15px]">schedule</span>
                                 </div>
                                 <div className="flex flex-col">
-                                  <span className="text-[8px] font-black text-outline uppercase tracking-wider">Duration</span>
-                                  <span className="text-[10px] font-black text-on-surface tracking-tight">~{getVisitDuration(landmark.category)} mins</span>
+                                  <span className="text-[8px] font-black text-outline uppercase tracking-wider">Hours</span>
+                                  <span className="text-[10px] font-black text-on-surface tracking-tight">
+                                    {landmark.alwaysOpen
+                                      ? '24/7'
+                                      : landmark.openTimeStart && landmark.openTimeEnd
+                                        ? `${formatTime(landmark.openTimeStart)} - ${formatTime(landmark.openTimeEnd)}`
+                                        : 'N/A'}
+                                  </span>
                                 </div>
                               </div>
                             </div>

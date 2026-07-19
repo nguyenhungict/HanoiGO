@@ -75,75 +75,267 @@ từng điểm, (3) chừa giờ nghỉ trưa, và (4) không vượt quá giờ
 thứ tự ``ngắn đường'' nhưng tới Lăng Bác sau 10:30 là vô dụng.
 
 % =====================================================================
-\section{Quy trình 6 bước (pipeline)}
+\section{Quy trình 6 bước (pipeline) --- chi tiết từng bước}
 
-Hệ thống không giải một cục lớn, mà chia thành 6 bước nối tiếp:
+Hãy hình dung cả module như một \textbf{trợ lý sắp lịch} nhận vào danh sách
+địa điểm bạn chọn và trả ra lịch trình từng ngày. Trợ lý này không làm mọi thứ
+trong một bước, mà đi qua một chuỗi giai đoạn, giai đoạn sau dọn dẹp và tinh
+chỉnh kết quả của giai đoạn trước. Dưới đây là toàn bộ hành trình của dữ liệu,
+từ lúc bạn bấm ``Tạo lịch trình'' tới lúc nhận về kết quả.
 
-\begin{enumerate}[leftmargin=2.2em]
-  \item \textbf{Lọc trước} \en{Pre-Filtering}: bỏ những điểm đóng cửa suốt mọi
-  ngày của chuyến đi.
-  \item \textbf{Gom cụm theo địa lý} \en{K-Means++ clustering}: chia các điểm
-  thành $K$ cụm (mỗi cụm = 1 ngày), tối đa 5 điểm/ngày.
-  \item \textbf{Lấy ma trận thời gian đi} \en{Distance Matrix}: gọi Goong Maps
-  một lần để lấy thời gian đi đường thật giữa mọi cặp điểm (có dự phòng
-  Haversine khi API lỗi).
-  \item \textbf{Xếp thứ tự trong ngày} \en{sequencing, TSPTW}: dùng
-  \textbf{tìm kiếm chính xác} \en{exact search} cho ngày $\le 8$ điểm; GNN
-  (tham lam) chỉ là dự phòng cho ngày lớn hơn.
-  \item \textbf{Hiệu chỉnh GPS \& chèn lại} \en{GPS cascade \& gap insertion}:
-  cộng thời gian thật từ khách sạn tới điểm đầu; thử chèn lại các điểm đã rớt
-  vào ``khe trống'' của ngày khác.
-  \item \textbf{Xếp thứ tự lần cuối} \en{final ordering}: sau khi chèn lại có
-  thể đổi thành viên trong ngày, nên chạy lại tìm kiếm chính xác để chốt thứ tự
-  tốt nhất.
-\end{enumerate}
+\textbf{Giai đoạn chuẩn bị --- lấy thông tin từng điểm.} Trước tiên hệ thống
+tra trong cơ sở dữ liệu để biết: điểm này ở toạ độ nào, mở cửa những ngày nào
+trong tuần, mở--đóng lúc mấy giờ, và nên dành bao nhiêu phút để tham quan. Đây
+chỉ là bước ``lấy hồ sơ'' cho từng địa điểm, chưa tính toán gì cả.
 
-\textbf{Ý chính cần nhớ:} bước 1--3 dùng \textbf{heuristic nhanh} để chia việc;
-bước 4 và 6 dùng \textbf{thuật toán chính xác} để xếp thứ tự trong từng ngày nhỏ.
+\textbf{Bước 1 --- Loại bỏ những điểm vô vọng ngay từ đầu.} Với mỗi địa điểm,
+hệ thống hỏi một câu đơn giản: \textit{``Trong toàn bộ những ngày của chuyến đi
+này, có ngày nào điểm này mở cửa không?''}. Nếu câu trả lời là \textbf{không}
+--- ví dụ bạn đi đúng 2 ngày cuối tuần mà một bảo tàng chỉ mở các ngày trong
+tuần --- thì điểm đó bị loại ngay từ vòng gửi xe, không tốn công tính toán gì
+thêm cho nó. Đây gọi là nhóm \textbf{``không khả thi''}, khác với nhóm
+\textbf{``không xếp được''} sẽ xuất hiện ở các bước sau (điểm có thể mở cửa
+đúng ngày, nhưng lịch trình không còn chỗ hoặc không kịp giờ).
+
+\textbf{Bước 2 --- Chia điểm thành từng ngày theo vị trí địa lý.} Đây là bước
+trả lời câu hỏi \textit{``ngày nào nên đi những điểm nào?''}, hoàn toàn dựa vào
+\textbf{khoảng cách trên bản đồ}, chưa quan tâm giờ giấc. Cách làm giống như
+việc bạn nhìn bản đồ và khoanh vùng: những điểm nằm gần nhau được gom vào cùng
+một khoanh, số khoanh bằng đúng số ngày của chuyến đi. Kỹ thuật dùng ở đây là
+\textbf{K-Means++} --- một thuật toán gom cụm rất phổ biến, với cải tiến quan
+trọng là chọn các ``tâm cụm'' ban đầu \textbf{dàn trải khắp khu vực} thay vì
+chọn ngẫu nhiên hoàn toàn, để tránh việc 2 tâm cụm vô tình rơi sát nhau ngay từ
+đầu. Việc chọn tâm ban đầu vẫn có yếu tố ngẫu nhiên, nhưng dùng một công thức
+sinh số \textbf{luôn cho cùng một kết quả với cùng một tập điểm đầu vào} ---
+điều này quan trọng để bạn chạy đi chạy lại benchmark mà không lo kết quả nhảy
+lung tung mỗi lần.
+
+Sau khi chia xong, có một bước \textbf{cân bằng lại}: mỗi ngày chỉ được chứa
+tối đa 5 điểm (giới hạn hợp lý cho một ngày tham quan thực tế). Nếu một cụm bị
+dồn quá 5 điểm, hệ thống sẽ đẩy \textbf{điểm lạc lõng nhất} của cụm đó (điểm xa
+tâm cụm nhất) sang cụm khác, nhưng chỉ đẩy sang cụm nào \textbf{gần điểm đó
+nhất} và không làm cụm đích trở nên quá rời rạc. Nói cách khác: nếu bắt buộc
+phải bớt người trong một nhóm đông, ta đẩy người đang đứng xa nhất sang nhóm
+gần họ nhất, chứ không đẩy bừa.
+
+\textbf{Bước 3 --- Sửa lỗi ``đúng ngày đóng cửa''.} Sau bước gom cụm theo vị
+trí, có thể xảy ra tình huống trớ trêu: một điểm bị xếp vào đúng ngày mà nó
+đóng cửa (ví dụ nhiều bảo tàng ở Hà Nội nghỉ thứ Hai, mà điểm đó lại rơi vào
+cụm ứng với thứ Hai). Bước này quét lại toàn bộ các ngày, phát hiện những
+trường hợp như vậy, rồi tìm một ngày khác trong chuyến mà điểm đó \textbf{mở
+cửa và còn chỗ trống} để chuyển sang.
+
+\textbf{Bước 4 --- Hỏi Goong Maps về thời gian di chuyển thật.} Đến đây, hệ
+thống đã biết ngày nào đi những điểm nào, nhưng chưa biết \textbf{thứ tự} thăm
+trong ngày. Muốn xếp thứ tự cho đúng, cần biết đi từ điểm này sang điểm kia mất
+bao lâu \textbf{ngoài đời thật} (có hồ chắn đường, phố một chiều, tắc đường...)
+chứ không thể chỉ đo đường chim bay. Vì vậy hệ thống gọi một lần duy nhất tới
+Goong Maps, hỏi cùng lúc: \textit{``từ điểm xuất phát của người dùng tới từng
+điểm mất bao lâu?''} và \textit{``giữa mọi cặp điểm với nhau mất bao lâu?''}.
+Gọi một lần cho cả chuyến (thay vì gọi riêng cho từng ngày) giúp tiết kiệm thời
+gian chờ và tránh bị giới hạn tần suất gọi API. Nếu Goong không phản hồi được
+(lỗi mạng, hết hạn mức), hệ thống không bị treo mà tự động chuyển sang
+\textbf{ước lượng bằng công thức đường chim bay} kết hợp tốc độ trung bình xe
+máy 30\,km/h.
+
+\textbf{Bước 5 --- Xếp thứ tự thăm trong từng ngày.} Đây là bước quan trọng
+nhất về mặt thuật toán, được trình bày riêng và chi tiết ở Mục~4 (Trái tim
+thuật toán). Tóm tắt: với ngày có từ 8 điểm trở xuống, hệ thống \textbf{thử tất
+cả các cách sắp xếp có thể} để tìm ra cách tốt nhất một cách chắc chắn; với
+ngày nhiều điểm hơn (hiếm khi xảy ra vì mỗi ngày đã giới hạn 5 điểm), hệ thống
+dùng một cách \textbf{ước lượng nhanh} thay thế.
+
+\textbf{Bước 6 --- Cập nhật lại giờ giấc theo GPS thật.} Thứ tự vừa chọn ở bước
+5 được tính với một giả định đơn giản hoá: \textit{``coi như đi tới điểm đầu
+tiên trong ngày mất 0 phút''}. Đến bước này, hệ thống thay con số 0 phút giả
+định đó bằng \textbf{thời gian di chuyển thật} từ chỗ người dùng đang đứng
+(khách sạn, hoặc vị trí họ chọn) tới điểm đầu tiên, rồi \textbf{đẩy lùi toàn bộ
+các mốc giờ phía sau} tương ứng --- giống như khi chuyến bay đầu ngày bị hoãn
+thì cả lịch trình cả ngày bị lùi theo. Nếu việc lùi giờ này khiến một điểm nào
+đó rơi vào sau giờ đóng cửa, điểm đó buộc phải bị loại khỏi ngày, và mọi mốc
+giờ được tính lại từ đầu cho những điểm còn ở lại.
+
+\textbf{Bước 7 --- Cố tìm chỗ cho những điểm đã bị rớt.} Những điểm bị loại ở
+các bước trước (đóng cửa đúng ngày ban đầu, không kịp giờ sau khi lùi lịch...)
+chưa bị bỏ cuộc hẳn. Hệ thống thử: với mỗi điểm bị rớt, xét từng ngày mà điểm
+đó \textbf{còn mở cửa}, rồi thử nhét nó vào từng \textbf{khe hở} giữa hai điểm
+liên tiếp (hoặc đầu/cuối ngày) --- hễ tìm được một khe hở mà nhét vào không làm
+lệch giờ của các điểm xung quanh thì chèn ngay tại đó. Chỉ khi không còn khe hở
+nào phù hợp ở bất kỳ ngày nào, điểm đó mới chính thức bị đánh dấu \textbf{không
+xếp được} và báo cho người dùng biết.
+
+\textbf{Bước 8 --- Xếp thứ tự lại một lần cuối.} Sau bước 7, danh sách điểm của
+mỗi ngày có thể đã thay đổi so với lúc bước 5 chạy lần đầu (mất bớt điểm rớt,
+có thêm điểm được chèn vào). Vì vậy thứ tự tính ở bước 5 chưa chắc còn là thứ
+tự tốt nhất cho \textbf{danh sách điểm cuối cùng} của ngày đó. Bước này chạy
+lại đúng cách xếp thứ tự ở bước 5 (thử hết mọi khả năng, hoặc ước lượng nhanh
+tuỳ số điểm) một lần nữa cho danh sách đã chốt, để đảm bảo thứ tự cuối cùng
+trả về cho người dùng là tốt nhất có thể. Có một \textbf{cơ chế phòng hộ}: nếu
+việc xếp lại này chẳng may làm rớt mất một điểm vốn dĩ đã có mặt (vì giờ GPS
+thật đẩy lịch trễ hơn dự kiến), hệ thống sẽ \textbf{giữ nguyên bản trước đó}
+thay vì chấp nhận bản mới --- nghĩa là bước xếp lại cuối cùng này chỉ có thể
+giữ nguyên hoặc làm tốt hơn, không bao giờ khiến kết quả tệ đi.
+
+\textbf{Ý chính cần nhớ khi trình bày:} các bước đầu (chuẩn bị dữ liệu, loại bỏ
+điểm vô vọng, gom cụm theo vị trí, lấy thời gian di chuyển thật) chỉ là
+\textbf{heuristic nhanh} để dọn dẹp bài toán cho gọn; hai lần xếp thứ tự (bước
+5 và bước 8) mới là nơi \textbf{thuật toán chính xác} thực sự phát huy tác
+dụng; các bước ở giữa (cập nhật GPS thật, chèn lại điểm rớt) là phần
+\textbf{đưa lịch trình từ lý thuyết về sát với thực tế}.
 
 % =====================================================================
 \section{Trái tim thuật toán: Tham lam vs Tìm kiếm chính xác}
 
+\subsection{Trước tiên: ``chi phí'' được định nghĩa như thế nào?}
+
+Cả hai cách xếp thứ tự dưới đây (tham lam và tìm kiếm chính xác) đều cần một
+cách để so sánh ``phương án này tốt hơn phương án kia bao nhiêu''. Thước đo đó
+gọi là \textbf{hàm chi phí} \en{cost function}, và nó \textbf{không phải một
+công thức có sẵn đi kèm thuật toán} --- đây là phần do chính người xây dựng
+module này tự định nghĩa, để phù hợp với bài toán du lịch (chứ một thuật toán
+tham lam hay tìm kiếm chính xác ``nguyên bản'' trong sách giáo khoa chỉ nói
+\textit{``chọn phương án chi phí thấp nhất''}, không quy định chi phí đó tính
+ra sao).
+
+Công thức được chọn ở đây, tính theo đơn vị giây, là:
+\[
+\text{Chi phí} \;=\; \big(\text{thời gian di chuyển tính bằng giây}\big) \times 2
+\;+\; \big(\text{thời gian đứng chờ tính bằng giây}\big) \times 1
+\]
+Vì thời gian chờ trong hệ thống được lưu theo \textbf{phút} còn thời gian di
+chuyển theo \textbf{giây}, nên khi viết bằng biến của code, phút chờ phải nhân
+với 60 để quy về cùng đơn vị giây trước khi cộng.
+
+\textbf{Vì sao lại nhân thời gian di chuyển với 2?} Đây là một \textbf{lựa
+chọn heuristic có chủ đích}, không phải một định lý hay công thức chuẩn: 1
+giây ngồi trên xe di chuyển được coi là ``tốn'' gấp đôi 1 giây đứng chờ tại chỗ
+(chờ trước giờ mở cửa). Lý do trực giác: di chuyển gắn với hao tốn nhiên liệu,
+công sức, và rủi ro (tắc đường, thời tiết), trong khi chờ chỉ đơn thuần là mất
+thời gian. Nếu hội đồng hỏi ``con số 2 này có căn cứ khoa học nào không'',
+câu trả lời trung thực là: \textbf{đây là trọng số chọn theo kinh nghiệm/thử
+nghiệm} (không phải suy ra từ một mô hình lý thuyết), và việc tinh chỉnh trọng
+số này một cách có hệ thống (ví dụ bằng thử nghiệm A/B hoặc tối ưu tham số) là
+một hướng cải tiến trong tương lai --- không nên bịa ra một cơ sở lý thuyết
+không tồn tại.
+
 \subsection{Tham lam (Greedy Nearest Neighbor --- GNN)}
 
-Tham lam nghĩa là \textbf{mỗi bước chỉ chọn điểm gần nhất hiện tại}, nhìn đúng
-một bước phía trước. Công thức chi phí chuyển tiếp:
-\[
-\text{Cost}(i,j) = t_{\text{travel}}(i,j)\times 2 + t_{\text{wait}}(j)
-\]
-(ưu tiên đi gần và ít phải chờ). Nhanh, nhưng \textbf{thiển cận}.
+Tham lam nghĩa là: tại mỗi thời điểm, chỉ nhìn về phía trước \textbf{đúng một
+bước}, và chọn ngay điểm nào có chi phí thấp nhất theo công thức ở trên, mà
+không hề cân nhắc xem lựa chọn đó ảnh hưởng ra sao tới các bước xa hơn về sau.
+Đây là một chiến lược rất phổ biến trong khoa học máy tính vì nó nhanh và dễ
+cài đặt, nhưng nhược điểm cố hữu của nó là \textbf{thiển cận} --- một lựa chọn
+có vẻ tốt ngay lúc này có thể đẩy cả kế hoạch vào ngõ cụt sau đó vài bước.
 
-\subsection{Cái bẫy Ba Đình (ví dụ kinh điển)}
+\subsection{Cái bẫy Ba Đình --- ví dụ kinh điển cho thấy tham lam thất bại}
 
-Xuất phát từ khách sạn cạnh Hồ Gươm lúc 8:00, có 5 điểm, trong đó
-\textbf{Lăng Bác đóng 10:30} và một bảo tàng đóng 12:00, các điểm khác mở cả
-ngày. Cách tham lam chọn ngay điểm gần nhất (Bảo tàng Phụ nữ, sát khách sạn),
-rồi lòng vòng các điểm mở-cả-ngày $\Rightarrow$ tới Lăng Bác thì đã quá 10:30
-$\Rightarrow$ \textbf{bỏ lỡ}. Kết quả tham lam: chỉ 3/5 điểm.
+Hãy tưởng tượng bạn xuất phát từ một khách sạn cạnh Hồ Gươm lúc 8 giờ sáng, dự
+định thăm 5 điểm trong khu Ba Đình. Trong 5 điểm đó, Lăng Bác đóng cửa lúc
+10:30 và một bảo tàng gần đó đóng cửa lúc 12:00; ba điểm còn lại mở cửa cả
+ngày.
 
-Cách đúng: \textbf{đi điểm đóng sớm trước}. Thứ tự
-Bảo tàng HCM $\rightarrow$ Lăng Bác $\rightarrow$ \dots cho phép thăm
-\textbf{cả 5/5}.
+Một người lập kế hoạch theo kiểu tham lam sẽ nghĩ rất đơn giản: \textit{``ngay
+bây giờ, điểm nào gần khách sạn nhất?''} --- và chọn ngay Bảo tàng Phụ nữ vì nó
+ở sát khách sạn. Sau đó lại tiếp tục hỏi câu tương tự cho bước kế tiếp, vô tình
+la cà qua các điểm mở cửa cả ngày trước, để rồi khi cuối cùng nhớ ra phải ghé
+Lăng Bác thì đồng hồ đã chỉ quá 10:30 --- \textbf{Lăng Bác đã đóng cửa, bị bỏ
+lỡ hoàn toàn}. Kết quả: chỉ thăm được 3 trên 5 điểm, dù quãng đường đi mỗi bước
+đều là ``ngắn nhất tại thời điểm đó''.
+
+Cách làm đúng lại ngược trực giác ban đầu: phải \textbf{ưu tiên ghé điểm nào
+đóng cửa sớm nhất trước}, dù nó không phải điểm gần nhất. Đi theo thứ tự Bảo
+tàng Hồ Chí Minh rồi tới Lăng Bác trước, sau đó mới vòng qua các điểm còn lại,
+sẽ thăm được trọn vẹn cả 5 điểm. Đây chính là bài học cốt lõi: \textbf{``gần
+nhất ngay bây giờ'' không đồng nghĩa với ``tốt nhất cho cả ngày''}.
 
 \subsection{Tìm kiếm chính xác (Exact / Brute-force search)}
 
-Thay vì đoán, ta \textbf{thử mọi thứ tự} rồi giữ thứ tự thăm được nhiều điểm
-nhất (hoà nhau thì chọn ít di chuyển nhất). Với $n$ điểm có $n!$ thứ tự.
+Thay vì đoán từng bước một như tham lam, cách tiếp cận này \textbf{thử tất cả
+mọi thứ tự có thể có}, tính chi phí cho từng thứ tự, rồi mới chọn ra thứ tự tốt
+nhất. Với $n$ điểm cần thăm, số thứ tự khả dĩ là $n!$ (n giai thừa) --- ví dụ 5
+điểm có $5! = 120$ cách sắp xếp khác nhau, 8 điểm có tới $8! = 40{,}320$ cách.
 
-\textbf{Vì sao chấp nhận được dù $n!$ là giai thừa?} Vì mỗi ngày bị
-\textbf{giới hạn nhỏ}: tối đa 5 điểm (cap), trần an toàn 8 điểm. Mà
-$8! = 40{,}320$ phép thử $\Rightarrow$ chạy \textbf{dưới 1 mili-giây}. So sánh:
-một lần gọi Goong API mất 200--500 ms. Nói cách khác, ở quy mô bài toán này,
-``giai thừa'' vẫn rất rẻ.
+Việc chọn ra thứ tự ``tốt nhất'' trong số đó dựa trên \textbf{hai tiêu chí, xét
+lần lượt theo thứ tự ưu tiên}:
+\begin{enumerate}[nosep]
+  \item \textbf{Tiêu chí 1 (quan trọng nhất): thứ tự nào thăm được nhiều điểm
+  nhất.} Một thứ tự xếp đủ 5/5 điểm luôn thắng một thứ tự chỉ xếp được 4/5,
+  \textbf{bất kể} thứ tự 4 điểm kia có chi phí thấp hơn bao nhiêu.
+  \item \textbf{Tiêu chí 2 (chỉ xét khi hai thứ tự hoà nhau ở tiêu chí 1):
+  thứ tự nào có tổng chi phí (di chuyển + chờ, theo công thức ở trên) thấp
+  hơn.}
+\end{enumerate}
+Sở dĩ phải có hai tầng thay vì chỉ so chi phí, là vì nếu chỉ xét chi phí đơn
+thuần, một thứ tự có thể ``lách luật'' bằng cách \textbf{bỏ hẳn một điểm khó
+xếp} (điểm có khung giờ hẹp) để chi phí trông có vẻ thấp hơn --- nhưng thực tế
+người dùng bị mất một điểm tham quan. Ưu tiên ``thăm đủ điểm'' lên trên ``chi
+phí thấp'' đảm bảo hệ thống không đánh đổi trải nghiệm người dùng chỉ để có
+con số đẹp.
 
-\subsection{Sửa quan trọng: nhận biết chặng GPS đầu tiên}
+\textbf{Ví dụ số minh hoạ hai tầng ưu tiên này hoạt động ra sao:} giả sử ngày
+hôm đó có 3 điểm ứng viên, xuất phát từ một điểm ở ngoại thành lúc 8:00 sáng.
 
-Ban đầu tìm kiếm chính xác giả định ``đi tới điểm đầu = 0 giây''. Nhưng khi
-bước 5 cộng thời gian thật từ khách sạn ($\approx 14$ phút), mọi mốc trượt trễ
-và một điểm sát giờ trưa bị đẩy quá hạn rồi rớt. Cách sửa: cho tìm kiếm chính
-xác \textbf{biết trước thời gian thật từ khách sạn tới điểm đầu} (lấy từ
-\textit{startCache} đã prefetch), nên nó chọn thứ tự \textbf{bền vững với độ trễ
-thật}. Sau sửa: thăm đủ 5/5.
+\begin{center}
+\renewcommand{\arraystretch}{1.15}
+\begin{tabular}{|l|c|c|c|}
+\hline
+\textbf{Điểm} & \textbf{Cách xuất phát} & \textbf{Giờ mở cửa} & \textbf{Thời gian tham quan} \\ \hline
+A --- xa nhất & 15\,km & mở cả ngày (08:00--18:00) & 60 phút \\ \hline
+B --- gần nhất & 3\,km & chỉ mở từ 10:00 & 45 phút \\ \hline
+C --- ở giữa & 8\,km & mở cả ngày (08:00--18:00) & 30 phút \\ \hline
+\end{tabular}
+\end{center}
+
+Nhìn thoáng qua, ai cũng sẽ nghĩ nên đi B trước vì B gần nhất. Nhưng thử tính
+hai phương án:
+
+\textit{Phương án ``đi gần trước'' (B $\to$ A $\to$ C):} 8:00 xuất phát, chỉ mất
+khoảng 6 phút để tới B (3\,km, tốc độ trung bình 30\,km/h) --- nhưng B tận
+10:00 mới mở cửa, nên phải \textbf{đứng chờ khoảng 114 phút}. Riêng khoản chờ
+này đã cộng vào chi phí một lượng rất lớn (114 phút $\times$ 60 giây/phút = 6\,840
+đơn vị chi phí), chưa kể thời gian di chuyển sau đó.
+
+\textit{Phương án ``đi xa trước, hợp giờ hơn'' (A $\to$ C $\to$ B):} 8:00 xuất
+phát, đi thẳng tới A (15\,km, mất khoảng 30 phút), tham quan xong ghé C, rồi
+cuối cùng mới tới B. Vì lúc này đã hơn 10:00, B \textbf{đã mở cửa sẵn, gần như
+không phải chờ}. Tổng thời gian di chuyển của phương án này cao hơn phương án
+trên (vì đi xa trước), nhưng phần chi phí do phải chờ gần như bằng 0.
+
+So sánh hai phương án: phương án ``đi gần trước'' tuy tổng quãng đường di
+chuyển ngắn hơn, nhưng chi phí chờ đợi (114 phút $\times$ 60) áp đảo hoàn toàn
+phần chênh lệch quãng đường (chỉ khoảng vài trăm giây). Vì vậy \textbf{tìm kiếm
+chính xác sẽ chọn phương án A $\to$ C $\to$ B} --- tức là điểm xa nhất (A) được
+xếp \textbf{đầu tiên}, còn điểm gần nhất (B) lại bị đẩy xuống \textbf{cuối
+cùng}. Đây chính xác là kiểu hiện tượng ``điểm gần lại không được xếp đầu tiên''
+mà một người quan sát bằng mắt thường trên bản đồ dễ cảm thấy vô lý --- nhưng
+thực chất là kết quả tính toán đúng đắn của thuật toán, không phải lỗi.
+
+\textbf{Vì sao chấp nhận được việc thử tất cả $n!$ cách, dù đây là con số tăng
+rất nhanh?} Vì mỗi ngày trong ứng dụng này luôn bị giới hạn ở quy mô rất nhỏ:
+tối đa 5 điểm theo thiết kế, và một trần an toàn tuyệt đối là 8 điểm (vượt quá
+sẽ chuyển sang dùng cách tham lam để tránh bùng nổ số phép thử). Ngay tại
+trần 8 điểm, tổng số cách sắp xếp là $8! = 40{,}320$ --- máy tính hiện đại thử
+hết toàn bộ số này chỉ trong \textbf{chưa tới 1 mili-giây}. Trong khi đó, một
+lần gọi Goong Maps để lấy thời gian di chuyển thật đã mất từ 200 đến 500 mili-giây.
+Nói cách khác, ở quy mô bài toán của module này, việc thử ``tất cả khả năng''
+không hề tốn kém --- nó rẻ hơn hàng trăm lần so với việc gọi một API bên ngoài.
+
+\subsection{Một lần sửa lỗi quan trọng: tính đến chặng di chuyển đầu tiên}
+
+Ban đầu, bước tìm kiếm chính xác giả định một điều đơn giản hoá: \textit{``đi
+từ điểm xuất phát tới điểm đầu tiên trong ngày mất 0 giây''}. Giả định này chỉ
+đúng trên lý thuyết. Khi bước sau đó (cập nhật GPS thật) cộng thêm thời gian
+di chuyển thật từ khách sạn (chẳng hạn khoảng 14 phút), toàn bộ các mốc giờ
+trong ngày bị lùi lại theo, và một điểm có khung giờ hẹp gần giữa trưa có thể
+bất ngờ bị đẩy quá giờ đóng cửa rồi bị loại --- dù lúc tìm kiếm chính xác chọn
+thứ tự, thứ tự đó trông vẫn hoàn toàn hợp lệ.
+
+Cách khắc phục: cho bước tìm kiếm chính xác \textbf{biết trước} thời gian di
+chuyển thật từ điểm xuất phát tới từng điểm ứng viên (thông tin này đã có sẵn
+từ bước gọi Goong Maps trước đó, không cần gọi thêm), để nó chọn ra một thứ tự
+\textbf{đã tính đến độ trễ thực tế ngay từ đầu}, thay vì chọn một thứ tự chỉ
+đẹp trên lý thuyết rồi vỡ trận khi áp thời gian thật vào. Sau khi sửa, ví dụ
+benchmark ở mục dưới thăm đủ trọn vẹn 5/5 điểm.
 
 % =====================================================================
 \section{Vì sao chọn từng kỹ thuật (design rationale)}
@@ -206,6 +398,59 @@ với By-District thu hẹp lại (đường thật phạt các ngày trải r�
 By-District ở Case 2 vẫn giữ được 12/12 nên travel không chênh nhiều). Case 3 và
 Case 4 mới là nơi module bỏ xa cách thủ công, vì chúng kiểm tra hai ràng buộc
 giờ giấc mà cách thủ công bỏ qua (xem mục dưới).
+
+\subsection*{Case 1 --- Bẫy Ba Đình (1 ngày, 5 điểm)}
+
+\textbf{Bối cảnh:} chuyến 1 ngày trong khu Ba Đình. Lăng Bác đóng cửa
+lúc 10:30 và một bảo tàng gần đó đóng lúc 12:00; ba điểm còn lại mở cả ngày.
+Xuất phát từ khách sạn gần Hồ Gươm lúc 8:00.
+
+\begin{itemize}[nosep]
+  \item \textbf{HanoiGO} nhận ra Lăng Bác đóng sớm nhất, xếp nó \textbf{đầu ngày}
+  rồi ghé bảo tàng trước 12:00, cuối cùng thăm đủ \textbf{5/5} điểm.
+  \item \textbf{By-District} chọn ngay điểm gần khách sạn nhất (Bảo tàng Phụ nữ),
+  lòng vòng các điểm mở-cả-ngày rồi \textbf{tới Lăng Bác sau 10:30 --- rớt}
+  (4/5). Random rớt trung bình $\approx 1.4$ điểm (3.6/5).
+\end{itemize}
+
+\textbf{Lưu ý thiết kế quan trọng (dễ bị hỏi):} phiên bản đầu của module dùng
+\textbf{tham lam (GNN)} cho mọi ngày và cũng bỏ lỡ Lăng Bác theo cách tương tự.
+Benchmark này chính là thứ phát hiện ra lỗi đó --- sau đó tôi đổi sang
+\textbf{tìm kiếm chính xác} cho các ngày nhỏ ($\le 8$ điểm). Đây là ví dụ điển
+hình về ``benchmark dẫn đến cải tiến thiết kế'', không chỉ là bảng số đẹp.
+
+\textbf{Câu trả lời nếu bị hỏi về di chuyển cao hơn By-District (25 vs.\ 19
+phút):} HanoiGO thăm 5 điểm trong khi By-District chỉ thăm 4, nên đương nhiên
+tổng di chuyển dài hơn một chặng. Đây là đánh đổi hợp lý: một điểm bổ sung = 6
+phút di chuyển thêm.
+
+\subsection*{Case 2 --- Nhiều quận, nhiều ngày (3 ngày, 12 điểm)}
+
+\textbf{Bối cảnh:} chuyến 3 ngày với 12 điểm trải rộng qua nhiều quận Hà Nội,
+không có điểm nào đóng đặc biệt sớm và chuyến đi không rơi vào thứ Hai. Đây là
+kịch bản ``không có bẫy giờ giấc'' --- thử thách đến từ việc \textbf{chia ngày
+hợp lý về địa lý}.
+
+\begin{itemize}[nosep]
+  \item \textbf{HanoiGO} và \textbf{By-District} đều thăm đủ \textbf{12/12}
+  (Random rớt $\approx 2$ điểm: 10.2/12).
+  \item Lợi thế của HanoiGO nằm ở \textbf{độ gọn}: 0.35 km so với 1.53 km của
+  By-District --- gọn hơn gấp $\approx 4$ lần. Các quận hành chính không khớp
+  với mạng lưới đường thực tế, nên gom theo quận tạo ra những ngày trải rộng
+  địa lý; K-Means++ gom theo khoảng cách thực nên mỗi ngày gọn về mặt bản đồ.
+  \item Tổng di chuyển cũng thấp nhất (100 phút so với 112 và 136), dù khoảng
+  cách với By-District thu hẹp khi dùng đường thật thay vì đường chim bay (vì
+  đường thật phạt các ngày trải rộng địa lý, nhưng By-District ở case này vẫn
+  giữ được 12/12 nên travel không chênh nhiều).
+\end{itemize}
+
+\textbf{Câu trả lời nếu bị hỏi ``By-District cũng 12/12, vậy HanoiGO hơn gì?'':}
+Thăm đủ điểm mới chỉ là điều kiện cần; \textbf{trải nghiệm hành trình} cũng quan
+trọng. Ngày gọn hơn 4 lần nghĩa là khách đỡ phải di chuyển lòng vòng giữa các
+khu xa nhau trong một ngày. Lợi thế thực sự của Case 2 là \textbf{chất lượng
+hành trình mỗi ngày}, không phải số điểm đến. Độ chênh travel time nhỏ (100 vs
+112) vì đường thật co khoảng cách lại; nhưng độ chênh độ gọn (0.35 vs 1.53) vẫn
+rất lớn và duy trì ý nghĩa trong thực tế.
 
 \subsection*{Case 3 --- Đóng cửa theo thứ trong tuần}
 

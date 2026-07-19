@@ -227,9 +227,12 @@ export class ActivitiesService {
                 WHERE user_id = ${userUuid}::uuid
               ) ms ON ms.activity_id = a.id
               WHERE a.status = 'OPEN'::"ActivityStatus"
+                -- Both sides are cast to geography so radius is in metres.
+                -- Against the raw geometry(Point, 4326) column the distance
+                -- would be read in degrees, which makes the filter a no-op.
                 AND ST_DWithin(
-                  a.location,
-                  ST_SetSRID(ST_MakePoint(${lng}, ${lat}), 4326),
+                  a.location::geography,
+                  ST_SetSRID(ST_MakePoint(${lng}, ${lat}), 4326)::geography,
                   ${radius}
                 )
                 AND ms.activity_id IS NULL

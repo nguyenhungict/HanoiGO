@@ -34,6 +34,9 @@ interface ItineraryStop {
   visitDurationMin: number;
   travelFromPrevMin: number;
   waitMin: number;
+  alwaysOpen?: boolean;
+  openTimeStart?: string | null;
+  openTimeEnd?: string | null;
 }
 
 interface ItineraryDay {
@@ -249,6 +252,17 @@ export default function TripsPage() {
             travelFromPrevMin: Math.round((stop.durationFromPrevS || 0) / 60),
             waitMin: 0,
             order: stop.stopOrder,
+            alwaysOpen: stop.place?.alwaysOpen ?? false,
+            openTimeStart: stop.place?.alwaysOpen
+              ? null
+              : stop.place?.openTimeStart
+                ? formatDbTime(stop.place.openTimeStart)
+                : null,
+            openTimeEnd: stop.place?.alwaysOpen
+              ? null
+              : stop.place?.openTimeEnd
+                ? formatDbTime(stop.place.openTimeEnd)
+                : null,
           };
         }),
       })),
@@ -638,11 +652,22 @@ export default function TripsPage() {
                                     {stop.name}
                                   </h3>
                                 </div>
-                                <div className="flex items-center gap-3 mt-2">
+                                <div className="flex items-center flex-wrap gap-2 mt-2">
                                   <span className="px-2.5 py-1 bg-primary/5 text-primary text-[9px] font-black rounded-lg uppercase tracking-wider">
                                     {/* Format depart time from min to time */}
                                     {Math.floor(currentStartVisitMin / 60).toString().padStart(2, '0')}:{Math.floor(currentStartVisitMin % 60).toString().padStart(2, '0')} — {stop.departAt}
                                   </span>
+                                  {stop.alwaysOpen ? (
+                                    <span className="inline-flex items-center gap-1 px-2.5 py-1 bg-emerald-500/5 text-emerald-600 text-[9px] font-black rounded-lg uppercase tracking-wider">
+                                      <span className="material-symbols-outlined text-[12px]">schedule</span>
+                                      Open 24/7
+                                    </span>
+                                  ) : stop.openTimeStart && stop.openTimeEnd ? (
+                                    <span className="inline-flex items-center gap-1 px-2.5 py-1 bg-amber-500/5 text-amber-700 text-[9px] font-black rounded-lg uppercase tracking-wider">
+                                      <span className="material-symbols-outlined text-[12px]">schedule</span>
+                                      Open {stop.openTimeStart} – {stop.openTimeEnd}
+                                    </span>
+                                  ) : null}
                                   <span className="text-[9px] font-bold text-outline uppercase tracking-wider">
                                     {stop.district}
                                   </span>
@@ -702,6 +727,11 @@ export default function TripsPage() {
                                 </p>
                                 <p className="text-[9px] text-outline font-bold uppercase tracking-wider">
                                   {stop.arriveAt} — {stop.departAt}
+                                  {stop.alwaysOpen ? (
+                                    <span className="text-emerald-600"> · Open 24/7</span>
+                                  ) : stop.openTimeStart && stop.openTimeEnd ? (
+                                    <span className="text-amber-700"> · Open {stop.openTimeStart}–{stop.openTimeEnd}</span>
+                                  ) : null}
                                 </p>
                               </div>
                             </div>
