@@ -9,44 +9,37 @@ import {
 } from '@nestjs/websockets';
 import { Server, Socket } from 'socket.io';
 import { Logger } from '@nestjs/common';
-import { PrismaService } from '../prisma/prisma.service';
 import { JwtService } from '@nestjs/jwt';
-import { NotificationsService } from '../notifications/notifications.service';
-import { NotificationType } from '@prisma/client';
-
-const ALLOWED_EMOJIS = ['👍', '❤️', '😂', '😮', '😢', '🔥'];
-const MSG_PAGE_SIZE = 30;
+import { GroupChatService, MessageType } from './group-chat.service';
 
 interface SocketData {
   userId: string;
   username: string;
 }
 
-/** Map<activityId, Set<userId>> — ai đang online trong room nào */
-const onlineMap = new Map<string, Set<string>>();
-/** Map<activityId, Map<userId, timeout>> — typing debounce */
-const typingMap = new Map<string, Map<string, NodeJS.Timeout>>();
-
 @WebSocketGateway({
   cors: { origin: '*' },
   namespace: 'group-chat',
 })
 export class GroupChatGateway
-  implements OnGatewayConnection, OnGatewayDisconnect
-{
+  implements OnGatewayConnection, OnGatewayDisconnect {
   @WebSocketServer()
   server: Server;
 
   private logger = new Logger('GroupChatGateway');
 
   constructor(
-    private prisma: PrismaService,
     private jwtService: JwtService,
-    private notificationsService: NotificationsService,
-  ) {}
+    private chatService: GroupChatService,
+  ) { }
 
   // ──────────────────────────────── Connection ────────────────────────────────
 
+  // Authenticates the socket before it can do anything: the JWT is verified from
+  // the handshake and a failure disconnects immediately, so no unauthenticated
+  // socket ever reaches a handler. The identity is cached on `client.data` and
+  // every handler below reads the sender from there — never from the event
+  // payload, which a client could forge.
   async handleConnection(client: Socket) {
     try {
       const auth = client.handshake.auth as { token?: string };
@@ -74,52 +67,40 @@ export class GroupChatGateway
     await Promise.resolve(); // satisfy require-await rule
   }
 
-  handleDisconnect(client: Socket) {
+  // A dropped socket sends no leave event, so presence must be swept out of
+  // EVERY room the user was in, then each affected room re-broadcast — otherwise
+  // they would linger as "online" forever.
+  async handleDisconnect(client: Socket) {
     const data = client.data as SocketData;
     const { userId } = data;
     this.logger.log(`Disconnected: ${client.id}`);
 
-    // Remove from all online rooms this socket was in
-    for (const [activityId, users] of onlineMap.entries()) {
-      if (users.has(userId)) {
-        users.delete(userId);
-        this._broadcastOnline(activityId);
-        this._clearTyping(activityId, userId);
+    const affectedActivityIds =
+      await this.chatService.removeOnlineEverywhere(userId);
+    for (const activityId of affectedActivityIds) {
+      await this._broadcastOnline(activityId);
+      if (this.chatService.clearTyping(activityId, userId)) {
+        this._broadcastTyping(activityId);
       }
     }
   }
 
   // ─────────────────────────────── Join Room ──────────────────────────────────
 
-  private async _markRead(userId: string, activityId: string) {
-    try {
-      await this.prisma.messageReadStatus.upsert({
-        where: { userId_activityId: { userId, activityId } },
-        update: { lastReadAt: new Date() },
-        create: { userId, activityId, lastReadAt: new Date() },
-      });
-    } catch (e) {
-      this.logger.error(
-        `Failed to mark read for user ${userId} in activity ${activityId}: ${e.message}`,
-      );
-    }
-  }
-
+  // The authorisation gate for chat: one Socket.io room per activity
+  // (`activity_<id>`), entered only after checking ActivityMember.status ===
+  // APPROVED. A user who never joins the room simply never receives its
+  // broadcasts, so this single check guards every event that follows.
   @SubscribeMessage('join_activity')
   async handleJoinActivity(
     @ConnectedSocket() client: Socket,
     @MessageBody() data: { activityId: string },
   ) {
-    const socketData = client.data as SocketData;
-    const { userId, username } = socketData;
+    const { userId, username } = client.data as SocketData;
     const { activityId } = data;
 
-    // Verify membership
-    const member = await this.prisma.activityMember.findUnique({
-      where: { activityId_userId: { activityId, userId } },
-    });
-
-    if (!member || member.status !== 'APPROVED') {
+    const isMember = await this.chatService.isApprovedMember(activityId, userId);
+    if (!isMember) {
       client.emit('error', {
         message: 'You are not a member of this activity.',
       });
@@ -129,28 +110,17 @@ export class GroupChatGateway
     const room = `activity_${activityId}`;
     void client.join(room);
 
-    // Online presence
-    if (!onlineMap.has(activityId)) onlineMap.set(activityId, new Set());
-    onlineMap.get(activityId)!.add(userId);
-    this._broadcastOnline(activityId);
-
     // Message history (newest 30) and unread count
-    const [messages, readStatus] = await Promise.all([
-      this._fetchMessages(activityId),
-      this.prisma.messageReadStatus.findUnique({
-        where: { userId_activityId: { userId, activityId } },
-      }),
+    const [messages, unreadCount] = await Promise.all([
+      this.chatService.fetchMessages(activityId),
+      this.chatService.getUnreadCount(userId, activityId),
     ]);
 
-    const unreadCount = await this.prisma.message.count({
-      where: {
-        activityId,
-        userId: { not: userId },
-        createdAt: { gt: readStatus?.lastReadAt ?? new Date(0) },
-      },
-    });
-
     client.emit('message_history', { messages, unreadCount });
+
+    // Online presence
+    await this.chatService.addOnline(activityId, userId);
+    await this._broadcastOnline(activityId);
 
     this.logger.log(`${username} joined room ${room}`);
   }
@@ -160,13 +130,15 @@ export class GroupChatGateway
     @ConnectedSocket() client: Socket,
     @MessageBody() data: { activityId: string },
   ) {
-    const socketData = client.data as SocketData;
-    const { userId } = socketData;
-    await this._markRead(userId, data.activityId);
+    const { userId } = client.data as SocketData;
+    await this.chatService.markRead(userId, data.activityId);
   }
 
   // ──────────────────────────────── Send Message ──────────────────────────────
 
+  // Persist first, then broadcast to the room, then notify. Members currently
+  // online in the room are skipped when dispatching notifications (see
+  // dispatchNewMessageNotifications) — they are already looking at the message.
   @SubscribeMessage('send_message')
   async handleSendMessage(
     @ConnectedSocket() client: Socket,
@@ -177,11 +149,10 @@ export class GroupChatGateway
       mediaUrl?: string;
       fileName?: string;
       fileSize?: number;
-      type: 'TEXT' | 'IMAGE' | 'FILE';
+      type: MessageType;
     },
   ) {
-    const socketData = client.data as SocketData;
-    const { userId } = socketData;
+    const { userId, username } = client.data as SocketData;
     const { activityId, content, mediaUrl, fileName, fileSize } = data;
     const type = data.type || 'TEXT';
 
@@ -189,79 +160,33 @@ export class GroupChatGateway
     if (type !== 'TEXT' && !mediaUrl) return;
 
     // Stop typing when message sent
-    this._clearTyping(activityId, userId);
+    if (this.chatService.clearTyping(activityId, userId)) {
+      this._broadcastTyping(activityId);
+    }
 
-    const message = await this.prisma.message.create({
-      data: {
-        activityId,
-        userId,
-        content: (type === 'TEXT' && content) ? content.trim() : '',
-        type,
-        mediaUrl,
-        fileName,
-        fileSize,
-      },
-      include: {
-        user: { select: { username: true, avatarUrl: true } },
-        reactions: {
-          include: { user: { select: { username: true } } },
-        },
-      },
+    const message = await this.chatService.createMessage({
+      activityId,
+      userId,
+      content,
+      mediaUrl,
+      fileName,
+      fileSize,
+      type,
     });
 
     this.server.to(`activity_${activityId}`).emit('new_message', message);
 
     // Update read status for the sender
-    await this._markRead(userId, activityId);
+    await this.chatService.markRead(userId, activityId);
 
-    try {
-      // Find all approved members of the activity (except the sender)
-      const members = await this.prisma.activityMember.findMany({
-        where: {
-          activityId,
-          status: 'APPROVED',
-          userId: { not: userId },
-        },
-      });
-
-      const activeUsers = onlineMap.get(activityId) || new Set<string>();
-
-      const activity = await this.prisma.activity.findUnique({
-        where: { id: activityId },
-        select: { title: true },
-      });
-
-      const senderName = message.user?.username || 'Someone';
-      const activityTitle = activity?.title || 'Group';
-
-      let notificationBody = '';
-      if (type === 'IMAGE') {
-        notificationBody = `${senderName} sent an image`;
-      } else if (type === 'FILE') {
-        notificationBody = `${senderName} sent a file: ${fileName || 'Attachment'}`;
-      } else {
-        const textContent = content?.trim() || '';
-        notificationBody = `${senderName}: ${textContent.substring(0, 60)}${textContent.length > 60 ? '...' : ''}`;
-      }
-
-      // Create persistent DB notifications for members who are NOT actively in the chat room
-      for (const member of members) {
-        if (!activeUsers.has(member.userId)) {
-          await this.notificationsService.create(
-            member.userId,
-            NotificationType.NEW_MESSAGE,
-            `New message in ${activityTitle}`,
-            notificationBody,
-            'ACTIVITY',
-            activityId,
-          );
-        }
-      }
-    } catch (err) {
-      this.logger.error(
-        `Failed to dispatch chat notifications: ${err.message}`,
-      );
-    }
+    await this.chatService.dispatchNewMessageNotifications(
+      activityId,
+      userId,
+      message.user?.username || username || 'Someone',
+      type,
+      content,
+      fileName,
+    );
   }
 
   // ──────────────────────────────── Load More ─────────────────────────────────
@@ -271,8 +196,10 @@ export class GroupChatGateway
     @ConnectedSocket() client: Socket,
     @MessageBody() data: { activityId: string; before: string },
   ) {
-    const { activityId, before } = data;
-    const messages = await this._fetchMessages(activityId, before);
+    const messages = await this.chatService.fetchMessages(
+      data.activityId,
+      data.before,
+    );
     client.emit('more_messages', messages);
   }
 
@@ -283,23 +210,12 @@ export class GroupChatGateway
     @ConnectedSocket() client: Socket,
     @MessageBody() data: { activityId: string },
   ) {
-    const socketData = client.data as SocketData;
-    const { userId } = socketData;
+    const { userId } = client.data as SocketData;
     const { activityId } = data;
 
-    if (!typingMap.has(activityId)) typingMap.set(activityId, new Map());
-    const room = typingMap.get(activityId)!;
-
-    // Clear existing timeout for this user
-    const existingTimeout = room.get(userId);
-    if (existingTimeout) clearTimeout(existingTimeout);
-
-    // Auto-stop typing after 3s of no new events
-    const timeout = setTimeout(() => {
-      this._clearTyping(activityId, userId);
-    }, 3000);
-
-    room.set(userId, timeout);
+    this.chatService.setTyping(activityId, userId, () => {
+      this._broadcastTyping(activityId);
+    });
     this._broadcastTyping(activityId);
   }
 
@@ -308,8 +224,10 @@ export class GroupChatGateway
     @ConnectedSocket() client: Socket,
     @MessageBody() data: { activityId: string },
   ) {
-    const socketData = client.data as SocketData;
-    this._clearTyping(data.activityId, socketData.userId);
+    const { userId } = client.data as SocketData;
+    if (this.chatService.clearTyping(data.activityId, userId)) {
+      this._broadcastTyping(data.activityId);
+    }
   }
 
   // ──────────────────────────────── Reactions ─────────────────────────────────
@@ -320,75 +238,33 @@ export class GroupChatGateway
     @MessageBody()
     data: { messageId: string; activityId: string; emoji: string },
   ) {
-    const socketData = client.data as SocketData;
-    const { userId } = socketData;
+    const { userId } = client.data as SocketData;
     const { messageId, activityId, emoji } = data;
 
-    if (!ALLOWED_EMOJIS.includes(emoji)) return;
+    if (!this.chatService.isAllowedEmoji(emoji)) return;
 
-    // Toggle: if exists delete, else create
-    const existing = await this.prisma.messageReaction.findUnique({
-      where: { messageId_userId_emoji: { messageId, userId, emoji } },
-    });
-
-    if (existing) {
-      await this.prisma.messageReaction.delete({
-        where: { messageId_userId_emoji: { messageId, userId, emoji } },
-      });
-    } else {
-      await this.prisma.messageReaction.create({
-        data: { messageId, userId, emoji },
-      });
-    }
-
-    // Fetch fresh reactions for this message
-    const reactions = await this.prisma.messageReaction.findMany({
-      where: { messageId },
-      include: { user: { select: { username: true } } },
-    });
+    const reactions = await this.chatService.toggleReaction(
+      messageId,
+      userId,
+      emoji,
+    );
 
     this.server
       .to(`activity_${activityId}`)
       .emit('message_reacted', { messageId, reactions });
   }
 
-  // ──────────────────────────────── Helpers ───────────────────────────────────
+  // ──────────────────────────────── Broadcast helpers ─────────────────────────
 
-  private async _fetchMessages(activityId: string, before?: string) {
-    const messages = await this.prisma.message.findMany({
-      where: {
-        activityId,
-        ...(before ? { createdAt: { lt: new Date(before) } } : {}),
-      },
-      include: {
-        user: { select: { username: true, avatarUrl: true } },
-        reactions: { include: { user: { select: { username: true } } } },
-      },
-      orderBy: { createdAt: 'desc' },
-      take: MSG_PAGE_SIZE,
-    });
-    return messages.reverse(); // return chronological order
-  }
-
-  private _broadcastOnline(activityId: string) {
-    const users = Array.from(onlineMap.get(activityId) ?? []);
+  private async _broadcastOnline(activityId: string) {
+    const users = await this.chatService.getOnlineUsers(activityId);
     this.server.to(`activity_${activityId}`).emit('online_users', users);
   }
 
   private _broadcastTyping(activityId: string) {
-    const room = typingMap.get(activityId);
-    const users = room ? Array.from(room.keys()) : [];
+    const users = this.chatService.getTypingUsers(activityId);
     this.server
       .to(`activity_${activityId}`)
       .emit('typing_users', { activityId, users });
-  }
-
-  private _clearTyping(activityId: string, userId: string) {
-    const room = typingMap.get(activityId);
-    if (room?.has(userId)) {
-      clearTimeout(room.get(userId));
-      room.delete(userId);
-      this._broadcastTyping(activityId);
-    }
   }
 }

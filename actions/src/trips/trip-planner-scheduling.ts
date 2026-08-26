@@ -13,6 +13,9 @@ import type {
 } from './trip-planner.types';
 import { minToTime } from './trip-planner.utils';
 
+// STEP 1 — Pre-Filtering. A place closed on every date of the trip can never be
+// scheduled, so it leaves the pipeline here instead of being carried through
+// clustering and sequencing. Returned as `infeasible` with the reason.
 export function preFilter(places: Place[], travelDate: Date, numDays: number) {
   const feasible: Place[] = [];
   const infeasible: { place: Place; reason: string }[] = [];
@@ -45,6 +48,12 @@ export function preFilter(places: Place[], travelDate: Date, numDays: number) {
   return { feasible, infeasible };
 }
 
+// STEP 4 — Route Sequencing (fallback path, N > BRUTE_FORCE_MAX_PLACES).
+// Nearest-neighbour by cost = travel×2 + wait. Only looks one step ahead, so it
+// can strand a tight-window place; the exact search above is the primary path
+// and this runs only when N! would be too expensive. Unlike the exact search it
+// charges NO travel and NO parking buffer for the first stop — the caller's
+// cascadeRouteTimes() applies the real GPS first leg afterwards.
 export function greedyNearestNeighborWithTimeWindow(
   places: Place[],
   durationMatrix: number[][],
@@ -186,6 +195,14 @@ export function greedyNearestNeighborWithTimeWindow(
 }
 
 /**
+ * STEP 4 — Route Sequencing (primary path).
+ *
+ * Ranking is two-tier, and both tiers live in the single comparison at the end
+ * of evaluate(): the order that schedules the MOST places wins outright, and
+ * only ties are broken by the cheaper (2 × travel + wait) score. The two cannot
+ * be separated into "pick the places, then order them" — how many places fit
+ * DEPENDS on the order, which is precisely why the search is exhaustive.
+ *
  * Exact day sequencing: tries every visit order (Heap's algorithm) and keeps the
  * one that schedules the MOST places, breaking ties by least total travel. Unlike
  * the greedy nearest-neighbour heuristic it never misses a place that a different
@@ -329,6 +346,17 @@ function permuteIndices(items: number[], cb: (perm: number[]) => void) {
   }
 }
 
+/**
+ * Shared feasibility test behind STEP 4 and STEP 5. Given an arrival time,
+ * returns the exact visit timing, or null if the visit cannot legally happen:
+ *   1. arriving before opening produces idle `waitMin`, not an early visit;
+ *   2. a visit overlapping lunch is pushed after it, re-charging the travel leg
+ *      from the end of lunch;
+ *   3. the visit must END by min(closing time, end of day) — not merely start
+ *      before it, which is what forces early-closing sites to the front of a day.
+ * Returning null is normal control flow: it is how callers learn a place does
+ * not fit this slot, driving both the exact search's ranking and drop→reinsert.
+ */
 export function calculateVisitWindow(
   place: Place,
   arriveMin: number,
@@ -413,6 +441,13 @@ export function recomputeDayTotals(day: DayItinerary) {
   day.totalWaitMin = day.stops.reduce((sum, stop) => sum + stop.waitMin, 0);
 }
 
+// STEP 2 (second half) — open-day correction after clustering.
+// kMeansClustering() is purely spatial and never looks at openDays, so a place
+// can land in the cluster of a weekday it is closed on. This pass moves such a
+// place to the first other cluster whose day it IS open on and that still has
+// room. Note it takes the first eligible cluster, not the geographically
+// nearest one: being open outranks being close. If no cluster qualifies the
+// place stays put and STEP 4 will drop it, handing it to STEP 5.
 export function postClusterOpenDaySwap(
   clusters: Place[][],
   travelDate: Date,

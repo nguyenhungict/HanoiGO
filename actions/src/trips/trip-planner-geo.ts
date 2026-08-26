@@ -56,6 +56,14 @@ function clusterSpreadKm(places: Place[]): number {
   );
 }
 
+// STEP 2 — Geographic Clustering. Partitions places into `k` = numDays clusters
+// (cluster index d → day d) so each day stays in one area, minimising
+// J = ΣΣ d_haversine(p, μ_c)². Seeded with K-Means++ for better spread, and with
+// a deterministic PRNG so the same request always yields the same plan.
+// Distances are straight-line and computed in memory — no PostGIS here, since
+// centroids are virtual points recomputed every iteration and a DB round-trip
+// per iteration would cost far more than it saves.
+// Purely spatial: opening days are handled afterwards by postClusterOpenDaySwap().
 export function kMeansClustering(
   places: Place[],
   k: number,

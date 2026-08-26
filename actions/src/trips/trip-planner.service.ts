@@ -106,8 +106,10 @@ export class TripPlannerService {
     return cache;
   }
 
-  // Single Goong call: origins=[start?, ...places], destinations=[...places].
-  // Returns start→place cache + full place↔place matrix for cluster slicing.
+  // STEP 3 — Distance Matrix. Real road travel times for the whole trip in ONE
+  // Goong call: origins=[start?, ...places], destinations=[...places].
+  // Returns start→place cache + full place↔place matrix for cluster slicing, so
+  // steps 4-6 never hit the network again — they slice this matrix locally.
   // Falls back to Haversine + null placeMatrix on API failure.
   private async fetchCombinedMatrix(
     dto: GenerateItineraryDto,
@@ -461,6 +463,10 @@ export class TripPlannerService {
     };
   }
 
+  // Entry point — runs the six-step pipeline. Steps 1-3 prepare the data
+  // (filter, cluster, fetch travel times), steps 4-6 build the route (sequence
+  // each day, reinsert leftovers, re-optimise). Each step is banner-marked below
+  // and explained at the function that implements it.
   async generateItinerary(
     dto: GenerateItineraryDto,
   ): Promise<ItineraryResponse> {
@@ -473,6 +479,9 @@ export class TripPlannerService {
     if (places.length === 0)
       return { days: [], infeasible: [], unscheduled: [] };
 
+    // ══ STEP 1: Pre-Filtering ════════════════════════════════════════════════
+    // Places closed on every single travel date can never be scheduled, so they
+    // leave the pipeline here and are reported straight back to the user.
     const travelDate = new Date(dto.travelDate);
     const { feasible, infeasible } = preFilter(places, travelDate, dto.numDays);
     if (feasible.length === 0) {
@@ -486,6 +495,11 @@ export class TripPlannerService {
       };
     }
 
+    // ══ STEP 2: Geographic Clustering ════════════════════════════════════════
+    // K-Means++ groups the survivors into `numDays` geographic clusters (cluster
+    // index d → day d), so each day stays within one area of the city. K-Means
+    // is purely spatial and ignores opening days, so the swap pass immediately
+    // after moves any place closed on its cluster's weekday to another day.
     let clusters = kMeansClustering(feasible, dto.numDays);
     clusters = postClusterOpenDaySwap(clusters, travelDate);
 
@@ -494,6 +508,7 @@ export class TripPlannerService {
     const itineraries: DayItinerary[] = [];
     const allDropped: { place: Place; reason: string }[] = [];
 
+    // ══ STEP 3: Distance Matrix ══════════════════════════════════════════════
     // Fetch travel times. Common case: ONE combined API call returning both the
     // start→places row and the full place↔place matrix; cluster matrices are then
     // sliced locally with no further calls. For very large N (undocumented Goong
@@ -550,6 +565,7 @@ export class TripPlannerService {
         ? this.buildMatrixFromLookup(cluster, placeMatrix)
         : await this.getDurationMatrix(cluster);
 
+      // ══ STEP 4: Route Sequencing ═══════════════════════════════════════════
       // Pick the day's membership AND visit order with an exact (brute-force) search
       // for small days (<= BRUTE_FORCE_MAX_PLACES). The greedy nearest-neighbour
       // heuristic only looks one step ahead, so it can strand a place with a tight
@@ -585,6 +601,13 @@ export class TripPlannerService {
         ...('dropped' in seq ? seq.dropped : seq.droppedInGNN),
       );
 
+      // Re-time the chosen route against the real GPS first leg. This matters for
+      // the greedy branch, which builds its route with travel = 0 for the first
+      // stop; applying the real start→first-stop leg shifts the whole day later
+      // and may push a tight-window stop out (it then goes to STEP 5).
+      // On the exact branch this is a no-op by construction: bruteForce already
+      // charged the same startCache leg and the same matrix legs, so it recomputes
+      // identical times and drops nothing.
       let route = seq.route;
       if (route.length > 0) {
         const cascaded = await this.cascadeRouteTimes(
@@ -613,6 +636,12 @@ export class TripPlannerService {
       });
     }
 
+    // ══ STEP 5: Cross-Day Reinsertion ════════════════════════════════════════
+    // STEP 4 only ever sequences within ONE day's cluster, so a place may have
+    // been dropped simply because that day was full or that place was closed on
+    // that weekday. Here every dropped place gets a second chance on every other
+    // day it is open, at every position. Anything still homeless comes back as
+    // `unscheduled` with the reason it failed.
     const { resolved, unscheduled } = await this.resolveConflicts(
       allDropped,
       itineraries,
@@ -625,6 +654,7 @@ export class TripPlannerService {
       placeMatrix,
     );
 
+    // ══ STEP 6: Final Re-sequencing ══════════════════════════════════════════
     // Final sequencing pass: once each day's membership is settled (clustering +
     // reinsertion), re-order its stops as a single sub-problem so the visit order
     // is optimal for the FINAL set — not the leftover of greedy + first-fit
@@ -701,6 +731,14 @@ export class TripPlannerService {
       }),
     );
   }
+  // STEP 5 helper — try to slot `place` into an existing day without disturbing it.
+  // Walks every gap in the day and accepts the first that fits on BOTH legs:
+  // prev → place (arrival must respect opening hours / lunch / end of day) and
+  // place → next (departure plus travel must still beat the next stop's existing
+  // arrival time). Stops already in the day are never pushed later, which makes
+  // this conservative: a place that would fit if the tail shifted by a few minutes
+  // is reported unscheduled instead. Travel times come from the STEP 3 Goong
+  // matrix via travelSecBetween().
   private async tryInsertPlace(
     place: Place,
     day: DayItinerary,
@@ -775,6 +813,11 @@ export class TripPlannerService {
     return false;
   }
 
+  // STEP 5 — Cross-Day Reinsertion. STEP 4 only sequences within ONE day's
+  // cluster, so a place may have been dropped merely because that day was full
+  // or it was closed that weekday. Every dropped place gets a second chance on
+  // each day it is open (via tryInsertPlace); whatever still finds no slot is
+  // returned as `unscheduled` carrying the reason it originally failed.
   private async resolveConflicts(
     droppedPlaces: { place: Place; reason: string }[],
     itineraries: DayItinerary[],
@@ -836,11 +879,18 @@ export class TripPlannerService {
     return { resolved: itineraries, unscheduled };
   }
 
-  // Re-sequence each day's settled stop set into its optimal visit order.
-  // Exact (brute force) for small N, greedy fallback for large N. A feasible order
-  // is guaranteed to exist (the current order is one), so re-ordering can only keep
-  // or improve the result; the length guard reverts in the rare case real-GPS
-  // re-timing would shed a stop, so this pass never drops a place that was scheduled.
+  // STEP 6 — re-sequence each day's settled stop set into its optimal visit order.
+  // Exact (brute force) for small N, greedy fallback for large N.
+  //
+  // Why this cannot lose a stop: the day's current order is itself a feasible
+  // schedule, so the exact search — which maximises the number of stops — always
+  // finds at least as many. The length guard below is defensive only; if a
+  // re-ordered day somehow held fewer stops it is discarded and the previous plan
+  // kept. Either way membership is identical before and after this pass.
+  //
+  // Second purpose: tryInsertPlace() splices a stop in without recomputing the
+  // arrival/wait times of the stops after it, so those can be stale. Rebuilding
+  // the day here makes every displayed time self-consistent again.
   private async optimizeDayOrders(
     itineraries: DayItinerary[],
     placeMatrix: Map<string, Map<string, number>> | null,

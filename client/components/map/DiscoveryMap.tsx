@@ -295,6 +295,11 @@ export default function DiscoveryMap({
   const [isRoutingLoading, setIsRoutingLoading] = useState(false);
   const lastFetchedRouteRef = React.useRef<string | null>(null);
 
+  // === Itinerary Road Routes State ===
+  interface ItinerarySegment { dayNumber: number; color: string; path: [number, number][]; }
+  const [itineraryRoadRoutes, setItineraryRoadRoutes] = useState<ItinerarySegment[]>([]);
+  const [isItineraryRoutingLoading, setIsItineraryRoutingLoading] = useState(false);
+
   // === Drag and Minimize States ===
   const [isRoutePanelMinimized, setIsRoutePanelMinimized] = useState(false);
   const [dragOffset, setDragOffset] = useState({ x: 0, y: 0 });
@@ -359,6 +364,86 @@ export default function DiscoveryMap({
     }
     loadData();
   }, []);
+
+  // === Itinerary Road Routing Effect (Goong API) ===
+  useEffect(() => {
+    if (itineraryMarkers.length === 0) {
+      setItineraryRoadRoutes([]);
+      return;
+    }
+
+    const GOONG_KEY = process.env.NEXT_PUBLIC_GOONG_API_KEY || '';
+    const abortController = new AbortController();
+
+    const fetchAllSegments = async () => {
+      setIsItineraryRoutingLoading(true);
+
+      // Group markers by day and sort by order
+      const byDay = itineraryMarkers.reduce<Record<number, typeof itineraryMarkers>>((acc, m) => {
+        if (!acc[m.dayNumber]) acc[m.dayNumber] = [];
+        acc[m.dayNumber].push(m);
+        return acc;
+      }, {});
+
+      const fetchSegment = async (
+        from: { lat: number; lng: number },
+        to: { lat: number; lng: number },
+      ): Promise<[number, number][]> => {
+        try {
+          const res = await fetch(
+            `https://rsapi.goong.io/direction?origin=${from.lat},${from.lng}&destination=${to.lat},${to.lng}&vehicle=bike&api_key=${GOONG_KEY}`,
+            { signal: abortController.signal }
+          );
+          const data = await res.json();
+          if (data.routes && data.routes.length > 0) {
+            return decodePolyline(data.routes[0].overview_polyline.points);
+          }
+        } catch (err: unknown) {
+          if (err instanceof Error && err.name === 'AbortError') throw err;
+          // Fallback to straight line on network error
+        }
+        // Straight-line fallback
+        return [[from.lat, from.lng], [to.lat, to.lng]];
+      };
+
+      try {
+        // Fetch all days in parallel
+        const dayEntries = Object.entries(byDay);
+        const dayResults = await Promise.all(
+          dayEntries.map(async ([dayNumStr, markers]) => {
+            const sorted = [...markers].sort((a, b) => a.order - b.order);
+            const color = sorted[0]?.color ?? '#3b82f6';
+            const dayNumber = Number(dayNumStr);
+
+            // Fetch consecutive pairs in parallel
+            const segmentPaths = await Promise.all(
+              sorted.slice(0, -1).map((m, i) => fetchSegment(m, sorted[i + 1]))
+            );
+
+            // Flatten all segment paths into one continuous path
+            const fullPath: [number, number][] = segmentPaths.flat();
+            return { dayNumber, color, path: fullPath } as ItinerarySegment;
+          })
+        );
+
+        if (!abortController.signal.aborted) {
+          setItineraryRoadRoutes(dayResults.filter(r => r.path.length > 0));
+        }
+      } catch (err: unknown) {
+        if (!(err instanceof Error) || err.name !== 'AbortError') {
+          console.error('Itinerary routing error:', err);
+        }
+      } finally {
+        if (!abortController.signal.aborted) {
+          setIsItineraryRoutingLoading(false);
+        }
+      }
+    };
+
+    fetchAllSegments();
+    return () => abortController.abort();
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [JSON.stringify(itineraryMarkers.map(m => m.placeId + m.dayNumber))]);
 
   // === Routing Effect (Goong API) ===
   useEffect(() => {
@@ -495,10 +580,22 @@ export default function DiscoveryMap({
         .custom-landmark-marker { background: none !important; border: none !important; font-family: inherit !important; }
         .user-location-marker { background: none !important; border: none !important; }
         .itinerary-marker { background: none !important; border: none !important; }
+        /* Grayscale applied per-tile (not on .leaflet-container) so the CSS filter
+           doesn't clip the zoom-animation's scaled tile-pane. */
+        .leaflet-tile { filter: grayscale(0.2); }
       `}</style>
       
+      {/* Itinerary Route Loading Indicator */}
+      {isItineraryRoutingLoading && (
+        <div className="absolute top-4 left-1/2 -translate-x-1/2 z-[1000] bg-background/90 backdrop-blur-xl px-4 py-2 rounded-full shadow-xl border border-white/40 flex items-center gap-2.5 animate-in fade-in slide-in-from-top-4 duration-300">
+          <div className="w-4 h-4 border-2 border-primary/30 border-t-primary rounded-full animate-spin" />
+          <span className="text-[10px] font-black text-on-surface uppercase tracking-widest">Calculating route...</span>
+        </div>
+      )}
+
       {/* Routing Panel Overlay */}
       {routingDestination && !isRoutePanelMinimized && (
+
         <div 
           style={{
             transform: `translate(${dragOffset.x}px, ${dragOffset.y}px) translateX(-50%)`,
@@ -646,7 +743,6 @@ export default function DiscoveryMap({
         scrollWheelZoom={true}
         zoomControl={false}
         style={{ height: '100%', width: '100%' }}
-        className="grayscale-[0.2] transition-all"
       >
         <MapInstanceTracker setMap={setMapInstance} />
         <ZoomTracker setZoom={setZoomLevel} />
@@ -702,6 +798,46 @@ export default function DiscoveryMap({
             </Marker>
           );
         })}
+
+        {/* Itinerary road routes (real roads via Goong API, one polyline per day) */}
+        {itineraryRoadRoutes.map(seg => (
+          <React.Fragment key={`road-day-${seg.dayNumber}`}>
+            {/* Glow / shadow */}
+            <Polyline
+              positions={seg.path}
+              pathOptions={{
+                color: seg.color,
+                weight: 12,
+                opacity: 0.15,
+                lineCap: 'round',
+                lineJoin: 'round',
+              }}
+            />
+            {/* Main road line */}
+            <Polyline
+              positions={seg.path}
+              pathOptions={{
+                color: seg.color,
+                weight: 5,
+                opacity: 0.9,
+                lineCap: 'round',
+                lineJoin: 'round',
+              }}
+            />
+            {/* White dashed overlay for road feel */}
+            <Polyline
+              positions={seg.path}
+              pathOptions={{
+                color: '#ffffff',
+                weight: 2,
+                opacity: 0.55,
+                lineCap: 'round',
+                lineJoin: 'round',
+                dashArray: '6, 12',
+              }}
+            />
+          </React.Fragment>
+        ))}
 
         {/* Itinerary markers (numbered, colored per day) */}
         {itineraryMarkers.map(marker => (

@@ -1,3 +1,4 @@
+
 import {
   Injectable,
   ForbiddenException,
@@ -20,9 +21,13 @@ export class ActivitiesService {
   constructor(
     private prisma: PrismaService,
     private notificationsService: NotificationsService,
-  ) {}
+  ) { }
 
   // ── Helper: resolve lat/lng/address/placeName from a Trip's start point ──────
+  // An activity is anchored to EITHER a Place OR a Trip. Trip-anchored ones have
+  // no coordinates of their own, so we borrow the first stop of day 1 — that way
+  // every activity has usable lat/lng and the nearby feed can treat both kinds
+  // identically.
   private async resolveLocationFromTrip(tripId: string): Promise<{
     lat: number;
     lng: number;
@@ -78,6 +83,10 @@ export class ActivitiesService {
   }
 
   // ── Create Activity ───────────────────────────────────────────────────────────
+  // Raw SQL rather than Prisma because of the PostGIS `location` column: lat/lng
+  // are stored twice, as plain floats for display and as a geometry(Point, 4326)
+  // for the radius search in findAll(). The host is inserted as an APPROVED
+  // member immediately, which is also what grants them the group chat room.
   async create(userId: string, dto: CreateActivityDto) {
     try {
       const id = uuidv4();
@@ -164,6 +173,11 @@ export class ActivitiesService {
   }
 
   // ── Find All (public feed, excluding already-joined) ─────────────────────────
+  // Two branches: a plain date-ordered feed, or — when the client sends lat/lng —
+  // a PostGIS radius search. There the ::geography cast is what makes `radius`
+  // mean metres instead of degrees, and using ST_DWithin (rather than comparing
+  // ST_Distance in the WHERE clause) is what lets Postgres use the spatial index
+  // instead of measuring every row.
   async findAll(
     userId?: string,
     lat?: number,
@@ -376,6 +390,11 @@ export class ActivitiesService {
   }
 
   // ── Request to Join ───────────────────────────────────────────────────────────
+  // Entry point of the membership lifecycle: PENDING here → APPROVED via
+  // approveMember() (the host decides), or removed by rejectMember() /
+  // cancelJoinRequest(). GroupChatService.isApprovedMember() reads this same
+  // status, so this table is the single source of truth for chat access too.
+  // Capped at 5 requests per user per day to limit spam.
   async requestToJoin(userId: string, activityId: string) {
     const today = new Date();
     today.setHours(0, 0, 0, 0);
@@ -460,6 +479,9 @@ export class ActivitiesService {
   }
 
   // ── Approve / Reject Member ───────────────────────────────────────────────────
+  // Host-only. Flipping the status to APPROVED is what unlocks the group chat,
+  // so the read-status row is seeded here too — otherwise the new member would
+  // open the room and see every past message counted as unread.
   async approveMember(hostId: string, activityId: string, userId: string) {
     const activities = await this.prisma.$queryRaw<any[]>`
       SELECT host_id as "hostId", title FROM activities WHERE id = ${activityId}::uuid
@@ -675,6 +697,9 @@ export class ActivitiesService {
   }
 
   // ── Clone Trip from Activity ──────────────────────────────────────────────────
+  // Deep-copies the host's itinerary (days + stops) into a trip the joiner owns,
+  // so they can edit their own copy without touching the shared plan. This is
+  // the bridge from the activities module back into the trip planner.
   async cloneActivityTrip(userId: string, activityId: string) {
     const activity = await this.prisma.activity.findUnique({
       where: { id: activityId },

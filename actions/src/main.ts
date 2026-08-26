@@ -4,12 +4,19 @@ import { ValidationPipe } from '@nestjs/common';
 import { SwaggerModule, DocumentBuilder } from '@nestjs/swagger';
 import { NestExpressApplication } from '@nestjs/platform-express';
 import { join } from 'path';
+import { RedisIoAdapter } from './redis/redis-io.adapter';
 
 async function bootstrap() {
   const app = await NestFactory.create<NestExpressApplication>(AppModule);
 
   // Phục vụ ảnh từ thư mục public
   app.useStaticAssets(join(process.cwd(), 'public'));
+
+  // Socket.io Redis adapter: lets group-chat broadcasts reach sockets
+  // connected to OTHER instances once this app is scaled horizontally.
+  const redisIoAdapter = new RedisIoAdapter(app);
+  await redisIoAdapter.connectToRedis();
+  app.useWebSocketAdapter(redisIoAdapter);
 
   // 1. Thêm màng lọc ValidationPipe toàn cục
   app.useGlobalPipes(
