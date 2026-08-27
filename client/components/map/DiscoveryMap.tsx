@@ -32,16 +32,39 @@ const CATEGORY_ICON: Record<string, string> = {
 };
 
 const CATEGORY_COLOR: Record<string, string> = {
-  'Museum': '#3F51B5',       // Indigo
-  'Temple & Pagoda': '#FF9800', // Orange
-  'Historic Site': '#607D8B',  // Blue Grey
-  'Nature & Lake': '#43A047',  // Green
-  'Arts & Performance': '#9C27B0', // Purple
-  'Street & Market': '#E53935',   // Red
+  'Museum': '#3F51B5',          // Indigo
+  'Temple & Pagoda': '#F59E0B', // Amber/Orange
+  'Historic Site': '#0284C7',    // Sky Blue / Ocean
+  'Nature & Lake': '#16A34A',    // Vibrant Green
+  'Arts & Performance': '#9333EA', // Purple
+  'Street & Market': '#EA580C',   // Red-Orange
 };
 
-const getCategoryIcon = (category: string) => CATEGORY_ICON[category] ?? 'location_on';
-const getCategoryColor = (category: string) => CATEGORY_COLOR[category] ?? '#607D8B';
+const getCategoryIcon = (category: string) => {
+  if (!category) return 'location_on';
+  if (CATEGORY_ICON[category]) return CATEGORY_ICON[category];
+  const c = category.toLowerCase();
+  if (c.includes('museum') || c.includes('bảo tàng')) return 'museum';
+  if (c.includes('temple') || c.includes('pagoda') || c.includes('church') || c.includes('chùa') || c.includes('đền') || c.includes('spiritual')) return 'temple_buddhist';
+  if (c.includes('historic') || c.includes('heritage') || c.includes('citadel') || c.includes('di tích')) return 'castle';
+  if (c.includes('nature') || c.includes('lake') || c.includes('park') || c.includes('zoo') || c.includes('hồ') || c.includes('công viên')) return 'forest';
+  if (c.includes('art') || c.includes('performance') || c.includes('theater') || c.includes('theatre') || c.includes('nghệ thuật')) return 'theater_comedy';
+  if (c.includes('street') || c.includes('market') || c.includes('shop') || c.includes('food') || c.includes('phố') || c.includes('chợ') || c.includes('sightseeing')) return 'storefront';
+  return 'location_on';
+};
+
+const getCategoryColor = (category: string) => {
+  if (!category) return '#0284C7';
+  if (CATEGORY_COLOR[category]) return CATEGORY_COLOR[category];
+  const c = category.toLowerCase();
+  if (c.includes('museum') || c.includes('bảo tàng')) return '#3F51B5';
+  if (c.includes('temple') || c.includes('pagoda') || c.includes('church') || c.includes('chùa') || c.includes('đền') || c.includes('spiritual')) return '#F59E0B';
+  if (c.includes('historic') || c.includes('heritage') || c.includes('citadel') || c.includes('di tích')) return '#0284C7';
+  if (c.includes('nature') || c.includes('lake') || c.includes('park') || c.includes('zoo') || c.includes('hồ') || c.includes('công viên')) return '#16A34A';
+  if (c.includes('art') || c.includes('performance') || c.includes('theater') || c.includes('theatre') || c.includes('nghệ thuật')) return '#9333EA';
+  if (c.includes('street') || c.includes('market') || c.includes('shop') || c.includes('food') || c.includes('phố') || c.includes('chợ') || c.includes('sightseeing')) return '#EA580C';
+  return '#0284C7';
+};
 
 // Tạo icon tùy chỉnh sử dụng HTML và Tailwind
 const createCustomIcon = (landmark: Landmark, showLabel: boolean, isFocused: boolean = false) => {

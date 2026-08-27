@@ -28,8 +28,8 @@ export type PlaceStory = {
 // Default static data for fallback
 export const staticLandmarks: Landmark[] = [];
 
-const CLIENT_CACHE_KEY = 'hanoigo_landmarks_v1';
-const CLIENT_CACHE_TTL = 5 * 60 * 1000; // 5 minutes
+const CLIENT_CACHE_KEY = 'hanoigo_landmarks_v2';
+const CLIENT_CACHE_TTL = 60 * 1000; // 1 minute cache
 
 // API fetch function
 export async function fetchLandmarks(): Promise<Landmark[]> {
@@ -46,9 +46,8 @@ export async function fetchLandmarks(): Promise<Landmark[]> {
 
   try {
     const baseUrl = process.env.NEXT_PUBLIC_ACTIONS_URL || 'http://localhost:8888';
-    // Server-side: Next.js caches this for 1 hour; client-side: browser HTTP cache applies
     const response = await fetch(`${baseUrl}/places`, {
-      next: { revalidate: 3600, tags: ['landmarks'] },
+      cache: 'no-store',
     });
     
     if (!response.ok) throw new Error('Failed to fetch from API');
