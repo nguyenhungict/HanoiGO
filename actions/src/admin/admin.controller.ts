@@ -18,6 +18,7 @@ import { CreatePlaceDto } from './dto/create-place.dto';
 import { UpdatePlaceDto } from './dto/update-place.dto';
 import { CreateUserDto } from './dto/create-user.dto';
 import { Post, Delete } from '@nestjs/common';
+import type { AuthenticatedRequest } from '../common/types/authenticated-request';
 
 @Controller('admin')
 @UseGuards(JwtAuthGuard, RolesGuard)
@@ -71,7 +72,7 @@ export class AdminController {
   banUser(
     @Param('id') userId: string,
     @Body() body: BanUserDto,
-    @Request() req: any,
+    @Request() req: AuthenticatedRequest,
   ) {
     return this.adminService.banUser(
       req.user.id,
@@ -82,7 +83,7 @@ export class AdminController {
   }
 
   @Patch('users/:id/unban')
-  unbanUser(@Param('id') userId: string, @Request() req: any) {
+  unbanUser(@Param('id') userId: string, @Request() req: AuthenticatedRequest) {
     return this.adminService.unbanUser(req.user.id, userId);
   }
 
@@ -149,12 +150,12 @@ export class AdminController {
   }
 
   @Patch('activities/:id/cancel')
-  cancelActivity(@Param('id') id: string, @Request() req: any) {
+  cancelActivity(@Param('id') id: string, @Request() req: AuthenticatedRequest) {
     return this.adminService.cancelActivity(req.user.id, id);
   }
 
   @Delete('activities/:id')
-  deleteActivity(@Param('id') id: string, @Request() req: any) {
+  deleteActivity(@Param('id') id: string, @Request() req: AuthenticatedRequest) {
     return this.adminService.deleteActivity(req.user.id, id);
   }
 
@@ -184,7 +185,7 @@ export class AdminController {
     @Param('id') reportId: string,
     @Body()
     body: { adminNotes?: string; contentAction?: 'NONE' | 'HIDE' | 'DELETE' },
-    @Request() req: any,
+    @Request() req: AuthenticatedRequest,
   ) {
     return this.adminService.resolveReport(
       req.user.id,
@@ -198,7 +199,7 @@ export class AdminController {
   dismissReport(
     @Param('id') reportId: string,
     @Body() body: { adminNotes?: string },
-    @Request() req: any,
+    @Request() req: AuthenticatedRequest,
   ) {
     return this.adminService.dismissReport(
       req.user.id,

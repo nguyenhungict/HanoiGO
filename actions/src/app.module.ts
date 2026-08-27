@@ -1,5 +1,6 @@
 import { Module } from '@nestjs/common';
 import { ConfigModule } from '@nestjs/config';
+import { ThrottlerModule, ThrottlerGuard } from '@nestjs/throttler';
 import { AuthModule } from './auth/auth.module';
 import { UsersModule } from './users/users.module';
 import { PrismaModule } from './prisma/prisma.module';
@@ -18,6 +19,10 @@ import { RolesGuard } from './common/guards/roles.guard';
 @Module({
   imports: [
     ConfigModule.forRoot({ isGlobal: true }),
+    // Global default: 60 requests/min per IP. Auth routes override this with
+    // a much tighter limit (see AuthController) since login/OTP are the
+    // realistic brute-force targets.
+    ThrottlerModule.forRoot([{ name: 'default', ttl: 60000, limit: 60 }]),
     PrismaModule,
     RedisModule,
     AuthModule,
@@ -31,6 +36,6 @@ import { RolesGuard } from './common/guards/roles.guard';
     MediaModule,
     NotificationsModule,
   ],
-  providers: [],
+  providers: [{ provide: APP_GUARD, useClass: ThrottlerGuard }],
 })
 export class AppModule {}

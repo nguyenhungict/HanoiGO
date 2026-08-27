@@ -8,6 +8,7 @@ import { PrismaService } from '../prisma/prisma.service';
 import { CreatePlaceDto } from '../admin/dto/create-place.dto';
 import { UpdatePlaceDto } from '../admin/dto/update-place.dto';
 import { deleteFileFromStorage } from '../common/storage.utils';
+import { Prisma } from '@prisma/client';
 
 @Injectable()
 export class PlacesService {
@@ -78,7 +79,7 @@ export class PlacesService {
   // ── Admin: paginated list with search + category + trip-stop count ─
   async findAllAdmin(page = 1, limit = 10, search?: string, category?: string) {
     const skip = (page - 1) * limit;
-    const where: any = {};
+    const where: Prisma.PlaceWhereInput = {};
 
     if (search) {
       where.name = { contains: search, mode: 'insensitive' };
@@ -162,10 +163,10 @@ export class PlacesService {
     });
     if (!place) throw new NotFoundException('Place not found');
 
-    const updateData: any = { ...dto };
+    const updateData: Prisma.PlaceUncheckedUpdateInput = { ...dto };
     delete updateData.lat;
     delete updateData.lng;
-    delete updateData.galleryUrls;
+    delete (updateData as Record<string, unknown>).galleryUrls;
 
     // Convert time strings to UTC-anchored Date objects for @db.Time(6) column
     if (dto.openTimeStart !== undefined) {

@@ -64,7 +64,7 @@ export async function loginAction(credentials: any) {
       cookieStore.set('accessToken', accessToken, {
         httpOnly: true,
         secure: IS_PRODUCTION,
-        sameSite: 'strict',
+        sameSite: 'lax',
         maxAge: COOKIE_MAX_AGE,
         path: '/',
       });
@@ -73,7 +73,7 @@ export async function loginAction(credentials: any) {
         path: '/', 
         maxAge: COOKIE_MAX_AGE,
         secure: IS_PRODUCTION,
-        sameSite: 'strict'
+        sameSite: 'lax'
       });
 
       return { success: true, user, token: accessToken };
@@ -81,7 +81,13 @@ export async function loginAction(credentials: any) {
 
     return { success: true };
   } catch (error: any) {
-    return { error: error.response?.data?.message || 'Đăng nhập thất bại' };
+    if (error.code === 'ECONNABORTED' || error.message?.includes('timeout')) {
+      return { error: 'Máy chủ phản hồi chậm hoặc đang khởi động. Vui lòng thử lại sau vài giây.' };
+    }
+    if (error.code === 'ECONNREFUSED' || error.message?.includes('Network Error')) {
+      return { error: 'Không thể kết nối đến máy chủ Backend. Vui lòng kiểm tra lại cấu hình NEXT_PUBLIC_ACTIONS_URL trên Vercel.' };
+    }
+    return { error: error.response?.data?.message || 'Đăng nhập thất bại. Vui lòng kiểm tra lại thông tin.' };
   }
 }
 

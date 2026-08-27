@@ -1,6 +1,6 @@
 import { Injectable, Logger, NotFoundException } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
-import { NotificationType } from '@prisma/client';
+import { NotificationType, Prisma } from '@prisma/client';
 import { NotificationsGateway } from './notifications.gateway';
 
 @Injectable()
@@ -50,7 +50,7 @@ export class NotificationsService {
    */
   async findForUser(userId: string, cursor?: string, limit = 20) {
     try {
-      const queryOptions: any = {
+      const queryOptions: Prisma.NotificationFindManyArgs = {
         where: { userId },
         orderBy: { createdAt: 'desc' },
         take: limit + 1, // Get one extra to determine next cursor

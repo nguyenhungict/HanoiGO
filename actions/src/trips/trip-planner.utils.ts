@@ -7,7 +7,7 @@ export function minToTime(min: number): string {
   return `${h.toString().padStart(2, '0')}:${m.toString().padStart(2, '0')}`;
 }
 
-export function dbTimeToMin(dbTime: any): number {
+export function dbTimeToMin(dbTime: Date | string | null | undefined): number {
   if (!dbTime) return 0;
   if (dbTime instanceof Date) {
     return dbTime.getUTCHours() * 60 + dbTime.getUTCMinutes();

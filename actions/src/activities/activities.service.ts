@@ -10,7 +10,7 @@ import { PrismaService } from '../prisma/prisma.service';
 import { CreateActivityDto } from './dto/create-activity.dto';
 import { UpdateActivityDto } from './dto/update-activity.dto';
 import { ReportActivityDto } from './dto/report-activity.dto';
-import { MemberStatus, ActivityStatus, NotificationType } from '@prisma/client';
+import { MemberStatus, ActivityStatus, NotificationType, Prisma } from '@prisma/client';
 import { v4 as uuidv4 } from 'uuid';
 import { NotificationsService } from '../notifications/notifications.service';
 
@@ -571,7 +571,9 @@ export class ActivitiesService {
     if (activity.hostId !== userId)
       throw new ForbiddenException('Only the host can edit this activity');
 
-    const data: any = {};
+    // Unchecked variant: lets us assign the placeId scalar directly instead of
+    // rewriting this into a nested `place: { connect/disconnect }` shape.
+    const data: Prisma.ActivityUncheckedUpdateInput = {};
     if (dto.title !== undefined) data.title = dto.title;
     if (dto.description !== undefined) data.description = dto.description;
     if (dto.address !== undefined) data.address = dto.address;

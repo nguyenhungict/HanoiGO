@@ -6,6 +6,7 @@ import { ConfigModule, ConfigService } from '@nestjs/config';
 import { PrismaModule } from '../prisma/prisma.module';
 import { NotificationsModule } from '../notifications/notifications.module';
 import { RedisModule } from '../redis/redis.module';
+import { requireEnv } from '../common/env.utils';
 
 @Module({
   imports: [
@@ -15,8 +16,8 @@ import { RedisModule } from '../redis/redis.module';
     JwtModule.registerAsync({
       imports: [ConfigModule],
       inject: [ConfigService],
-      useFactory: (config: ConfigService) => ({
-        secret: config.get('JWT_SECRET') || 'super-secret',
+      useFactory: () => ({
+        secret: requireEnv('JWT_SECRET'),
         signOptions: { expiresIn: '7d' },
       }),
     }),

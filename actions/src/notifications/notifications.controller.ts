@@ -10,6 +10,7 @@ import {
 import { NotificationsService } from './notifications.service';
 import { AuthGuard } from '@nestjs/passport';
 import { ApiTags, ApiOperation, ApiBearerAuth } from '@nestjs/swagger';
+import type { AuthenticatedRequest } from '../common/types/authenticated-request';
 
 @ApiTags('notifications')
 @Controller('notifications')
@@ -21,7 +22,7 @@ export class NotificationsController {
   @Get()
   @ApiOperation({ summary: 'Get paginated notifications for current user' })
   async findForUser(
-    @Request() req: any,
+    @Request() req: AuthenticatedRequest,
     @Query('cursor') cursor?: string,
     @Query('limit') limit?: string,
   ) {
@@ -31,19 +32,19 @@ export class NotificationsController {
 
   @Get('unread-count')
   @ApiOperation({ summary: 'Get unread notification count for current user' })
-  async getUnreadCount(@Request() req: any) {
+  async getUnreadCount(@Request() req: AuthenticatedRequest) {
     return this.notificationsService.getUnreadCount(req.user.id);
   }
 
   @Patch(':id/read')
   @ApiOperation({ summary: 'Mark specific notification as read' })
-  async markRead(@Request() req: any, @Param('id') id: string) {
+  async markRead(@Request() req: AuthenticatedRequest, @Param('id') id: string) {
     return this.notificationsService.markRead(req.user.id, id);
   }
 
   @Patch('read-all')
   @ApiOperation({ summary: 'Mark all notifications as read for current user' })
-  async markAllRead(@Request() req: any) {
+  async markAllRead(@Request() req: AuthenticatedRequest) {
     return this.notificationsService.markAllRead(req.user.id);
   }
 }

@@ -7,9 +7,11 @@ import { PrismaService } from '../prisma/prisma.service';
 import {
   ViolationType,
   ReportStatus,
+  ActivityStatus,
   Role,
   UserStatus,
   NotificationType,
+  Prisma,
 } from '@prisma/client';
 import * as bcrypt from 'bcrypt';
 import { CreatePlaceDto } from './dto/create-place.dto';
@@ -42,13 +44,15 @@ export class AdminService {
 
   // ── User Growth (Last 30 days) ──────────────────────────────────────
   async getUserGrowth() {
-    const growth = await this.prisma.$queryRaw`
-      SELECT 
-        DATE(created_at) as date, 
-        COUNT(*)::int as count 
-      FROM users 
+    const growth = await this.prisma.$queryRaw<
+      Array<{ date: Date; count: number }>
+    >`
+      SELECT
+        DATE(created_at) as date,
+        COUNT(*)::int as count
+      FROM users
       WHERE created_at >= NOW() - INTERVAL '30 days' AND role = 'USER'
-      GROUP BY DATE(created_at) 
+      GROUP BY DATE(created_at)
       ORDER BY DATE(created_at) ASC;
     `;
 
@@ -61,7 +65,7 @@ export class AdminService {
     }
 
     if (Array.isArray(growth)) {
-      growth.forEach((row: any) => {
+      growth.forEach((row) => {
         const dateKey =
           row.date instanceof Date
             ? row.date.toISOString().split('T')[0]
@@ -144,7 +148,7 @@ export class AdminService {
   ) {
     const skip = (page - 1) * limit;
 
-    const where: any = {};
+    const where: Prisma.UserWhereInput = {};
 
     if (search) {
       where.OR = [
@@ -429,7 +433,7 @@ export class AdminService {
     search?: string,
   ) {
     const skip = (page - 1) * limit;
-    const where: any = {};
+    const where: Prisma.ReportWhereInput = {};
 
     if (status) {
       where.status = status;
@@ -623,7 +627,7 @@ export class AdminService {
   // ── Activity Management ─────────────────────────────────────────────
   async getActivities(page = 1, limit = 10, search?: string, status?: string) {
     const skip = (page - 1) * limit;
-    const where: any = {};
+    const where: Prisma.ActivityWhereInput = {};
 
     if (search) {
       where.OR = [
@@ -633,7 +637,10 @@ export class AdminService {
       ];
     }
 
-    if (status) where.status = status;
+    // `status` comes straight off an unvalidated query string (see
+    // AdminController.getActivities) — Prisma will simply match nothing if
+    // it's not one of the real enum values.
+    if (status) where.status = status as ActivityStatus;
 
     const [activities, total] = await Promise.all([
       this.prisma.activity.findMany({

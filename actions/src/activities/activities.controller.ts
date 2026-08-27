@@ -17,6 +17,10 @@ import { ReportActivityDto } from './dto/report-activity.dto';
 import { AuthGuard } from '@nestjs/passport';
 import { OptionalJwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 import { ApiTags, ApiOperation, ApiBearerAuth } from '@nestjs/swagger';
+import type {
+  AuthenticatedRequest,
+  OptionalAuthRequest,
+} from '../common/types/authenticated-request';
 
 @ApiTags('activities')
 @Controller('activities')
@@ -29,7 +33,7 @@ export class ActivitiesController {
   @ApiOperation({
     summary: 'Share a trip plan or create a place-based activity',
   })
-  async create(@Request() req: any, @Body() dto: CreateActivityDto) {
+  async create(@Request() req: AuthenticatedRequest, @Body() dto: CreateActivityDto) {
     return this.activitiesService.create(req.user.id, dto);
   }
 
@@ -37,7 +41,7 @@ export class ActivitiesController {
   @UseGuards(OptionalJwtAuthGuard)
   @ApiOperation({ summary: 'Get all open activities' })
   async findAll(
-    @Request() req: any,
+    @Request() req: OptionalAuthRequest,
     @Query('lat') lat?: string,
     @Query('lng') lng?: string,
     @Query('radius') radius?: string,
@@ -54,7 +58,7 @@ export class ActivitiesController {
   @UseGuards(AuthGuard('jwt'))
   @ApiBearerAuth()
   @ApiOperation({ summary: 'Get my activities (hosted or joined)' })
-  async getMyActivities(@Request() req: any) {
+  async getMyActivities(@Request() req: AuthenticatedRequest) {
     return this.activitiesService.getMyActivities(req.user.id);
   }
 
@@ -63,7 +67,7 @@ export class ActivitiesController {
   @ApiOperation({
     summary: 'Get activity details (includes trip itinerary if linked)',
   })
-  async findOne(@Param('id') id: string, @Request() req: any) {
+  async findOne(@Param('id') id: string, @Request() req: OptionalAuthRequest) {
     return this.activitiesService.findOne(id, req.user?.id);
   }
 
@@ -71,7 +75,7 @@ export class ActivitiesController {
   @UseGuards(AuthGuard('jwt'))
   @ApiBearerAuth()
   @ApiOperation({ summary: 'Request to join an activity' })
-  async requestToJoin(@Request() req: any, @Param('id') id: string) {
+  async requestToJoin(@Request() req: AuthenticatedRequest, @Param('id') id: string) {
     return this.activitiesService.requestToJoin(req.user.id, id);
   }
 
@@ -79,7 +83,7 @@ export class ActivitiesController {
   @UseGuards(AuthGuard('jwt'))
   @ApiBearerAuth()
   @ApiOperation({ summary: 'Cancel a join request' })
-  async cancelJoinRequest(@Request() req: any, @Param('id') id: string) {
+  async cancelJoinRequest(@Request() req: AuthenticatedRequest, @Param('id') id: string) {
     return this.activitiesService.cancelJoinRequest(req.user.id, id);
   }
 
@@ -88,7 +92,7 @@ export class ActivitiesController {
   @ApiBearerAuth()
   @ApiOperation({ summary: 'Approve a join request (Host only)' })
   async approveMember(
-    @Request() req: any,
+    @Request() req: AuthenticatedRequest,
     @Param('id') activityId: string,
     @Param('userId') userId: string,
   ) {
@@ -104,7 +108,7 @@ export class ActivitiesController {
   @ApiBearerAuth()
   @ApiOperation({ summary: 'Reject a join request (Host only)' })
   async rejectMember(
-    @Request() req: any,
+    @Request() req: AuthenticatedRequest,
     @Param('id') activityId: string,
     @Param('userId') userId: string,
   ) {
@@ -127,7 +131,7 @@ export class ActivitiesController {
   @UseGuards(AuthGuard('jwt'))
   @ApiBearerAuth()
   @ApiOperation({ summary: 'Toggle like/unlike an activity' })
-  async toggleLike(@Request() req: any, @Param('id') id: string) {
+  async toggleLike(@Request() req: AuthenticatedRequest, @Param('id') id: string) {
     return this.activitiesService.toggleLike(req.user.id, id);
   }
 
@@ -141,7 +145,7 @@ export class ActivitiesController {
   @ApiOperation({
     summary: 'Save (clone) the trip plan from an activity into my trips',
   })
-  async cloneActivityTrip(@Request() req: any, @Param('id') id: string) {
+  async cloneActivityTrip(@Request() req: AuthenticatedRequest, @Param('id') id: string) {
     return this.activitiesService.cloneActivityTrip(req.user.id, id);
   }
 
@@ -150,7 +154,7 @@ export class ActivitiesController {
   @ApiBearerAuth()
   @ApiOperation({ summary: 'Update an activity (Host only)' })
   async update(
-    @Request() req: any,
+    @Request() req: AuthenticatedRequest,
     @Param('id') id: string,
     @Body() dto: UpdateActivityDto,
   ) {
@@ -161,7 +165,7 @@ export class ActivitiesController {
   @UseGuards(AuthGuard('jwt'))
   @ApiBearerAuth()
   @ApiOperation({ summary: 'Delete an activity (Host only)' })
-  async delete(@Request() req: any, @Param('id') id: string) {
+  async delete(@Request() req: AuthenticatedRequest, @Param('id') id: string) {
     return this.activitiesService.delete(req.user.id, id);
   }
 
@@ -170,7 +174,7 @@ export class ActivitiesController {
   @ApiBearerAuth()
   @ApiOperation({ summary: 'Report an activity for a violation' })
   async reportActivity(
-    @Request() req: any,
+    @Request() req: AuthenticatedRequest,
     @Param('id') id: string,
     @Body() dto: ReportActivityDto,
   ) {

@@ -5,6 +5,7 @@ export const BACKEND_URL = process.env.NEXT_PUBLIC_ACTIONS_URL || 'http://localh
 export const api = axios.create({
   baseURL: BACKEND_URL,
   withCredentials: true,
+  timeout: 15000,
 });
 
 export const COOKIE_MAX_AGE = 60 * 60 * 24 * 7; // 7 ngày

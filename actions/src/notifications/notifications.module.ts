@@ -5,6 +5,7 @@ import { NotificationsController } from './notifications.controller';
 import { JwtModule } from '@nestjs/jwt';
 import { ConfigModule, ConfigService } from '@nestjs/config';
 import { PrismaModule } from '../prisma/prisma.module';
+import { requireEnv } from '../common/env.utils';
 
 @Module({
   imports: [
@@ -12,8 +13,8 @@ import { PrismaModule } from '../prisma/prisma.module';
     JwtModule.registerAsync({
       imports: [ConfigModule],
       inject: [ConfigService],
-      useFactory: (config: ConfigService) => ({
-        secret: config.get('JWT_SECRET') || 'super-secret',
+      useFactory: () => ({
+        secret: requireEnv('JWT_SECRET'),
         signOptions: { expiresIn: '7d' },
       }),
     }),

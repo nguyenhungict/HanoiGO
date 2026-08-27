@@ -1,0 +1,60 @@
+services:
+  # ─── NestJS Backend Web Service ───────────────────────────────────────────
+  - type: web
+    name: hanoigo-api
+    runtime: node
+    plan: free
+    region: singapore
+    rootDir: actions
+    buildCommand: npm install && npx prisma generate && npm run build
+    startCommand: npm run start:prod
+    healthCheckPath: /
+    envVars:
+      - key: NODE_ENV
+        value: production
+      - key: PORT
+        value: 8888
+      - key: CLIENT_URL
+        sync: false
+      - key: DATABASE_URL
+        sync: false
+      - key: DIRECT_URL
+        sync: false
+      - key: SUPABASE_URL
+        sync: false
+      - key: SUPABASE_KEY
+        sync: false
+      - key: SUPABASE_BUCKET
+        value: hanoigo-uploads
+      - key: REDIS_URL
+        fromService:
+          type: redis
+          name: hanoigo-redis
+          property: connectionString
+      - key: JWT_SECRET
+        generateValue: true
+      - key: JWT_REFRESH_SECRET
+        generateValue: true
+      - key: GOONG_API_KEY
+        sync: false
+      - key: GEMINI_API_KEY
+        sync: false
+      - key: MAIL_HOST
+        value: smtp.gmail.com
+      - key: MAIL_PORT
+        value: 587
+      - key: MAIL_SECURE
+        value: false
+      - key: MAIL_USER
+        sync: false
+      - key: MAIL_PASSWORD
+        sync: false
+      - key: MAIL_FROM
+        value: "HanoiGO <noreply@hanoigo.com>"
+
+  # ─── Redis Service (Socket.io Adapter & Real-time Presence) ───────────────
+  - type: redis
+    name: hanoigo-redis
+    plan: free
+    region: singapore
+    ipAllowList: [] # Internal only (accessed securely within Render network)

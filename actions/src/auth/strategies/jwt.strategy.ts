@@ -3,6 +3,18 @@ import { UserStatus } from '@prisma/client';
 import { PassportStrategy } from '@nestjs/passport';
 import { ExtractJwt, Strategy } from 'passport-jwt';
 import { PrismaService } from '../../prisma/prisma.service';
+import { requireEnv } from '../../common/env.utils';
+import { JwtUser } from '../../common/types/authenticated-request';
+
+// Matches the payload signed in AuthService.generateTokens().
+interface JwtAccessPayload {
+  sub: string;
+  username: string;
+  role: string;
+  tokenVersion: number;
+  iat?: number;
+  exp?: number;
+}
 
 @Injectable()
 export class JwtStrategy extends PassportStrategy(Strategy) {
@@ -10,11 +22,11 @@ export class JwtStrategy extends PassportStrategy(Strategy) {
     super({
       jwtFromRequest: ExtractJwt.fromAuthHeaderAsBearerToken(),
       ignoreExpiration: false,
-      secretOrKey: process.env.JWT_SECRET || 'secretKey',
+      secretOrKey: requireEnv('JWT_SECRET'),
     });
   }
 
-  async validate(payload: any) {
+  async validate(payload: JwtAccessPayload): Promise<JwtUser> {
     const user = await this.prisma.user.findUnique({
       where: { id: payload.sub },
       select: {

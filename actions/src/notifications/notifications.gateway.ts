@@ -88,7 +88,7 @@ export class NotificationsGateway
   /**
    * Pushes a real-time event to all active sockets of a specific user.
    */
-  sendToUser(userId: string, event: string, payload: any) {
+  sendToUser(userId: string, event: string, payload: unknown) {
     const socketIds = this.activeClients.get(userId);
     if (socketIds && socketIds.size > 0) {
       this.logger.log(

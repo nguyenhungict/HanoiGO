@@ -5,6 +5,7 @@ import {
   NotFoundException,
   BadRequestException,
   ForbiddenException,
+  UnauthorizedException,
 } from '@nestjs/common';
 import { UserStatus } from '@prisma/client';
 import { UsersService } from '../users/users.service';
@@ -13,7 +14,16 @@ import { PrismaService } from '../prisma/prisma.service';
 import * as bcrypt from 'bcrypt';
 import * as nodemailer from 'nodemailer';
 import { RegisterDto } from './dto/register.dto';
-import { ConfigService } from '@nestjs/config';
+import { LoginDto } from './dto/login.dto';
+import { ChangePasswordDto } from './dto/change-password.dto';
+import { requireEnv } from '../common/env.utils';
+
+interface ResetPasswordPayload {
+  sub: string;
+  purpose: string;
+  iat?: number;
+  exp?: number;
+}
 
 @Injectable()
 export class AuthService {
@@ -23,7 +33,6 @@ export class AuthService {
     private usersService: UsersService,
     private jwtService: JwtService,
     private prisma: PrismaService,
-    private configService: ConfigService,
   ) {
     // Initialize Nodemailer transporter with Gmail
     this.transporter = nodemailer.createTransport({
@@ -210,7 +219,7 @@ export class AuthService {
   // LOGIN FLOW
   // ============================================================
 
-  async login(loginDto: any) {
+  async login(loginDto: LoginDto) {
     const { email, password } = loginDto;
 
     let user = await this.usersService.findOneByEmail(email);
@@ -219,12 +228,12 @@ export class AuthService {
     }
 
     if (!user) {
-      throw new ConflictException('Invalid username or password');
+      throw new UnauthorizedException('Invalid username or password');
     }
 
     const isPasswordValid = await bcrypt.compare(password, user.passwordHash);
     if (!isPasswordValid) {
-      throw new ConflictException('Invalid username or password');
+      throw new UnauthorizedException('Invalid username or password');
     }
 
     if (user.status === UserStatus.BANNED) {
@@ -300,9 +309,12 @@ export class AuthService {
   }
 
   async resetPassword(token: string, newPassword: string) {
-    let payload: any;
+    let payload: ResetPasswordPayload | null;
     try {
-      payload = this.jwtService.decode(token);
+      // decode() only reads the payload, it doesn't verify the signature — the
+      // real verification happens below once we know which user (and thus
+      // which per-user secret) to check against.
+      payload = this.jwtService.decode(token) as ResetPasswordPayload | null;
     } catch {
       throw new BadRequestException('Invalid token');
     }
@@ -335,8 +347,7 @@ export class AuthService {
   }
 
   private getResetSecret(passwordHash: string): string {
-    const jwtSecret =
-      this.configService.get<string>('JWT_SECRET') || 'secretKey';
+    const jwtSecret = requireEnv('JWT_SECRET');
     return `${jwtSecret}:${passwordHash}`;
   }
 
@@ -355,11 +366,11 @@ export class AuthService {
     const [accessToken, refreshToken] = await Promise.all([
       this.jwtService.signAsync(payload, {
         expiresIn: '7d',
-        secret: process.env.JWT_SECRET || 'secretKey',
+        secret: requireEnv('JWT_SECRET'),
       }),
       this.jwtService.signAsync(payload, {
         expiresIn: '7d',
-        secret: process.env.JWT_REFRESH_SECRET || 'refreshSecretKey',
+        secret: requireEnv('JWT_REFRESH_SECRET'),
       }),
     ]);
 
@@ -367,7 +378,31 @@ export class AuthService {
   }
 
 
-  async changePassword(userId: string, dto: any) {
-    return { message: 'Change password functionality not implemented yet' };
+  // Bumps tokenVersion like admin bans do (see AdminService.banUser) — a
+  // password change should invalidate every existing session, including the
+  // one making this request, forcing a fresh login with the new password.
+  async changePassword(userId: string, dto: ChangePasswordDto) {
+    const { currentPassword, newPassword } = dto;
+
+    const user = await this.usersService.findById(userId);
+    if (!user) {
+      throw new NotFoundException('User not found');
+    }
+
+    const isCurrentValid = await bcrypt.compare(
+      currentPassword,
+      user.passwordHash,
+    );
+    if (!isCurrentValid) {
+      throw new BadRequestException('Current password is incorrect');
+    }
+
+    const hashedPassword = await bcrypt.hash(newPassword, 12);
+    await this.usersService.updateProfile(userId, {
+      passwordHash: hashedPassword,
+      tokenVersion: { increment: 1 },
+    });
+
+    return { message: 'Password changed successfully. Please log in again.' };
   }
 }

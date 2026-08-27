@@ -11,6 +11,7 @@ import { UsersService } from './users.service';
 import { UpdateUserDto } from './dto/update-user.dto';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 import { ApiTags, ApiOperation, ApiBearerAuth } from '@nestjs/swagger';
+import type { AuthenticatedRequest } from '../common/types/authenticated-request';
 
 @ApiTags('users')
 @Controller('users')
@@ -21,7 +22,7 @@ export class UsersController {
   @ApiBearerAuth()
   @ApiOperation({ summary: 'Get current user profile' })
   @Get('profile')
-  async getProfile(@Req() req: any) {
+  async getProfile(@Req() req: AuthenticatedRequest) {
     const user = await this.usersService.findById(req.user.id);
     if (!user) throw new NotFoundException('User not found');
 
@@ -34,7 +35,7 @@ export class UsersController {
   @ApiBearerAuth()
   @ApiOperation({ summary: 'Update user profile' })
   @Patch('profile')
-  async updateProfile(@Req() req: any, @Body() updateUserDto: UpdateUserDto) {
+  async updateProfile(@Req() req: AuthenticatedRequest, @Body() updateUserDto: UpdateUserDto) {
     const user = await this.usersService.updateProfile(
       req.user.id,
       updateUserDto,
